@@ -64,7 +64,7 @@ impl HexrollTestbedApp {
                     // rerolling or appending.
                     let mut tree = PathTree::<RouteHandler>::new();
                     HexrollTestbedApp::routes(&mut tree);
-                    [&ret].map(|v| {
+                    [&ret].iter().for_each(|v| {
                         if let Some(route) = tree.find(&v.url).clone() {
                             let param_map: HashMap<String, String> = route
                                 .1
