@@ -8,5 +8,3 @@ repository = "https://github.com/hexroll/hexroll3"
 homepage = "https://hexroll.app"
 readme = "../README.md"
 edition = "2021"
-
-[dependencies]

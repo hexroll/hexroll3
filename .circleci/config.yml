@@ -1,0 +1,176 @@
+version: 2.1
+orbs:
+    win: circleci/windows@5.1.1
+
+jobs:
+  build-macos:
+    macos:
+      xcode: 16.4.0
+    resource_class: m4pro.medium
+    environment:
+      CARGO_TERM_COLOR: always
+    steps:
+      - checkout
+
+      - run:
+          name: Install Rust
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
+            . "$HOME/.cargo/env" && rustup toolchain install 1.92.0
+            . "$HOME/.cargo/env" && rustup default 1.92.0
+
+      - run:
+          name: Build release binary
+          command: |
+            . "$HOME/.cargo/env" && cargo build --release --package hexroll3-app
+
+      - run:
+          name: Package app bundle
+          command: |
+            set -eux
+            SOURCE_DIR="$PWD"
+            BUILD_DIR="$SOURCE_DIR/build"
+            mkdir -p "$BUILD_DIR"
+            cd "$BUILD_DIR"
+
+            mkdir -p hexroll3-macos.app/Contents/MacOS
+            mkdir -p hexroll3-macos.app/Contents/Resources
+
+            cp "$SOURCE_DIR/build-deps/macos/Info.plist" \
+               hexroll3-macos.app/Contents/
+            cp "$SOURCE_DIR/build-deps/macos/appicon.icns" \
+               hexroll3-macos.app/Contents/Resources/
+            curl -L "$ASSETS_URL" -o assets.zip
+            unzip assets.zip -d hexroll3-macos.app/Contents/Resources/
+            cp "$SOURCE_DIR/target/release/hexroll3-app" \
+               hexroll3-macos.app/Contents/MacOS/hexroll3-macos
+
+      - run:
+          name: Codesign app
+          command: |
+            set -eux
+            cd "$PWD"  # ensure we're in project root
+            echo "$CSC_LINK" | base64 --decode > cert.p12
+
+            security create-keychain -p "" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "" build.keychain
+            security list-keychains -s build.keychain login.keychain-db
+            security import cert.p12 \
+              -k build.keychain \
+              -P "$CSC_KEY_PASSWORD" \
+              -T /usr/bin/codesign
+
+            security set-key-partition-list \
+              -S apple-tool:,apple: \
+              -s \
+              -k "" \
+              build.keychain
+
+            cd build
+            codesign --options runtime --force \
+              --sign "$MACOS_SIGNATURE_ID" \
+              hexroll3-macos.app
+
+            codesign --verify --deep --strict --verbose=2 hexroll3-macos.app
+
+      - run:
+          name: Zip app for notarization
+          command: |
+            set -eux
+            cd build
+            /usr/bin/ditto -c -k --keepParent \
+              hexroll3-macos.app \
+              hexroll3-macos.zip
+
+      - run:
+          name: Notarize app
+          command: |
+            set -eux
+            cd build
+            xcrun notarytool submit hexroll3-macos.zip \
+              --apple-id "$MACOS_EMAIL" \
+              --team-id "$MACOS_TEAM_ID" \
+              --password "$MACOS_APP_PASSWORD" \
+              --wait
+
+      - run:
+          name: Staple notarization ticket
+          command: |
+            set -eux
+            cd build
+            xcrun stapler staple hexroll3-macos.app
+            xcrun stapler validate hexroll3-macos.app
+
+      - run:
+          name: Create DMG
+          command: |
+            set -eux
+            cd build
+            i=0
+            until \
+              hdiutil create \
+                -volname "hexroll3-macos" \
+                -srcfolder hexroll3-macos.app \
+                -ov \
+                -format UDZO \
+                hexroll3-macos.dmg
+            do
+              if [ "$i" -eq 10 ]; then
+                echo "hdiutil failed 10 times, exiting."
+                exit 1
+              fi
+              i=$((i+1))
+              echo "Retry #$i in 1s..."
+              sleep 1
+            done
+
+      - store_artifacts:
+          path: build/hexroll3-macos.dmg
+          destination: hexroll3-macos.dmg
+
+  build-windows:
+    executor:
+      name: win/default
+    steps:
+      - checkout
+
+      - run:
+          name: Install Rust (MSVC)
+          shell: powershell.exe
+          command: |
+            Invoke-WebRequest https://win.rustup.rs -OutFile rustup-init.exe
+            ./rustup-init.exe -y --default-toolchain stable-x86_64-pc-windows-msvc
+            setx PATH "%USERPROFILE%\.cargo\bin;%PATH%"
+      
+      - run: 
+          name: Build
+          shell: powershell.exe
+          command: |
+            $env:PATH="$env:USERPROFILE\.cargo\bin;$env:PATH"
+            rustup target add x86_64-pc-windows-msvc
+            rustup override set stable-x86_64-pc-windows-msvc
+            rustc -vV
+            cargo build --release --package hexroll3-app --target x86_64-pc-windows-msvc
+
+      - store_artifacts:
+          path: target\x86_64-pc-windows-msvc\release\hexroll3-app.exe
+          destination: hexroll3-windows.exe
+
+workflows:
+  release:
+    jobs:
+      - build-macos:
+         filters:
+           tags:
+             only: /^alpha.*/
+           branches:
+             ignore: /.*/
+
+      - build-windows:
+          filters:
+            tags:
+              only: /^alpha.*/
+            branches:
+              ignore: /.*/

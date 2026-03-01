@@ -1,5 +1,14 @@
-Cargo.lock
 debug
 target
-**/*.rs.bk
 *.pdb
+**/*.rs.bk
+trash
+etc
+backups
+node_modules
+assets
+wasm
+out
+archives
+.*
+docker/volume

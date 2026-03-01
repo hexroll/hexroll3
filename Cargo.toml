@@ -23,9 +23,147 @@
 # for more information about commercial licensing terms.
 #
 [workspace]
-members = [ "hexroll3",
-  "hexroll3",
+members = [
+  # "experiment",
+  # "hexroll3",
+  # "hexroll3-dungeons",
+  # "hexroll3-dice",
+  "hexroll3-app",
   "hexroll3-scroll",
+  "hexroll3-signaling",
   "hexroll3-testbed"
 ]
+
 resolver = "2"
+
+[workspace.dependencies]
+serde = "1.0.216"
+serde_json = "1.0.134"
+rand = "0.8.5"
+web-sys = { version = "0.3.77", features = ["Location"] }
+bevy = {git = "https://github.com/hexroll/bevy", branch="hexroll3", features=["serialize", "jpeg", "ktx2", "wayland"]}
+
+[profile.release-minified]
+inherits = "release"
+strip = true
+opt-level= "s"
+lto = "thin"
+
+[profile.release-minified-and-then-some]
+inherits = "release"
+strip = true
+opt-level= "z"
+lto = true
+
+[patch."https://github.com/bevyengine/bevy"]
+bevy = {git = "https://github.com/hexroll/bevy" ,branch="hexroll3" }
+bevy_a11y = { git = "https://github.com/hexroll/bevy", package="bevy_a11y"  ,branch="hexroll3"}
+bevy_android = { git = "https://github.com/hexroll/bevy", package="bevy_android" ,branch="hexroll3"}
+bevy_animation = { git = "https://github.com/hexroll/bevy", package="bevy_animation" ,branch="hexroll3"}
+bevy_anti_alias = { git = "https://github.com/hexroll/bevy", package="bevy_anti_alias" ,branch="hexroll3"}
+bevy_app = { git = "https://github.com/hexroll/bevy", package="bevy_app" ,branch="hexroll3"}
+bevy_asset = { git = "https://github.com/hexroll/bevy", package="bevy_asset" ,branch="hexroll3"}
+bevy_audio = { git = "https://github.com/hexroll/bevy", package="bevy_audio" ,branch="hexroll3"}
+bevy_camera = { git = "https://github.com/hexroll/bevy", package="bevy_camera" ,branch="hexroll3"}
+bevy_color = { git = "https://github.com/hexroll/bevy", package="bevy_color" ,branch="hexroll3"}
+bevy_core_pipeline = { git = "https://github.com/hexroll/bevy", package="bevy_core_pipeline" ,branch="hexroll3"}
+bevy_derive = { git = "https://github.com/hexroll/bevy", package="bevy_derive" ,branch="hexroll3"}
+bevy_dev_tools = { git = "https://github.com/hexroll/bevy", package="bevy_dev_tools" ,branch="hexroll3"}
+bevy_diagnostic = { git = "https://github.com/hexroll/bevy", package="bevy_diagnostic" ,branch="hexroll3"}
+bevy_dylib = { git = "https://github.com/hexroll/bevy", package="bevy_dylib" ,branch="hexroll3"}
+bevy_ecs = { git = "https://github.com/hexroll/bevy", package="bevy_ecs" ,branch="hexroll3"}
+bevy_encase_derive = { git = "https://github.com/hexroll/bevy", package="bevy_encase_derive" ,branch="hexroll3"}
+bevy_feathers = { git = "https://github.com/hexroll/bevy", package="bevy_feathers" ,branch="hexroll3"}
+bevy_gilrs = { git = "https://github.com/hexroll/bevy", package="bevy_gilrs" ,branch="hexroll3"}
+bevy_gizmos = { git = "https://github.com/hexroll/bevy", package="bevy_gizmos" ,branch="hexroll3"}
+bevy_gltf = { git = "https://github.com/hexroll/bevy", package="bevy_gltf" ,branch="hexroll3"}
+bevy_image = { git = "https://github.com/hexroll/bevy", package="bevy_image" ,branch="hexroll3"}
+bevy_input = { git = "https://github.com/hexroll/bevy", package="bevy_input" ,branch="hexroll3"}
+bevy_input_focus = { git = "https://github.com/hexroll/bevy", package="bevy_input_focus" ,branch="hexroll3"}
+bevy_internal = { git = "https://github.com/hexroll/bevy", package="bevy_internal" ,branch="hexroll3"}
+bevy_light = { git = "https://github.com/hexroll/bevy", package="bevy_light" ,branch="hexroll3"}
+bevy_log = { git = "https://github.com/hexroll/bevy", package="bevy_log" ,branch="hexroll3"}
+bevy_macro_utils = { git = "https://github.com/hexroll/bevy", package="bevy_macro_utils" ,branch="hexroll3"}
+bevy_math = { git = "https://github.com/hexroll/bevy", package="bevy_math" ,branch="hexroll3"}
+bevy_mesh = { git = "https://github.com/hexroll/bevy", package="bevy_mesh" ,branch="hexroll3"}
+bevy_pbr = { git = "https://github.com/hexroll/bevy", package="bevy_pbr" ,branch="hexroll3"}
+bevy_picking = { git = "https://github.com/hexroll/bevy", package="bevy_picking" ,branch="hexroll3"}
+bevy_platform = { git = "https://github.com/hexroll/bevy", package="bevy_platform" ,branch="hexroll3"}
+bevy_post_process = { git = "https://github.com/hexroll/bevy", package="bevy_post_process" ,branch="hexroll3"}
+bevy_ptr = { git = "https://github.com/hexroll/bevy", package="bevy_ptr" ,branch="hexroll3"}
+bevy_reflect = { git = "https://github.com/hexroll/bevy", package="bevy_reflect"  ,branch="hexroll3"}
+bevy_remote = { git = "https://github.com/hexroll/bevy", package="bevy_remote"  ,branch="hexroll3"}
+bevy_render = { git = "https://github.com/hexroll/bevy", package="bevy_render"  ,branch="hexroll3"}
+bevy_scene = { git = "https://github.com/hexroll/bevy", package="bevy_scene"  ,branch="hexroll3"}
+bevy_shader = { git = "https://github.com/hexroll/bevy", package="bevy_shader"  ,branch="hexroll3"}
+bevy_solari = { git = "https://github.com/hexroll/bevy", package="bevy_solari"  ,branch="hexroll3"}
+bevy_sprite = { git = "https://github.com/hexroll/bevy", package="bevy_sprite"  ,branch="hexroll3"}
+bevy_sprite_render = { git = "https://github.com/hexroll/bevy", package="bevy_sprite_render"  ,branch="hexroll3"}
+bevy_state = { git = "https://github.com/hexroll/bevy", package="bevy_state"  ,branch="hexroll3"}
+bevy_tasks = { git = "https://github.com/hexroll/bevy", package="bevy_tasks"  ,branch="hexroll3"}
+bevy_text = { git = "https://github.com/hexroll/bevy", package="bevy_text"  ,branch="hexroll3"}
+bevy_time = { git = "https://github.com/hexroll/bevy", package="bevy_time"  ,branch="hexroll3"}
+bevy_transform = { git = "https://github.com/hexroll/bevy", package="bevy_transform"  ,branch="hexroll3"}
+bevy_ui = { git = "https://github.com/hexroll/bevy", package="bevy_ui"  ,branch="hexroll3"}
+bevy_ui_render = { git = "https://github.com/hexroll/bevy", package="bevy_ui_render"  ,branch="hexroll3"}
+bevy_ui_widgets = { git = "https://github.com/hexroll/bevy", package="bevy_ui_widgets"  ,branch="hexroll3"}
+bevy_utils = { git = "https://github.com/hexroll/bevy", package="bevy_utils"  ,branch="hexroll3"}
+bevy_window = { git = "https://github.com/hexroll/bevy", package="bevy_window"  ,branch="hexroll3"}
+bevy_winit = { git = "https://github.com/hexroll/bevy", package="bevy_winit"  ,branch="hexroll3"}
+
+[patch.crates-io]
+bevy = {git = "https://github.com/hexroll/bevy" ,branch="hexroll3"}
+bevy_a11y = { git = "https://github.com/hexroll/bevy", package="bevy_a11y"  ,branch="hexroll3"}
+bevy_android = { git = "https://github.com/hexroll/bevy", package="bevy_android" ,branch="hexroll3"}
+bevy_animation = { git = "https://github.com/hexroll/bevy", package="bevy_animation" ,branch="hexroll3"}
+bevy_anti_alias = { git = "https://github.com/hexroll/bevy", package="bevy_anti_alias" ,branch="hexroll3"}
+bevy_app = { git = "https://github.com/hexroll/bevy", package="bevy_app" ,branch="hexroll3"}
+bevy_asset = { git = "https://github.com/hexroll/bevy", package="bevy_asset" ,branch="hexroll3"}
+bevy_audio = { git = "https://github.com/hexroll/bevy", package="bevy_audio" ,branch="hexroll3"}
+bevy_camera = { git = "https://github.com/hexroll/bevy", package="bevy_camera" ,branch="hexroll3"}
+bevy_color = { git = "https://github.com/hexroll/bevy", package="bevy_color" ,branch="hexroll3"}
+bevy_core_pipeline = { git = "https://github.com/hexroll/bevy", package="bevy_core_pipeline" ,branch="hexroll3"}
+bevy_derive = { git = "https://github.com/hexroll/bevy", package="bevy_derive" ,branch="hexroll3"}
+bevy_dev_tools = { git = "https://github.com/hexroll/bevy", package="bevy_dev_tools" ,branch="hexroll3"}
+bevy_diagnostic = { git = "https://github.com/hexroll/bevy", package="bevy_diagnostic" ,branch="hexroll3"}
+bevy_dylib = { git = "https://github.com/hexroll/bevy", package="bevy_dylib" ,branch="hexroll3"}
+bevy_ecs = { git = "https://github.com/hexroll/bevy", package="bevy_ecs" ,branch="hexroll3"}
+bevy_encase_derive = { git = "https://github.com/hexroll/bevy", package="bevy_encase_derive" ,branch="hexroll3"}
+bevy_feathers = { git = "https://github.com/hexroll/bevy", package="bevy_feathers" ,branch="hexroll3"}
+bevy_gilrs = { git = "https://github.com/hexroll/bevy", package="bevy_gilrs" ,branch="hexroll3"}
+bevy_gizmos = { git = "https://github.com/hexroll/bevy", package="bevy_gizmos" ,branch="hexroll3"}
+bevy_gltf = { git = "https://github.com/hexroll/bevy", package="bevy_gltf" ,branch="hexroll3"}
+bevy_image = { git = "https://github.com/hexroll/bevy", package="bevy_image" ,branch="hexroll3"}
+bevy_input = { git = "https://github.com/hexroll/bevy", package="bevy_input" ,branch="hexroll3"}
+bevy_input_focus = { git = "https://github.com/hexroll/bevy", package="bevy_input_focus" ,branch="hexroll3"}
+bevy_internal = { git = "https://github.com/hexroll/bevy", package="bevy_internal" ,branch="hexroll3"}
+bevy_light = { git = "https://github.com/hexroll/bevy", package="bevy_light" ,branch="hexroll3"}
+bevy_log = { git = "https://github.com/hexroll/bevy", package="bevy_log" ,branch="hexroll3"}
+bevy_macro_utils = { git = "https://github.com/hexroll/bevy", package="bevy_macro_utils" ,branch="hexroll3"}
+bevy_math = { git = "https://github.com/hexroll/bevy", package="bevy_math" ,branch="hexroll3"}
+bevy_mesh = { git = "https://github.com/hexroll/bevy", package="bevy_mesh" ,branch="hexroll3"}
+bevy_pbr = { git = "https://github.com/hexroll/bevy", package="bevy_pbr" ,branch="hexroll3"}
+bevy_picking = { git = "https://github.com/hexroll/bevy", package="bevy_picking" ,branch="hexroll3"}
+bevy_platform = { git = "https://github.com/hexroll/bevy", package="bevy_platform" ,branch="hexroll3"}
+bevy_post_process = { git = "https://github.com/hexroll/bevy", package="bevy_post_process" ,branch="hexroll3"}
+bevy_ptr = { git = "https://github.com/hexroll/bevy", package="bevy_ptr" ,branch="hexroll3"}
+bevy_reflect = { git = "https://github.com/hexroll/bevy", package="bevy_reflect"  ,branch="hexroll3"}
+bevy_remote = { git = "https://github.com/hexroll/bevy", package="bevy_remote"  ,branch="hexroll3"}
+bevy_render = { git = "https://github.com/hexroll/bevy", package="bevy_render"  ,branch="hexroll3"}
+bevy_scene = { git = "https://github.com/hexroll/bevy", package="bevy_scene"  ,branch="hexroll3"}
+bevy_shader = { git = "https://github.com/hexroll/bevy", package="bevy_shader"  ,branch="hexroll3"}
+bevy_solari = { git = "https://github.com/hexroll/bevy", package="bevy_solari"  ,branch="hexroll3"}
+bevy_sprite = { git = "https://github.com/hexroll/bevy", package="bevy_sprite"  ,branch="hexroll3"}
+bevy_sprite_render = { git = "https://github.com/hexroll/bevy", package="bevy_sprite_render"  ,branch="hexroll3"}
+bevy_state = { git = "https://github.com/hexroll/bevy", package="bevy_state"  ,branch="hexroll3"}
+bevy_tasks = { git = "https://github.com/hexroll/bevy", package="bevy_tasks"  ,branch="hexroll3"}
+bevy_text = { git = "https://github.com/hexroll/bevy", package="bevy_text"  ,branch="hexroll3"}
+bevy_time = { git = "https://github.com/hexroll/bevy", package="bevy_time"  ,branch="hexroll3"}
+bevy_transform = { git = "https://github.com/hexroll/bevy", package="bevy_transform"  ,branch="hexroll3"}
+bevy_ui = { git = "https://github.com/hexroll/bevy", package="bevy_ui"  ,branch="hexroll3"}
+bevy_ui_render = { git = "https://github.com/hexroll/bevy", package="bevy_ui_render"  ,branch="hexroll3"}
+bevy_ui_widgets = { git = "https://github.com/hexroll/bevy", package="bevy_ui_widgets"  ,branch="hexroll3"}
+bevy_utils = { git = "https://github.com/hexroll/bevy", package="bevy_utils"  ,branch="hexroll3"}
+bevy_window = { git = "https://github.com/hexroll/bevy", package="bevy_window"  ,branch="hexroll3"}
+bevy_winit = { git = "https://github.com/hexroll/bevy", package="bevy_winit"  ,branch="hexroll3"}
+

@@ -1,0 +1,11 @@
+body {
+  background: #2b2c2e;
+  margin: 0;
+  overflow: hidden;
+}
+canvas {
+  background-color: #2b2c2e;
+}
+canvas:focus {
+  outline: none;
+}

@@ -37,22 +37,35 @@ impl HexrollTestbedApp {
         ui.scope(|ui| {
             // Some styling before we render
             ui.style_mut().visuals.button_frame = true;
-            ui.style_mut().visuals.widgets.inactive.rounding = egui::Rounding::same(5.0);
-            ui.style_mut().visuals.widgets.active.rounding = egui::Rounding::same(5.0);
-            ui.style_mut().visuals.widgets.hovered.rounding = egui::Rounding::same(5.0);
+            ui.style_mut().visuals.widgets.inactive.rounding =
+                egui::Rounding::same(5.0);
+            ui.style_mut().visuals.widgets.active.rounding =
+                egui::Rounding::same(5.0);
+            ui.style_mut().visuals.widgets.hovered.rounding =
+                egui::Rounding::same(5.0);
 
             // This controls the overall scale of the rendered HTML
-            let font_size = (ui.available_width() / 50.0) * self.config.zoom_level;
+            let font_size =
+                (ui.available_width() / 50.0) * self.config.zoom_level;
 
-            ui.style_mut().override_font_id = Some(FontId::proportional(font_size));
+            ui.style_mut().override_font_id =
+                Some(FontId::proportional(font_size));
             ui.style_mut().text_styles.insert(
                 egui::TextStyle::Button,
-                egui::FontId::new(font_size * 0.8, eframe::epaint::FontFamily::Proportional),
+                egui::FontId::new(
+                    font_size * 0.8,
+                    eframe::epaint::FontFamily::Proportional,
+                ),
             );
 
             // Render and process any DemidomResponse we get, which is mostly click
             // events on links or buttons.
-            let ret = render_demidom(self.current_entity.html_demidom.clone(), ui, font_size, 1);
+            let ret = render_demidom(
+                self.current_entity.html_demidom.clone(),
+                ui,
+                font_size,
+                1,
+            );
             if let Some(ret) = ret {
                 if ret.url != self.current_url {
                     self.current_url = ret.url.clone();

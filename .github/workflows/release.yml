@@ -1,0 +1,140 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "github*"
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    permissions: write-all
+    environment: hexroll
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --package hexroll3-app
+
+      - name: Package app bundle
+        env:
+          BUILD_DIR: ${{ github.workspace }}/build
+          SOURCE_DIR: ${{ github.workspace }}
+        run: |
+          mkdir -p "$BUILD_DIR"
+          cd "$BUILD_DIR"
+
+          mkdir -p hexroll3-macos.app/Contents/MacOS
+          mkdir -p hexroll3-macos.app/Contents/Resources
+
+          cp "$SOURCE_DIR/build-deps/macos/Info.plist" hexroll3-macos.app/Contents/
+          cp "$SOURCE_DIR/build-deps/macos/appicon.icns" hexroll3-macos.app/Contents/Resources/
+          cp -r "$SOURCE_DIR/hexroll3-app/assets" hexroll3-macos.app/Contents/Resources/
+          cp "$SOURCE_DIR/target/release/hexroll3-app" \
+             hexroll3-macos.app/Contents/MacOS/hexroll3-macos
+
+      - name: Codesign app
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          MACOS_SIGNATURE_ID: ${{ secrets.MACOS_SIGNATURE_ID }}
+        run: |
+          echo "$CSC_LINK" | base64 --decode > cert.p12
+
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security list-keychains -s build.keychain login.keychain-db
+          security import cert.p12 \
+            -k build.keychain \
+            -P "$CSC_KEY_PASSWORD" \
+            -T /usr/bin/codesign
+
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "" \
+            build.keychain
+          cd build
+          codesign --options runtime --force \
+            --sign "$MACOS_SIGNATURE_ID" \
+            hexroll3-macos.app
+
+          codesign --verify --deep --strict --verbose=2 hexroll3-macos.app
+
+      - name: Zip app for notarization
+        run: |
+          cd build
+          /usr/bin/ditto -c -k --keepParent \
+            hexroll3-macos.app \
+            hexroll3-macos.zip
+
+      - name: Notarize app
+        env:
+          MACOS_EMAIL: ${{ secrets.MACOS_EMAIL }}
+          MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
+          MACOS_APP_PASSWORD: ${{ secrets.MACOS_APP_PASSWORD }}
+        run: |
+          cd build
+          xcrun notarytool submit hexroll3-macos.zip \
+            --apple-id "$MACOS_EMAIL" \
+            --team-id "$MACOS_TEAM_ID" \
+            --password "$MACOS_APP_PASSWORD" \
+            --wait
+
+      - name: Staple notarization ticket
+        run: |
+          cd build
+          xcrun stapler staple hexroll3-macos.app
+          xcrun stapler validate hexroll3-macos.app
+
+      - name: Create DMG
+        run: |
+          cd build
+          i=0
+          until
+            hdiutil create \
+              -volname "hexroll3-macos" \
+              -srcfolder hexroll3-macos.app \
+              -ov \
+              -format UDZO \
+              hexroll3-macos.dmg
+          do
+            if [ "$i" -eq 10 ]; then
+              echo "hdiutil failed 10 times, exiting."
+              exit 1
+            fi
+            i=$((i+1))
+            echo "Retry #$i in 1s..."
+            sleep 1
+          done
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hexroll3-macos
+          path: build/hexroll3-macos.dmg
+
+  windows-msvc:
+    permissions: write-all
+    runs-on: windows-latest
+    needs: macos
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Build (MSVC)
+        run: cargo build --release --package hexroll3-app
+
+      - name: Upload Windows Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.macos.outputs.upload_url || steps.create_release.outputs.upload_url }}
+          asset_path: target/release/hexroll3-app.exe
+          asset_name: hexroll3-windows.exe
+          asset_content_type: application/octet-stream

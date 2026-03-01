@@ -139,6 +139,7 @@ main {
                     .unwrap();
                 assert_eq!(rendered_result["output"], "bar");
                 Ok(())
-            });
+            })
+            .unwrap();
     }
 }

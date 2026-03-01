@@ -122,7 +122,7 @@ fn upcast_string(input: &str) -> serde_json::Value {
 // specifier. This function parses the attribute name and
 // visibility specifiers and returns a tuple with:
 // (attr_name, is_public, is_optional)
-fn parse_attribute_spec(pair: Pair<Rule>) -> (&str, bool, bool) {
+fn parse_attribute_spec(pair: Pair<'_, Rule>) -> (&str, bool, bool) {
     let mut is_public: bool = false;
     let mut is_optional: bool = false;
     let mut attr_decl_rule = pair.into_inner();
