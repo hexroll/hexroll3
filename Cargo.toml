@@ -24,14 +24,12 @@
 #
 [workspace]
 members = [
-  # "experiment",
-  # "hexroll3",
-  # "hexroll3-dungeons",
-  # "hexroll3-dice",
   "hexroll3-app",
   "hexroll3-scroll",
   "hexroll3-signaling",
-  "hexroll3-testbed"
+  "hexroll3-testbed",
+  "hexroll3-dungeoneer",
+  "hexroll3-cartographer"
 ]
 
 resolver = "2"
