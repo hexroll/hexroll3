@@ -24,8 +24,8 @@
 #
 
 Quest {
-  ^ [ 
-    *(x10) NoQuest
+  ^ [
+    *(x0) NoQuest
     *(x5) TrivialHook
     *(x1) MissingPersonQuest
     *(x1) TreasureQuest
@@ -34,7 +34,7 @@ Quest {
 }
 
 RerollerQuest {
-  ^ [ 
+  ^ [
     *(x1) MissingPersonQuest
     *(x1) TreasureQuest
     *(x1) Relation
@@ -69,7 +69,7 @@ kSomeone = [
     * a guard
     * a tavern keeper
     * a mysterious stranger
-    * a drunkard 
+    * a drunkard
     * a suspicious noble
     * a shady adventurer
 ]
@@ -129,7 +129,7 @@ TrivialHookIsDoingSomething {
     adj @ [
         * an important
         * an unplanned
-        * an unwanted        
+        * an unwanted
     ]
     something @ [
         * {{adj}} <strong>event</strong>

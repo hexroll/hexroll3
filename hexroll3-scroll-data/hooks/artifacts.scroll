@@ -28,12 +28,12 @@ Shard {
   HexUUID! = none
   Region! = none
   Name! @ [
-    * Blue Meteor Shards 
+    * Blue Meteor Shards
     * Blood Crystal Shards
     * Lightning Stone
   ]
   HexDescription! =<%
-    There's a <strong>2 in 6</strong> chance of finding a <strong>{{Name}}</strong>
+    There's a {{dice_roller("1d6","2 in 6")}} chance of finding a <strong>{{Name}}</strong>
     reservoir when searching minerals here. %>
   Findable! = false
 }
@@ -57,7 +57,7 @@ Plant {
     * Dark
     * Deep
   ]
-  
+
   PrefixPartB @ [
     * night
     * blood

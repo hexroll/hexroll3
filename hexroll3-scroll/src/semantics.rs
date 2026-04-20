@@ -50,6 +50,7 @@ pub struct Class {
     pub collects: Vec<CollectionSpecifier>,
     pub html_body: Option<String>,
     pub html_header: Option<String>,
+    pub html_metadata: Option<String>,
 }
 
 /// Provides the class subclasses for instantiation, either using a List:
@@ -131,6 +132,7 @@ pub trait AttrCommand {
         &self,
         ctx: &mut Context,
         instance: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         entity: &str,
     ) -> Result<()>;
@@ -138,6 +140,7 @@ pub trait AttrCommand {
         &self,
         ctx: &mut Context,
         instance: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         entity: &str,
     ) -> Result<()>;
@@ -182,6 +185,7 @@ pub struct ClassBuilder {
     pub collects: Vec<CollectionSpecifier>,
     pub html_body: Option<String>,
     pub html_header: Option<String>,
+    pub html_metadata: Option<String>,
     expanded: bool,
 }
 
@@ -198,6 +202,7 @@ impl ClassBuilder {
             expanded: false,
             html_body: None,
             html_header: None,
+            html_metadata: None,
         }
     }
 
@@ -247,18 +252,28 @@ impl ClassBuilder {
         self
     }
 
+    /// Sets the HTML metadata content for the class.
+    pub fn html_metadata(&mut self, metadata: String) -> &mut Self {
+        self.html_metadata = Some(metadata);
+        self
+    }
+
     /// Specifies the class names to collect as a list of subclasses.
     pub fn subclass_item(&mut self, class_name_to_collect: &str) {
-        if let SubclassesSpecifier::List(subclasses_list) = &mut self.subclasses {
+        if let SubclassesSpecifier::List(subclasses_list) = &mut self.subclasses
+        {
             subclasses_list.push(class_name_to_collect.to_string());
         } else {
-            self.subclasses = SubclassesSpecifier::List(vec![class_name_to_collect.to_string()]);
+            self.subclasses = SubclassesSpecifier::List(vec![
+                class_name_to_collect.to_string(),
+            ]);
         }
     }
 
     /// Specifies a single subclass to collect using a variable.
     pub fn subclass_var(&mut self, class_name_to_collect: &str) {
-        self.subclasses = SubclassesSpecifier::Var(class_name_to_collect.to_string());
+        self.subclasses =
+            SubclassesSpecifier::Var(class_name_to_collect.to_string());
     }
 
     /// Collects the specified class name.
@@ -269,10 +284,11 @@ impl ClassBuilder {
     /// Expands the class with attributes from another class using its name.
     pub fn expand(
         &mut self,
-        instance: &SandboxInstance,
+        instance: &SandboxBlueprint,
         expand_with_class_name: &str,
     ) -> &mut Self {
-        let expand_class = &instance.classes.get(expand_with_class_name).unwrap();
+        let expand_class =
+            &instance.classes.get(expand_with_class_name).unwrap();
         for (k, v) in &expand_class.attrs {
             self.attrs.insert(k.to_string(), v.clone());
         }
@@ -281,13 +297,18 @@ impl ClassBuilder {
     }
 
     /// Extends this class with attributes and properties of a parent class.
-    pub fn extends(&mut self, instance: &SandboxInstance, parent_class_name: &str) -> &mut Self {
+    pub fn extends(
+        &mut self,
+        instance: &SandboxBlueprint,
+        parent_class_name: &str,
+    ) -> &mut Self {
         self.parent = parent_class_name.to_string();
         let mut parent_class_name_mut = parent_class_name;
 
         while !parent_class_name_mut.is_empty() {
             self.hierarchy.push(parent_class_name_mut.to_string());
-            let parent_class = instance.classes.get(parent_class_name_mut).unwrap();
+            let parent_class =
+                instance.classes.get(parent_class_name_mut).unwrap();
             parent_class_name_mut = if parent_class.hierarchy.len() < 2 {
                 ""
             } else {
@@ -299,13 +320,16 @@ impl ClassBuilder {
             if let Some(parent_html_header) = &parent_class.html_header {
                 self.html_header = Some(parent_html_header.clone());
             }
+            if let Some(parent_html_metadata) = &parent_class.html_metadata {
+                self.html_metadata = Some(parent_html_metadata.clone());
+            }
             self.collects = parent_class.collects.clone();
         }
         self
     }
 
     /// Applies pending expansions or parent relationships before finalizing the class.
-    pub fn conclude(&mut self, instance: &SandboxInstance) -> &mut Self {
+    pub fn conclude(&mut self, instance: &SandboxBlueprint) -> &mut Self {
         if !self.expanded && !self.parent.is_empty() {
             let my_attrs = take(&mut self.attrs);
             self.expand(instance, &self.parent.clone());
@@ -324,6 +348,7 @@ impl ClassBuilder {
             collects: self.collects,
             html_body: self.html_body,
             html_header: self.html_header,
+            html_metadata: self.html_metadata,
         }
     }
 }

@@ -97,7 +97,6 @@ MonstersAberrationTier2 {
 
 MonstersAberrationTier3 {
   ^ [
-    * Cyclops
     * DevilSwine
     * Gorgon
     * Minotaur
@@ -108,6 +107,7 @@ MonstersAberrationTier3 {
 MonstersAberrationTier4 {
   ^ [
     * PurpleWorm
+    * Cyclops
   ]
 }
 
@@ -121,7 +121,8 @@ MonstersDragonsTier3 {
 
 MonstersDragonsTier4 {
   ^ [
-    * RedDragon
+    * RedDragonAsBoss
+    * BlackDragonAsBoss
   ]
 }
 
@@ -166,10 +167,10 @@ MonstersMagicalTier3 {
     ]
 }
 
-MonstersMagicalTier3 {
+MonstersMagicalTier4 {
   ^ [
-    * BronzeGolem
-    * Cyclops
+    *(x1) BronzeGolem
+    *(x2) EfreetiLesser
     ]
 }
 
@@ -221,7 +222,12 @@ MonsterUndeadTier3 {
 
 MonsterUndeadTier4 {
   ^ [
-    * Lich
+    *(x2) Lich
+    *(x3) DreadKnight
+    *(x3) VampireAsBoss
+    *(x2) FleshGolem
+    *(x2) BoneGolem
+    *(x2) Ghost
   ]
 }
 

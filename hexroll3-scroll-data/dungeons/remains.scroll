@@ -57,7 +57,7 @@ RandomEquipmentOnBodyState = [
 
 DungeonRemains {
   # TODO: add foreshadow?
-  Foreshadow! = none 
+  Foreshadow! = none
   Hint! @ [
     *(x2) There’s something lying on the floor
     *(x2) You spot something quite big lying on the floor
@@ -96,7 +96,7 @@ DungeonRemains {
     {%if (trim(Treasure.Details))=="" and EquipmentItems < 1 and not Key.Active%}
       Searching it will uncover <strong>nothing</strong>.
     {%else%}
-    Searching it will uncover: 
+    Searching it will uncover:
     <ul>
     {{Treasure.Details}}
     {%-if EquipmentItems > 0%}
@@ -114,7 +114,7 @@ DungeonRemains {
     {%endif%}
     {%-if Key.Active%}
     <li>
-    The {{Key.Active}} 
+    The {{Key.Active}}
     </li>
     {%endif%}
     </ul>

@@ -1,0 +1,3404 @@
+# Hexroll Scroll Model is open-source software released under the terms of the
+# GPL Affero Public License v3.
+#
+# Copyright (C) 2021-2025 Ithai Levi ithai@pendicepaper.com
+#
+# This document contains Open Game Content, subject to the Open Game License,
+# released under the Open Game License, Version 1.0a (enclosed in the LICENSE
+# file), as described in Section 1(d) of the License.
+AcidCrystals {
+    Title! ~ "Acid Crystals (1 oz)"
+    RawForm! ~ "Acid crystal formations"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Acorns {
+    Title! ~ "Acorns (1 lb)"
+    RawForm! ~ "Acorns"
+    Cost! = 0.05
+    Rarity = "c"
+}
+AdderStomach {
+    Title! ~ "Adder Stomach"
+    RawForm! ~ "Dead Adder"
+    Cost! = 5.0
+    Rarity = "s"
+}
+Agate {
+    Title! ~ "Agate"
+    RawForm! ~ "Agate formations"
+    Cost! = 10.0
+    Rarity = "c"
+}
+Alcohol {
+    Title! ~ "Alcohol (1 qt)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Alkaline {
+    Title! ~ "Alkaline (1 oz)"
+    RawForm! ~ "Alkaline deposits"
+    Cost! = 5.0
+    Rarity = "s"
+}
+Alum {
+    Title! ~ "Alum (1 oz)"
+    RawForm! ~ "Alum rocks"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+AmaryllisStalks {
+    Title! ~ "Amaryllis Stalks (dozen)"
+    RawForm! ~ "Amaryllis stalks"
+    Cost! = 24.0
+    Rarity = "r"
+}
+PowderedAmber {
+    Title! ~ "Powdered Amber"
+    RawForm! ~ "Amber formations"
+    Cost! = 100.0
+    Rarity = "s"
+}
+AmberRod {
+    Title! ~ "Amber Rod"
+    RawForm! ~ "Amber formations"
+    Cost! = 250.0
+    Rarity = "r"
+}
+CrushedAmethyst {
+    Title! ~ "Crushed Amethyst"
+    RawForm! ~ "Amethyst crystals"
+    Cost! = 500.0
+    Rarity = "vr"
+}
+PowderedAnimalHoof {
+    Title! ~ "Powdered Animal Hoof (1 oz)"
+    RawForm! ~ "Hoof of a dead animal"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+AsterSeed {
+    Title! ~ "Aster Seed (1 oz)"
+    RawForm! ~ "Aster flowers"
+    Cost! = 0.5
+    Rarity = "c"
+}
+AventurineFeldspar {
+    Title! ~ "Aventurine Feldspar (Sunstone)"
+    RawForm! ~ "Aventurine Feldspar veins"
+    Cost! = 50.0
+    Rarity = "uc"
+}
+TinyBag {
+    Title! ~ "Tiny Bag"
+    RawForm! ~ ""
+    Cost! = 1.5
+    Rarity = "c"
+}
+SmallBarMagnets {
+    Title! ~ "Small Bar Magnets"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "uc"
+}
+Bark {
+    Title! ~ "Bark (1 lb)"
+    RawForm! ~ "Loose bark"
+    Cost! = 0.01
+    Rarity = "c"
+}
+BarkChips {
+    Title! ~ "Bark Chips (1 lb)"
+    RawForm! ~ "Loose bark"
+    Cost! = 0.01
+    Rarity = "c"
+}
+OakBark {
+    Title! ~ "Oak Bark (1 lb)"
+    RawForm! ~ "Loose oak bark"
+    Cost! = 0.01
+    Rarity = "c"
+}
+Basil {
+    Title! ~ "Basil (1 oz)"
+    RawForm! ~ "Basil leaves"
+    Cost! = 5.0
+    Rarity = "c"
+}
+BatFur {
+    Title! ~ "Bat Fur (1 oz)"
+    RawForm! ~ "Dead bat"
+    Cost! = 10.0
+    Rarity = "s"
+}
+BatHairs {
+    Title! ~ "Bat Hairs (1 oz)"
+    RawForm! ~ "Dead bat"
+    Cost! = 10.0
+    Rarity = "s"
+}
+GlassOrCrystalBeads {
+    Title! ~ "Glass or Crystal Beads"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+Beeswax {
+    Title! ~ "Beeswax (1 oz)"
+    RawForm! ~ "Abandoned beehive"
+    Cost! = 0.01
+    Rarity = "e"
+}
+TinyBell {
+    Title! ~ "Tiny Bell"
+    RawForm! ~ ""
+    Cost! = 20.0
+    Rarity = "uc"
+}
+BellWithoutAClapper {
+    Title! ~ "Bell Without a Clapper"
+    RawForm! ~ ""
+    Cost! = 20.0
+    Rarity = "uc"
+}
+Berries {
+    Title! ~ "Berries (1 lb, scarcity depends on season)"
+    RawForm! ~ "Berries"
+    Cost! = 15.0
+    Rarity = "c/r"
+}
+Bitumen {
+    Title! ~ "Bitumen (1 oz)"
+    RawForm! ~ "Tar pits"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+PowderedBlackOpal {
+    Title! ~ "Powdered Black Opal"
+    RawForm! ~ "Black opal crystals"
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+CrushedBlackPearl {
+    Title! ~ "Crushed Black Pearl"
+    RawForm! ~ "Black pearl"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+BloodFromBlackDragon {
+    Title! ~ "Blood from Black Dragon (1 oz)"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "vr"
+}
+HumanBlood {
+    Title! ~ "Human Blood (1 oz)"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "r"
+}
+MammalBlood {
+    Title! ~ "Mammal Blood (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+HumanOrHumanoidBones {
+    Title! ~ "Human or Humanoid Bones (1 lb)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+BonesFromUndeadSkeleton {
+    Title! ~ "Bones from Undead (Skeleton)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+BonesFromUndeadZombie {
+    Title! ~ "Bones from Undead (Zombie)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+BonesFromUndeadGhoul {
+    Title! ~ "Bones from Undead (Ghoul)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+BonesFromUndeadGhast {
+    Title! ~ "Bones from Undead (Ghast)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+BonesFromUndeadMummie {
+    Title! ~ "Bones from Undead (Mummie)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+NewtBrain {
+    Title! ~ "Newt Brain"
+    RawForm! ~ "Dead newt"
+    Cost! = 25.0
+    Rarity = "uc"
+}
+Brandy {
+    Title! ~ "Brandy (1 pint)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+BrassDust {
+    Title! ~ "Brass Dust (1 oz)"
+    RawForm! ~ "Brass"
+    Cost! = 0.5
+    Rarity = "c"
+}
+PowderedBrass {
+    Title! ~ "Powdered Brass (1 oz)"
+    RawForm! ~ "Brass"
+    Cost! = 0.5
+    Rarity = "c"
+}
+Brazier {
+    Title! ~ "Brazier"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "uc"
+}
+BromineSalts {
+    Title! ~ "Bromine Salts (1 oz)"
+    RawForm! ~ "Bromine salt pools"
+    Cost! = 5.0
+    Rarity = "s"
+}
+BronzeDisc {
+    Title! ~ "Bronze Disc"
+    RawForm! ~ ""
+    Cost! = 1.5
+    Rarity = "c"
+}
+TinyBucket {
+    Title! ~ "Tiny Bucket"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Burrs {
+    Title! ~ "Burrs (1 oz)"
+    RawForm! ~ "Dry plants"
+    Cost! = 0.01
+    Rarity = "e"
+}
+Butter {
+    Title! ~ "Butter (1 lb)"
+    RawForm! ~ ""
+    Cost! = 0.05
+    Rarity = "e"
+}
+SmallCandle {
+    Title! ~ "Small Candle"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "e"
+}
+BlackCandles {
+    Title! ~ "Black Candles"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+PowderedCarbon {
+    Title! ~ "Powdered Carbon (1 oz)"
+    RawForm! ~ "Coal"
+    Cost! = 0.01
+    Rarity = "c"
+}
+MiniatureCarp {
+    Title! ~ "Miniature Carp (live)"
+    RawForm! ~ "Miniature carp"
+    Cost! = 0.1
+    Rarity = "s"
+}
+DriedCarrot {
+    Title! ~ "Dried Carrot (1 oz)"
+    RawForm! ~ "Carrot"
+    Cost! = 0.1
+    Rarity = "s"
+}
+EssenceOfCarrot {
+    Title! ~ "Essence of Carrot, Powdered (1 oz)"
+    RawForm! ~ "Carrot"
+    Cost! = 0.1
+    Rarity = "s"
+}
+CastorBeans {
+    Title! ~ "Castor Beans (1 oz)"
+    RawForm! ~ "Castor plants"
+    Cost! = 10.0
+    Rarity = "r"
+}
+CaterpillarCocoon {
+    Title! ~ "Caterpillar Cocoon"
+    RawForm! ~ "Caterpillar cocoon"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+Catnip {
+    Title! ~ "Catnip (1 oz)"
+    RawForm! ~ "Catnip leaves"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+MiniatureChains {
+    Title! ~ "Miniature Chains made of Special Iron, Silver, or Nickel"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Chalk {
+    Title! ~ "Chalk (1 stick)"
+    RawForm! ~ "Limestone deposits"
+    Cost! = 0.1
+    Rarity = "c"
+}
+Chamomile {
+    Title! ~ "Chamomile (1 oz)"
+    RawForm! ~ "Chamomile flowers"
+    Cost! = 20.0
+    Rarity = "uc"
+}
+Charcoal {
+    Title! ~ "Charcoal (1 oz)"
+    RawForm! ~ "Burned wood"
+    Cost! = 0.01
+    Rarity = "c"
+}
+CharcoalStick {
+    Title! ~ "Charcoal Stick (1 oz)"
+    RawForm! ~ "Burned wood"
+    Cost! = 0.01
+    Rarity = "c"
+}
+TartCherryJuice {
+    Title! ~ "Tart Cherry Juice (1 pint)"
+    RawForm! ~ "Cherries"
+    Cost! = 2.0
+    Rarity = "uc"
+}
+CitricAcid {
+    Title! ~ "Citric Acid (Lemon or Lime Juice) (1 pint)"
+    RawForm! ~ "Citrus fruits"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+PowderedCitrine {
+    Title! ~ "Powdered Citrine"
+    RawForm! ~ "Citrine crystals"
+    Cost! = 50.0
+    Rarity = "uc"
+}
+Clay {
+    Title! ~ "Clay (1 lb)"
+    RawForm! ~ "Raw clay"
+    Cost! = 1.0
+    Rarity = "c"
+}
+SmallClayTablet {
+    Title! ~ "Small Clay Tablet"
+    RawForm! ~ "Clay"
+    Cost! = 3.0
+    Rarity = "c"
+}
+FineCloth {
+    Title! ~ "Fine Cloth (1 yard)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "e"
+}
+OakenClub {
+    Title! ~ "Oaken Club"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Coal {
+    Title! ~ "Coal (1 lb)"
+    RawForm! ~ "Coal deposits"
+    Cost! = 1.0
+    Rarity = "c"
+}
+CrystalOrGlassCone {
+    Title! ~ "Crystal or Glass Cone"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "s"
+}
+SmallConeFromBullOrRam {
+    Title! ~ "Small Cone made from Bull or Ram’s Horn"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+Copper {
+    Title! ~ "Copper"
+    RawForm! ~ "Copper veins"
+    Cost! = 0.01
+    Rarity = "uc"
+}
+CopperPiece {
+    Title! ~ "Copper Piece"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "e"
+}
+SmallPieceOfFineDrawnCopper {
+    Title! ~ "Small Piece of Fine Drawn Copper"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "c"
+}
+FineCopperWire {
+    Title! ~ "Fine Copper Wire (1 ft)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Cork {
+    Title! ~ "Cork (1 oz)"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+PowderedCornExtract {
+    Title! ~ "Powdered Corn Extract (1 lb)"
+    RawForm! ~ "Corn"
+    Cost! = 2.0
+    Rarity = "c"
+}
+LiveCrickets {
+    Title! ~ "Live Crickets"
+    RawForm! ~ "Crickets"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+CrushedPearl {
+    Title! ~ "Crushed Pearl"
+    RawForm! ~ "Pearl"
+    Cost! = 100.0
+    Rarity = "r"
+}
+Crystal {
+    Title! ~ "Crystal (small)"
+    RawForm! ~ "Crystal formations"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SmallCrystalBead {
+    Title! ~ "Small Crystal Bead"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+CrystalRod {
+    Title! ~ "Crystal Rod"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+CrystalRodFilledWithPhosphorescentMaterial {
+    Title! ~ "Crystal Rod filled with Phosphorescent Material"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+ThinCrystalSheet {
+    Title! ~ "Thin Crystal Sheet"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+TwoTinyCylinders {
+    Title! ~ "Two Tiny Cylinders with One Open End connected by Copper Wire"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Dart {
+    Title! ~ "Dart"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+TypeIDemonIchor {
+    Title! ~ "Type I Demon Ichor (1 oz)"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "vr"
+}
+TypeIIDemonIchor {
+    Title! ~ "Type II Demon Ichor (1 oz)"
+    RawForm! ~ ""
+    Cost! = 750.0
+    Rarity = "vr"
+}
+TypeIIIDemonIchor {
+    Title! ~ "Type III Demon Ichor (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+CopperAndZincDevice {
+    Title! ~ "Copper and Zinc Device shaped like an “I” made of Four Joined Rings"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "vr"
+}
+CrushedDiamond {
+    Title! ~ "Crushed Diamond"
+    RawForm! ~ "Diamond"
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+DiamondDust {
+    Title! ~ "Diamond Dust"
+    RawForm! ~ "Diamond"
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+Diamond {
+    Title! ~ "Diamond"
+    RawForm! ~ "Diamond veins"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+PowderedDiamond {
+    Title! ~ "Powdered Diamond"
+    RawForm! ~ "Diamond"
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+DiamondOrClearGemSphere {
+    Title! ~ "Diamond or Clear Gem Sphere"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+DigestiveJuiceFromGiantSlug {
+    Title! ~ "Digestive Juice from Giant Slug (per flask)"
+    RawForm! ~ "Giant Slug"
+    Cost! = 50.0
+    Rarity = "r"
+}
+BronzeDisc {
+    Title! ~ "Bronze Disc"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Dish {
+    Title! ~ "Dish"
+    RawForm! ~ ""
+    Cost! = 2.0
+    Rarity = "c"
+}
+DisplacerBeastHide {
+    Title! ~ "Displacer Beast Hide"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "vr"
+}
+Dirt {
+    Title! ~ "Dirt"
+    RawForm! ~ "Dirt"
+    Cost! = 0.01
+    Rarity = "e"
+}
+DivinationCounters {
+    Title! ~ "Divination Counters (Bones, Ivory, Sticks, Carved Runes)"
+    RawForm! ~ ""
+    Cost! = 2.0
+    Rarity = "uc"
+}
+PieceOfDown {
+    Title! ~ "Piece of Down (1 oz)"
+    RawForm! ~ "Dead bird"
+    Cost! = 0.1
+    Rarity = "c"
+}
+DragonBlood {
+    Title! ~ "Dragon Blood from Various Colored Dragons (1 oz)"
+    RawForm! ~ ""
+    Cost! = 650.0
+    Rarity = "vr"
+}
+DragonBones {
+    Title! ~ "Dragon Bones (set)"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "r"
+}
+SmallDrum {
+    Title! ~ "Small Drum"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Dung {
+    Title! ~ "Dung (1 lb)"
+    RawForm! ~ "Dung"
+    Cost! = 1.0
+    Rarity = "e"
+}
+DungFromStrongAnimal {
+    Title! ~ "Dung from Strong Animal (such as Ape, Bear, or Ox) (1 lb)"
+    RawForm! ~ "Large animal dung"
+    Cost! = 1.0
+    Rarity = "e"
+}
+Dust {
+    Title! ~ "Dust"
+    RawForm! ~ "Dust"
+    Cost! = 0.01
+    Rarity = "e"
+}
+Earth {
+    Title! ~ "Earth"
+    RawForm! ~ "Soil"
+    Cost! = 0.01
+    Rarity = "e"
+}
+RottenEgg {
+    Title! ~ "Rotten Egg"
+    RawForm! ~ "Rotting egg"
+    Cost! = 0.01
+    Rarity = "uc"
+}
+EggShell {
+    Title! ~ "Egg Shell"
+    RawForm! ~ "Hatched egg shells"
+    Cost! = 0.01
+    Rarity = "c"
+}
+PowderedEmerald {
+    Title! ~ "Powdered Emerald"
+    RawForm! ~ "Emerald"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+EvergreenSprig {
+    Title! ~ "Evergreen Sprig (lm)"
+    RawForm! ~ "Evergreen trees"
+    Cost! = 0.1
+    Rarity = "c"
+}
+EyeOfAHawkEagleOrRok {
+    Title! ~ "Eye of a Hawk, Eagle, or a Rok"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "uc-vr"
+}
+Eyelash {
+    Title! ~ "Eyelash"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "e"
+}
+BasiliskEyelash {
+    Title! ~ "Basilisk Eyelash"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "vr"
+}
+EyelashFromOgreMagi {
+    Title! ~ "Eyelash from Ogre Magi, Kirin, or Spell-Using Creature"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "uc"
+}
+TinyFan {
+    Title! ~ "Tiny Fan"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Fat {
+    Title! ~ "Fat (1 lb)"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "e"
+}
+Feather {
+    Title! ~ "Feather"
+    RawForm! ~ "Feathers"
+    Cost! = 1.0
+    Rarity = "c/uc"
+}
+CoutlFeathers {
+    Title! ~ "Coutl Feathers"
+    RawForm! ~ "Coutl feathers"
+    Cost! = 15.0
+    Rarity = "s"
+}
+FeatherFromExoticBirdOrCreature {
+    Title! ~ "Feather from an Exotic Bird or Creature (Rok, Griffin, Hippogriff, etc.)"
+    RawForm! ~ "Exotic looking feather"
+    Cost! = 15.0
+    Rarity = "s"
+}
+WhiteOwlFeather {
+    Title! ~ "White Owl Feather"
+    RawForm! ~ "White owl feather"
+    Cost! = 1.0
+    Rarity = "c"
+}
+FeatherFromABirdWing {
+    Title! ~ "Feather from a Bird Wing"
+    RawForm! ~ "Bird feather"
+    Cost! = 4.0
+    Rarity = "uc"
+}
+ChickenFeather {
+    Title! ~ "Chicken Feather"
+    RawForm! ~ "Chicken feather"
+    Cost! = 1.0
+    Rarity = "c"
+}
+LiveFirefly {
+    Title! ~ "Live Firefly"
+    RawForm! ~ "Live firefly"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+TailPortionsOfFireflies {
+    Title! ~ "Tail Portions of Fireflies"
+    RawForm! ~ "Fireflies"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+Fleece {
+    Title! ~ "Fleece (1 lb)"
+    RawForm! ~ "Wool"
+    Cost! = 1.0
+    Rarity = "c"
+}
+HumanFlesh {
+    Title! ~ "Human Flesh (bit)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+Flint {
+    Title! ~ "Flint"
+    RawForm! ~ "Flint stone"
+    Cost! = 1.0
+    Rarity = "c"
+}
+WhiteFlour {
+    Title! ~ "White Flour (1 lb)"
+    RawForm! ~ "Ground grain"
+    Cost! = 0.1
+    Rarity = "c"
+}
+FlowerPetal {
+    Title! ~ "Flower Petal"
+    RawForm! ~ "Colourful flowers"
+    Cost! = 0.01
+    Rarity = "e"
+}
+Font {
+    Title! ~ "Font"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Fur {
+    Title! ~ "Fur (1 patch)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "c"
+}
+GarlicBud {
+    Title! ~ "Garlic Bud"
+    RawForm! ~ "Garlic bud"
+    Cost! = 0.05
+    Rarity = "c"
+}
+CrushedGarlic {
+    Title! ~ "Crushed Garlic (1 oz)"
+    RawForm! ~ "Garlic bud"
+    Cost! = 0.07
+    Rarity = "c"
+}
+Gauze {
+    Title! ~ "Gauze (1 yard)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+VariousGems {
+    Title! ~ "Various Gems"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+GemInlaidSticks {
+    Title! ~ "Gem Inlaid Sticks"
+    RawForm! ~ ""
+    Cost! = 250.0
+    Rarity = "vr"
+}
+SmallPieceOfGlass {
+    Title! ~ "Small Piece of Glass (1 sq ft)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+TintedYellowGlass {
+    Title! ~ "Tinted Yellow Glass, Mica, or Crystal (1 sq ft)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+GlassRod {
+    Title! ~ "Glass Rod"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "uc"
+}
+Glove {
+    Title! ~ "Glove (pair)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "c"
+}
+LeatherGlove {
+    Title! ~ "Leather Glove (pair)"
+    RawForm! ~ ""
+    Cost! = 8.0
+    Rarity = "uc"
+}
+SnakeSkinGlove {
+    Title! ~ "Snake Skin Glove (pair)"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "s"
+}
+Glowworm {
+    Title! ~ "Glowworm"
+    RawForm! ~ "Glowworm"
+    Cost! = 100.0
+    Rarity = "vr"
+}
+GoldDust {
+    Title! ~ "Gold Dust (1 gp worth)"
+    RawForm! ~ "Gold"
+    Cost! = 1.0
+    Rarity = "vr"
+}
+FineGoldenWire {
+    Title! ~ "Fine Golden Wire (1 ft)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "vr"
+}
+Grain {
+    Title! ~ "Grain (1 lb)"
+    RawForm! ~ "Crops"
+    Cost! = 0.1
+    Rarity = "e"
+}
+GraniteDust {
+    Title! ~ "Granite Dust (1 oz)"
+    RawForm! ~ "Granite"
+    Cost! = 0.1
+    Rarity = "c"
+}
+BlockOfGranite {
+    Title! ~ "Block of Granite (1 oz)"
+    RawForm! ~ "Granite"
+    Cost! = 0.1
+    Rarity = "c"
+}
+BladesOfGrass {
+    Title! ~ "Blades of Grass"
+    RawForm! ~ "Grass"
+    Cost! = 0.01
+    Rarity = "e"
+}
+GrasshopperHindLegs {
+    Title! ~ "Grasshopper Hind Legs"
+    RawForm! ~ "Grasshoppers"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+GraveyardDirt {
+    Title! ~ "Graveyard Dirt (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Grease {
+    Title! ~ "Grease (1 pint)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "e"
+}
+GumArabic {
+    Title! ~ "Gum Arabic (1 oz)"
+    RawForm! ~ "Tree resin"
+    Cost! = 2.0
+    Rarity = "uc"
+}
+SphereOfGumArabic {
+    Title! ~ "Sphere of Gum Arabic"
+    RawForm! ~ "Tree resin"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+StrandsOfGut {
+    Title! ~ "Strands of Gut (1 yard)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+HairFromAStrongAnimal {
+    Title! ~ "Hair from a Strong Animal (bunch)"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "c"
+}
+HairFromATitan {
+    Title! ~ "Hair from a Titan"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+HawkEye {
+    Title! ~ "Hawk Eye"
+    RawForm! ~ "Dead Hawk"
+    Cost! = 15.0
+    Rarity = "s"
+}
+HeartOfAHen {
+    Title! ~ "Heart of a Hen"
+    RawForm! ~ "Dead Hen"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+TwistedHemp {
+    Title! ~ "Twisted Hemp (foot)"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "uc"
+}
+VariousHerbs {
+    Title! ~ "Various Herbs (1 oz)"
+    RawForm! ~ "Various herbs"
+    Cost! = 10.0
+    Rarity = "uc-r"
+}
+PowderedHerringScales {
+    Title! ~ "Powdered Herring Scales (1 oz)"
+    RawForm! ~ "Dead Herring"
+    Cost! = 2.0
+    Rarity = "uc"
+}
+HickoryNutOil {
+    Title! ~ "Hickory Nut Oil (1 oz)"
+    RawForm! ~ "Hickory Nuts"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+Holly {
+    Title! ~ "Holly (1 oz)"
+    RawForm! ~ "Holly"
+    Cost! = 0.5
+    Rarity = "c"
+}
+HollyBerries {
+    Title! ~ "Holly Berries"
+    RawForm! ~ "Holly"
+    Cost! = 0.1
+    Rarity = "c"
+}
+HollyLeaves {
+    Title! ~ "Holly Leaves"
+    RawForm! ~ "Holly"
+    Cost! = 0.1
+    Rarity = "c"
+}
+HolyUnholySymbols {
+    Title! ~ "Holy/Unholy Symbols"
+    RawForm! ~ ""
+    Cost! = 20.0
+    Rarity = "uc"
+}
+HolyUnholyWater {
+    Title! ~ "Holy/Unholy Water (vial)"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "uc"
+}
+Honey {
+    Title! ~ "Honey (1 oz)"
+    RawForm! ~ "Abandoned honeycomb"
+    Cost! = 0.1
+    Rarity = "e"
+}
+SpeciallyFermentedHoney {
+    Title! ~ "Specially Fermented Honey from Bee Larvae for Royalty (1 oz)"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "vr"
+}
+Honeycomb {
+    Title! ~ "Honeycomb"
+    RawForm! ~ "Active honeycomb"
+    Cost! = 0.1
+    Rarity = "e"
+}
+PowderedHoof {
+    Title! ~ "Powdered Hoof from an Animal (1 oz)"
+    RawForm! ~ "Hoof of a dead animal"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Hops {
+    Title! ~ "Hops (1 oz)"
+    RawForm! ~ "Hop plants"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+HornCarvedIntoACrescentShape {
+    Title! ~ "Horn Carved into a Crescent Shape"
+    RawForm! ~ "Horn"
+    Cost! = 1.0
+    Rarity = "c"
+}
+Humus {
+    Title! ~ "Humus (1 lb)"
+    RawForm! ~ "Chickpeas"
+    Cost! = 0.1
+    Rarity = "c"
+}
+IceOrSnow {
+    Title! ~ "Ice or Snow"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "c"
+}
+IodineCrystals {
+    Title! ~ "Iodine Crystals (1 oz)"
+    RawForm! ~ "Iodine"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Incense {
+    Title! ~ "Incense (stick)"
+    RawForm! ~ "Aromatic herbs"
+    Cost! = 1.0
+    Rarity = "c"
+}
+Ink {
+    Title! ~ "Ink (1 oz)"
+    RawForm! ~ "Squid"
+    Cost! = 10.0
+    Rarity = "uc"
+}
+FineInk {
+    Title! ~ "Fine Ink"
+    RawForm! ~ "Squid"
+    Cost! = 250.0
+    Rarity = "s"
+}
+InkFromSquid {
+    Title! ~ "Ink from Squid (1 oz)"
+    RawForm! ~ "Squid"
+    Cost! = 750.0
+    Rarity = "vr"
+}
+LeadBasedInk {
+    Title! ~ "Lead-Based Ink prepared by an Alchemist (1 oz)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+IronBarOrNailOrSpike {
+    Title! ~ "Iron Bar (Nail or Spike)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+SmallMagnetizedIronBars {
+    Title! ~ "Small Magnetized Iron Bars"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+IronBlade {
+    Title! ~ "Iron Blade"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+IronFilings {
+    Title! ~ "Iron Filings (1 oz)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+PowderedIron {
+    Title! ~ "Powdered Iron (1 oz)"
+    RawForm! ~ "Iron"
+    Cost! = 3.0
+    Rarity = "uc"
+}
+IronPyrite {
+    Title! ~ "Iron Pyrite (1 lb)"
+    RawForm! ~ "Iron pyrite"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+SmallIronRod {
+    Title! ~ "Small Iron Rod"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+SmallSheetOfIron {
+    Title! ~ "Small Sheet of Iron"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+IvoryPlaque {
+    Title! ~ "Ivory Plaque"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "r"
+}
+IvoryStrips {
+    Title! ~ "Ivory Strips formed into a Rectangle"
+    RawForm! ~ ""
+    Cost! = 75.0
+    Rarity = "r"
+}
+IvoryBaton {
+    Title! ~ "Ivory Baton"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "r"
+}
+JadeCirclet {
+    Title! ~ "Jade Circlet"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "r"
+}
+JailbirdsTongue {
+    Title! ~ "Jailbird’s Tongue"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+JuiceMadeFromDriedPlums {
+    Title! ~ "Juice made from Dried Plums Boiled in Spring Water (1 oz)"
+    RawForm! ~ "Dried plums"
+    Cost! = 50.0
+    Rarity = "uc"
+}
+KirinHorn {
+    Title! ~ "Kirin Horn"
+    RawForm! ~ ""
+    Cost! = 10000.0
+    Rarity = "vr"
+}
+HairFromKirinsTail {
+    Title! ~ "Hair from Kirin's Tail (1 oz)"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+Lampblack {
+    Title! ~ "Lampblack (1 oz)"
+    RawForm! ~ "Oil soot"
+    Cost! = 0.03
+    Rarity = "c"
+}
+Lard {
+    Title! ~ "Lard (1 lb)"
+    RawForm! ~ ""
+    Cost! = 0.02
+    Rarity = "c"
+}
+Leaf {
+    Title! ~ "Leaf"
+    RawForm! ~ "Leaves"
+    Cost! = 0.01
+    Rarity = "e"
+}
+PowderedLeafFromPoisonIvyOakOrSumac {
+    Title! ~ "Powdered Leaf from Poison Ivy, Oak, or Sumac"
+    RawForm! ~ "Poison ivy"
+    Cost! = 0.1
+    Rarity = "c"
+}
+SmallLeatherLoop {
+    Title! ~ "Small Leather Loop"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+LeatherBlessedByACleric {
+    Title! ~ "Leather Blessed by a Cleric"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "uc"
+}
+AshLeaves {
+    Title! ~ "Ash Leaves"
+    RawForm! ~ "Ash tree"
+    Cost! = 0.01
+    Rarity = "uc"
+}
+GreenLeaves {
+    Title! ~ "Green Leaves"
+    RawForm! ~ "Green leaves"
+    Cost! = 0.01
+    Rarity = "e"
+}
+OakLeaves {
+    Title! ~ "Oak Leaves"
+    RawForm! ~ "Oak leaves"
+    Cost! = 0.01
+    Rarity = "e"
+}
+YewLeaves {
+    Title! ~ "Yew Leaves"
+    RawForm! ~ "Yew leaves"
+    Cost! = 0.01
+    Rarity = "uc"
+}
+WholeAndCrushedLeek {
+    Title! ~ "Whole and Crushed Leek"
+    RawForm! ~ "Leek"
+    Cost! = 0.05
+    Rarity = "c"
+}
+LegumeSeed {
+    Title! ~ "Legume Seed (1 lb)"
+    RawForm! ~ "Legume"
+    Cost! = 0.05
+    Rarity = "c"
+}
+LemonBalm {
+    Title! ~ "Lemon Balm (1 oz)"
+    RawForm! ~ "Lemon balm herb"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+ShavingOfLicoriceRoot {
+    Title! ~ "Shaving of Licorice Root (1 oz)"
+    RawForm! ~ "Licorice root"
+    Cost! = 15.0
+    Rarity = "s"
+}
+CrushedLime {
+    Title! ~ "Crushed Lime (1 lb)"
+    RawForm! ~ "Limestone"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+PowderedLime {
+    Title! ~ "Powdered Lime (1 lb)"
+    RawForm! ~ "Limestone"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+WhiteLinen {
+    Title! ~ "White Linen (1 sq yard)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+Loam {
+    Title! ~ "Loam (1 lb)"
+    RawForm! ~ "Soil"
+    Cost! = 1.0
+    Rarity = "c"
+}
+Lodestone {
+    Title! ~ "Lodestone"
+    RawForm! ~ "Magnetite vein"
+    Cost! = 25.0
+    Rarity = "r"
+}
+Luckstone {
+    Title! ~ "Luckstone (Stone of Luck in DMG)"
+    RawForm! ~ ""
+    Cost! = 25000.0
+    Rarity = "vr"
+}
+SmallMagnets {
+    Title! ~ "Small Magnets"
+    RawForm! ~ "Magnetite"
+    Cost! = 25.0
+    Rarity = "r"
+}
+MandrakeRoot {
+    Title! ~ "Mandrake Root"
+    RawForm! ~ "Mandrake plant"
+    Cost! = 15.0
+    Rarity = "s"
+}
+PolishedMarble {
+    Title! ~ "Polished Marble, Piece of (1 cu. in.)"
+    RawForm! ~ "Marble rock"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+CrushedMarigoldFlowers {
+    Title! ~ "Crushed Marigold Flowers"
+    RawForm! ~ "Marigold flowers"
+    Cost! = 0.01
+    Rarity = "c"
+}
+Melatonin {
+    Title! ~ "Melatonin (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+MercuricNitricAcidCrystals {
+    Title! ~ "Mercuric-Nitric Acid Crystals (1 oz)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+Mercury {
+    Title! ~ "Mercury (1 oz)"
+    RawForm! ~ "Quicksilver ore"
+    Cost! = 25.0
+    Rarity = "s"
+}
+SmallMetalBar {
+    Title! ~ "Small Metal Bar"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+SmallMetalRod {
+    Title! ~ "Small Metal Rod"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+SmallForkedMetalRod {
+    Title! ~ "Small Forked Metal Rod"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Meteorite {
+    Title! ~ "Meteorite"
+    RawForm! ~ "Meteorite"
+    Cost! = 10000.0
+    Rarity = "vr"
+}
+ChipOfMica {
+    Title! ~ "Chip of Mica (1 cu. in.)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SolidifiedMilkFat {
+    Title! ~ "Solidified Milk Fat (1 pint)"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+MineralSpheres {
+    Title! ~ "Mineral Spheres - Clay, Glass, or Crystal"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+MinuteTort {
+    Title! ~ "Minute Tort"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SilverMirror {
+    Title! ~ "Silver Mirror"
+    RawForm! ~ ""
+    Cost! = 20.0
+    Rarity = "uc"
+}
+HighlyPolishedSilverMirror {
+    Title! ~ "Highly Polished Silver Mirror (valuable at 1000 gp or more)"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+BorrowedMistletoe {
+    Title! ~ "Borrowed Mistletoe (1 sprig)"
+    RawForm! ~ "Mistletoe"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+GreaterMistletoe {
+    Title! ~ "Greater Mistletoe"
+    RawForm! ~ "Mistletoe"
+    Cost! = 0.01
+    Rarity = "s"
+}
+SmallMithrilPlate {
+    Title! ~ "Small Mithril Plate (1 gp worth)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+ModelOfAZigguratMadeOfClay {
+    Title! ~ "Model of a Ziggurat made of Clay"
+    RawForm! ~ "Clay"
+    Cost! = 3.0
+    Rarity = "s"
+}
+MoonseedPlant {
+    Title! ~ "Moonseed Plant"
+    RawForm! ~ "Moonseed plant"
+    Cost! = 5.0
+    Rarity = "s"
+}
+Mud {
+    Title! ~ "Mud"
+    RawForm! ~ "Wet earth"
+    Cost! = 0.01
+    Rarity = "e"
+}
+MushroomSpores {
+    Title! ~ "Mushroom Spores (1 oz)"
+    RawForm! ~ "Mushrooms"
+    Cost! = 50.0
+    Rarity = "r"
+}
+MagnetizedNeedle {
+    Title! ~ "Magnetized Needle"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "r"
+}
+TinyGoldenNeedle {
+    Title! ~ "Tiny Golden Needle"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+CrushedStingingNettleLeaves {
+    Title! ~ "Crushed Stinging Nettle Leaves (1 oz)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+Nitre {
+    Title! ~ "Nitre (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+NitricAcid {
+    Title! ~ "Nitric Acid (1 oz)"
+    RawForm! ~ ""
+    Cost! = 2.0
+    Rarity = "uc"
+}
+NumberedWheel {
+    Title! ~ "Numbered Wheel"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+NutShells {
+    Title! ~ "Nut Shells (1 lb)"
+    RawForm! ~ "Nuts"
+    Cost! = 0.1
+    Rarity = "c"
+}
+DeadOakLeaf {
+    Title! ~ "Dead Oak Leaf (1 lb)"
+    RawForm! ~ "Dead oak leaves"
+    Cost! = 0.1
+    Rarity = "c"
+}
+OakLeaves {
+    Title! ~ "Oak Leaves (1 lb)"
+    RawForm! ~ "Oak leaves"
+    Cost! = 0.1
+    Rarity = "c"
+}
+OctopusTentacle {
+    Title! ~ "Octopus Tentacle"
+    RawForm! ~ "Octopus"
+    Cost! = 50.0
+    Rarity = "r"
+}
+DropOfOil {
+    Title! ~ "Drop of Oil (1 oz)"
+    RawForm! ~ "Oil"
+    Cost! = 2.0
+    Rarity = "uc"
+}
+OilMadeFromCastorPlantBeans {
+    Title! ~ "Oil made from Castor Plant Beans (1 oz)"
+    RawForm! ~ "Castor plant beans"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+SweetOilRefinedFromHickoryAndWalnuts {
+    Title! ~ "Sweet Oil Refined from Hickory and Walnuts (per flask)"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+OintmentMadeFromMushroomPowderSaffronAndFat {
+    Title! ~ "Ointment made from Mushroom Powder, Saffron, and Fat (or individual components) (1 oz)"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "vr"
+}
+OintmentMadeFromOilPoppyDustAndPinkOrchidEssence {
+    Title! ~ "Ointment made from Oil, Poppy Dust, and Pink Orchid Essence (or individual components) (1 oz)"
+    RawForm! ~ ""
+    Cost! = 150.0
+    Rarity = "r"
+}
+OpalescentFeldspar {
+    Title! ~ "Opalescent Feldspar (Moonstone)"
+    RawForm! ~ "Moonstone veins"
+    Cost! = 150.0
+    Rarity = "xx"
+}
+OwlFeather {
+    Title! ~ "Owl Feather"
+    RawForm! ~ "Owl feather"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+WoodenPaddle {
+    Title! ~ "Wooden Paddle"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+Parchment {
+    Title! ~ "Parchment"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+ConeOfParchment {
+    Title! ~ "Cone of Parchment"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+TwistedLoopParchment {
+    Title! ~ "Twisted Loop Parchment"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+PassionFruit {
+    Title! ~ "Passion Fruit"
+    RawForm! ~ "Passion fruit"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+PowderedPeas {
+    Title! ~ "Powdered Peas (1 oz)"
+    RawForm! ~ "Peas"
+    Cost! = 0.02
+    Rarity = "c"
+}
+DriedSplitPeas {
+    Title! ~ "Dried Split Peas (1 oz)"
+    RawForm! ~ "Peas"
+    Cost! = 0.03
+    Rarity = "c"
+}
+Pearl {
+    Title! ~ "Pearl"
+    RawForm! ~ "Pearl"
+    Cost! = 300.0
+    Rarity = "vr"
+}
+CrushedPearls {
+    Title! ~ "Crushed Pearls"
+    RawForm! ~ "Pearls"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+SpecialAndExpensivePen {
+    Title! ~ "Special and Expensive Pen"
+    RawForm! ~ ""
+    Cost! = 250.0
+    Rarity = "r"
+}
+Phosphorus {
+    Title! ~ "Phosphorus (1 oz)"
+    RawForm! ~ "Phosphorus"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Pigments {
+    Title! ~ "Pigments (1 oz)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+SpeciallyPreparedPigments {
+    Title! ~ "Specially Prepared Pigments"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+PineSprig {
+    Title! ~ "Pine Sprig"
+    RawForm! ~ "Pine tree"
+    Cost! = 0.01
+    Rarity = "c"
+}
+PineTar {
+    Title! ~ "Pine Tar (1 pint)"
+    RawForm! ~ "Pine tree resin"
+    Cost! = 0.1
+    Rarity = "c"
+}
+Pinecone {
+    Title! ~ "Pinecone"
+    RawForm! ~ "Pinecone"
+    Cost! = 0.01
+    Rarity = "c"
+}
+PowderedPinealGland {
+    Title! ~ "Powdered Pineal Gland (from human or humanoid) (1 oz)"
+    RawForm! ~ ""
+    Cost! = 2500.0
+    Rarity = "vr"
+}
+IvoryOrSilverPin {
+    Title! ~ "Ivory or Silver Pin"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "uc"
+}
+Pitch {
+    Title! ~ "Pitch (1 pint)"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+GreenPlant {
+    Title! ~ "Green Plant"
+    RawForm! ~ "Various green plants"
+    Cost! = 0.01
+    Rarity = "e"
+}
+DriedPlums {
+    Title! ~ "Dried Plums"
+    RawForm! ~ "Plums"
+    Cost! = 0.02
+    Rarity = "c"
+}
+Pole {
+    Title! ~ "Pole"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+PollutedWater {
+    Title! ~ "Polluted Water"
+    RawForm! ~ "Polluted water"
+    Cost! = 0.01
+    Rarity = "e"
+}
+MiniaturePortalMadeOfIvory {
+    Title! ~ "Miniature Portal made of Ivory"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+PorkRind {
+    Title! ~ "Pork Rind (1 lb)"
+    RawForm! ~ ""
+    Cost! = 0.05
+    Rarity = "c"
+}
+PowderedDiamondWorth2000gp {
+    Title! ~ "Powdered Diamond worth 2000 gp (or the diamond itself)"
+    RawForm! ~ "Diamond"
+    Cost! = 2000.0
+    Rarity = "vr"
+}
+ColoredPowderOrSand {
+    Title! ~ "Red, Yellow, and Blue Colored Powder or Sand (1 oz)"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "c"
+}
+PrayerBeads {
+    Title! ~ "Prayer Beads"
+    RawForm! ~ ""
+    Cost! = 30.0
+    Rarity = "c"
+}
+PrayerBook {
+    Title! ~ "Prayer Book"
+    RawForm! ~ ""
+    Cost! = 30.0
+    Rarity = "c"
+}
+PrayerDevice {
+    Title! ~ "Prayer Device"
+    RawForm! ~ ""
+    Cost! = 30.0
+    Rarity = "c"
+}
+PrayerWheel {
+    Title! ~ "Prayer Wheel"
+    RawForm! ~ ""
+    Cost! = 30.0
+    Rarity = "c"
+}
+CrystalPrism {
+    Title! ~ "Crystal Prism"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Quartz {
+    Title! ~ "Quartz"
+    RawForm! ~ "Quartz crystal formations"
+    Cost! = 3.0
+    Rarity = "uc"
+}
+SmokyQuartz {
+    Title! ~ "Smoky Quartz"
+    RawForm! ~ "Quartz crystal formations"
+    Cost! = 3.0
+    Rarity = "uc"
+}
+MiniatureQuiver {
+    Title! ~ "Miniature Quiver"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+Quicksilver {
+    Title! ~ "Quicksilver (1 oz)"
+    RawForm! ~ "Mercury"
+    Cost! = 25.0
+    Rarity = "r"
+}
+Raisins {
+    Title! ~ "Raisins (1 lb)"
+    RawForm! ~ "Dried Grapes"
+    Cost! = 0.03
+    Rarity = "c"
+}
+Reed {
+    Title! ~ "Reed (1 lb)"
+    RawForm! ~ "Reed plant"
+    Cost! = 0.1
+    Rarity = "c"
+}
+Resin {
+    Title! ~ "Resin (1 oz)"
+    RawForm! ~ "Tree resin"
+    Cost! = 1.0
+    Rarity = "c"
+}
+LumpOfResinFromACamphorTree {
+    Title! ~ "Lump of Resin from a Camphor Tree (1 oz)"
+    RawForm! ~ "Camphor tree resin"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+PowderedRhubarbLeaf {
+    Title! ~ "Powdered Rhubarb Leaf (1 oz)"
+    RawForm! ~ "Rhubarb leaf"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+RocEye {
+    Title! ~ "Roc Eye"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "vr"
+}
+Rock {
+    Title! ~ "Rock"
+    RawForm! ~ "Stone"
+    Cost! = 0.01
+    Rarity = "e"
+}
+RockCrystal {
+    Title! ~ "Rock Crystal (small)"
+    RawForm! ~ "Quartz crystal formations"
+    Cost! = 1.0
+    Rarity = "c"
+}
+RockSalt {
+    Title! ~ "Rock Salt (1 lb)"
+    RawForm! ~ "Salt mineral"
+    Cost! = 1.0
+    Rarity = "c"
+}
+RodMadeOfGlassAmberOrCrystal {
+    Title! ~ "Rod made of Glass, Amber, or Crystal"
+    RawForm! ~ ""
+    Cost! = 15.0
+    Rarity = "uc"
+}
+Rope {
+    Title! ~ "Rope (50')"
+    RawForm! ~ ""
+    Cost! = 0.08
+    Rarity = "c"
+}
+RosePetals {
+    Title! ~ "Rose Petals"
+    RawForm! ~ "Roses"
+    Cost! = 0.1
+    Rarity = "c"
+}
+RosemarySprig {
+    Title! ~ "Rosemary Sprig"
+    RawForm! ~ "Rosemary"
+    Cost! = 0.05
+    Rarity = "c"
+}
+PowderedRuby {
+    Title! ~ "Powdered Ruby"
+    RawForm! ~ "Ruby"
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+SacrificialCreature {
+    Title! ~ "Sacrificial Creature (likely a lamb)"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "c"
+}
+Salt {
+    Title! ~ "Salt (1 oz)"
+    RawForm! ~ "Salt mineral"
+    Cost! = 0.1
+    Rarity = "c"
+}
+Saltpeter {
+    Title! ~ "Saltpeter (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+FineColoredSand {
+    Title! ~ "Fine Colored Sand (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SapphireDust {
+    Title! ~ "Sapphire Dust"
+    RawForm! ~ "Sapphire"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+WhiteSapphire {
+    Title! ~ "White Sapphire"
+    RawForm! ~ "White sapphire"
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+ScaleFromADevil {
+    Title! ~ "Scale from a Devil"
+    RawForm! ~ ""
+    Cost! = 2000.0
+    Rarity = "vr"
+}
+ScrapingsFromBeneathADungPile {
+    Title! ~ "Scrapings from beneath a Dung Pile (1 oz)"
+    RawForm! ~ "Dung"
+    Cost! = 0.1
+    Rarity = "c"
+}
+Scroll {
+    Title! ~ "Scroll"
+    RawForm! ~ ""
+    Cost! = 24.0
+    Rarity = "uc-s"
+}
+Seashell {
+    Title! ~ "Seashell"
+    RawForm! ~ "Seashell"
+    Cost! = 0.1
+    Rarity = "c"
+}
+SeedsFromAMoonseedPlant {
+    Title! ~ "Seeds from a Moonseed Plant (1 oz)"
+    RawForm! ~ "Moonseed plant"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SesameSeeds {
+    Title! ~ "Sesame Seeds (1 lb)"
+    RawForm! ~ "Sesame plant"
+    Cost! = 2.0
+    Rarity = "uc"
+}
+ShamrockLeaf {
+    Title! ~ "Shamrock Leaf"
+    RawForm! ~ "Shamrock leaf"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+MinuteTortoiseShell {
+    Title! ~ "Minute Tortoise Shell"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+TurtleShell {
+    Title! ~ "Turtle Shell"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+MiniatureShovel {
+    Title! ~ "Miniature Shovel"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+BlackSilk {
+    Title! ~ "Black Silk (1 yard)"
+    RawForm! ~ ""
+    Cost! = 190.0
+    Rarity = "s"
+}
+SmallSquarePieceOfSilk {
+    Title! ~ "Small Square Piece of Silk (1 yard)"
+    RawForm! ~ ""
+    Cost! = 200.0
+    Rarity = "s"
+}
+MiniatureWhipMadeOfBraidedSilk {
+    Title! ~ "Miniature Whip made of Braided Silk (1 yard)"
+    RawForm! ~ ""
+    Cost! = 220.0
+    Rarity = "s"
+}
+MultiColoredSilk {
+    Title! ~ "Multi-Colored Silk (1 yard)"
+    RawForm! ~ ""
+    Cost! = 210.0
+    Rarity = "s"
+}
+SilverDust {
+    Title! ~ "Silver Dust (1 oz)"
+    RawForm! ~ "Silver"
+    Cost! = 1.0
+    Rarity = "s"
+}
+SilverPins {
+    Title! ~ "Silver Pins (dozen)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "s"
+}
+PowderedSilver {
+    Title! ~ "Powdered Silver (1 oz)"
+    RawForm! ~ "Silver"
+    Cost! = 1.0
+    Rarity = "s"
+}
+SmallSilverHorn {
+    Title! ~ "Small Silver Horn"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "s"
+}
+TinySilverWhistle {
+    Title! ~ "Tiny Silver Whistle"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "s"
+}
+FineSilverWire {
+    Title! ~ "Fine Silver Wire (1 ft)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "s"
+}
+SinewFromAStrongAnimal {
+    Title! ~ "Sinew from a Strong Animal"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SkunkCabbageLeaves {
+    Title! ~ "Skunk Cabbage Leaves (1 cabbage)"
+    RawForm! ~ "Skunk cabbage plant"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+DigestiveJuiceFromGiantSlug {
+    Title! ~ "Digestive Juice from Giant Slug (flask)"
+    RawForm! ~ "Giant slug"
+    Cost! = 50.0
+    Rarity = "r"
+}
+SmallSilverMirror {
+    Title! ~ "Small Silver Mirror"
+    RawForm! ~ ""
+    Cost! = 20.0
+    Rarity = "uc"
+}
+SmallStraightPieceOfIron {
+    Title! ~ "Small Straight Piece of Iron (1 ft)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+SmokeBottled {
+    Title! ~ "Smoke, Bottled"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "e"
+}
+SnakeScales {
+    Title! ~ "Snake Scales"
+    RawForm! ~ "Dead small snake"
+    Cost! = 8.0
+    Rarity = "s"
+}
+SnakeSkin {
+    Title! ~ "Snake Skin"
+    RawForm! ~ "Dead small snake"
+    Cost! = 9.0
+    Rarity = "s"
+}
+SnakeTongue {
+    Title! ~ "Snake Tongue"
+    RawForm! ~ "Dead small snake"
+    Cost! = 25.0
+    Rarity = "r"
+}
+Soot {
+    Title! ~ "Soot (1 oz)"
+    RawForm! ~ "Oil residue"
+    Cost! = 0.03
+    Rarity = "c"
+}
+EssenceOfSpectre {
+    Title! ~ "Essence of Spectre (1 oz)"
+    RawForm! ~ ""
+    Cost! = 750.0
+    Rarity = "vr"
+}
+SpellBooks {
+    Title! ~ "Spell Books"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "r"
+}
+TravelingSpellBooks {
+    Title! ~ "Traveling Spell Books"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "r"
+}
+SpheresOfCrystalGlassOrMineral {
+    Title! ~ "Spheres of Crystal, Glass, or Mineral"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+LiveSpiders {
+    Title! ~ "Live Spiders"
+    RawForm! ~ "Spiders"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SpiderWeb {
+    Title! ~ "Spider Web"
+    RawForm! ~ "Spider webs"
+    Cost! = 1.0
+    Rarity = "e"
+}
+SplitDriedPeas {
+    Title! ~ "Split Dried Peas (1 oz)"
+    RawForm! ~ "Dried peas"
+    Cost! = 0.1
+    Rarity = "c"
+}
+SilverSpoon {
+    Title! ~ "Silver Spoon"
+    RawForm! ~ ""
+    Cost! = 2.0
+    Rarity = "s"
+}
+SecretionFromSquid {
+    Title! ~ "Secretion from Squid (flask)"
+    RawForm! ~ "Squid"
+    Cost! = 50.0
+    Rarity = "r"
+}
+TentacleFromGiantSquid {
+    Title! ~ "Tentacle from Giant Squid"
+    RawForm! ~ "Giant squid"
+    Cost! = 50.0
+    Rarity = "r"
+}
+Soot {
+    Title! ~ "Soot (1 oz)"
+    RawForm! ~ "Oil residue"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+TinyStalactites {
+    Title! ~ "Tiny Stalactites"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "s"
+}
+StalksFromAnAmaryllis {
+    Title! ~ "Stalks from an Amaryllis"
+    RawForm! ~ "Amaryllis plant"
+    Cost! = 0.5
+    Rarity = "uc"
+}
+CanineStatuettes {
+    Title! ~ "Canine Statuettes (Ivory and Ebony)"
+    RawForm! ~ ""
+    Cost! = 15.0
+    Rarity = "r"
+}
+SmallPieceOfSteel {
+    Title! ~ "Small Piece of Steel (1 sq yard)"
+    RawForm! ~ ""
+    Cost! = 30.0
+    Rarity = "uc"
+}
+Stick {
+    Title! ~ "Stick"
+    RawForm! ~ "Stick"
+    Cost! = 0.01
+    Rarity = "e"
+}
+SmallStone {
+    Title! ~ "Small Stone"
+    RawForm! ~ "Small stones"
+    Cost! = 0.01
+    Rarity = "e"
+}
+SquareChipOfStone {
+    Title! ~ "Square Chip of Stone"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "c"
+}
+Straw {
+    Title! ~ "Straw (1 bale)"
+    RawForm! ~ "Dried stalks"
+    Cost! = 0.1
+    Rarity = "c"
+}
+String {
+    Title! ~ "String (1 yard)"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "e"
+}
+KnottedString {
+    Title! ~ "Knotted String (1 ft)"
+    RawForm! ~ ""
+    Cost! = 0.01
+    Rarity = "uc"
+}
+Stylus {
+    Title! ~ "Stylus"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Sugar {
+    Title! ~ "Sugar (1 lb)"
+    RawForm! ~ "Sugarcane"
+    Cost! = 1.0
+    Rarity = "c"
+}
+Sulphur {
+    Title! ~ "Sulphur (1 oz)"
+    RawForm! ~ "Sulfur minerals"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SumacLeaf {
+    Title! ~ "Sumac Leaf (1 oz)"
+    RawForm! ~ "Sumac plant"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+SweetOil {
+    Title! ~ "Sweet Oil (per flask)"
+    RawForm! ~ "Olives"
+    Cost! = 5.0
+    Rarity = "uc"
+}
+MiniaturePlatinumSword {
+    Title! ~ "Miniature Platinum Sword (with a Copper and Zinc Pommel)"
+    RawForm! ~ ""
+    Cost! = 500.0
+    Rarity = "r"
+}
+Talc {
+    Title! ~ "Talc (1 oz)"
+    RawForm! ~ "Talc mineral"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Tallow {
+    Title! ~ "Tallow (1 lb)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Tea {
+    Title! ~ "Tea (1 lb)"
+    RawForm! ~ "Dried tea leaves"
+    Cost! = 3.0
+    Rarity = "uc"
+}
+TeaLeaves {
+    Title! ~ "Tea Leaves (1 lb)"
+    RawForm! ~ "Tea plant leaves"
+    Cost! = 3.0
+    Rarity = "uc"
+}
+TentacleFromGiantSquidOrOctopus {
+    Title! ~ "Tentacle from Giant Squid or Octopus"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+Thistledown {
+    Title! ~ "Thistledown (1 oz)"
+    RawForm! ~ "Thistle seeds"
+    Cost! = 0.1
+    Rarity = "uc"
+}
+SharpThorns {
+    Title! ~ "Sharp Thorns (1 lb)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+Thread {
+    Title! ~ "Thread (1 spool)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+PowderedTopaz {
+    Title! ~ "Powdered Topaz"
+    RawForm! ~ "Topaz"
+    Cost! = 500.0
+    Rarity = "vr"
+}
+OrientalPowderedTopaz {
+    Title! ~ "Oriental Powdered Topaz"
+    RawForm! ~ ""
+    Cost! = 1000.0
+    Rarity = "vr"
+}
+MinuteTort {
+    Title! ~ "Minute Tort"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "c"
+}
+HollowAndMinuteGoldTube {
+    Title! ~ "Hollow and Minute Gold Tube"
+    RawForm! ~ ""
+    Cost! = 25.0
+    Rarity = "r"
+}
+Treacle {
+    Title! ~ "Treacle (1 qt)"
+    RawForm! ~ ""
+    Cost! = 0.5
+    Rarity = "c"
+}
+TreeSap {
+    Title! ~ "Tree Sap"
+    RawForm! ~ "Tree sap"
+    Cost! = 0.01
+    Rarity = "e"
+}
+Tryptophan {
+    Title! ~ "Tryptophan (1 oz)"
+    RawForm! ~ ""
+    Cost! = 100.0
+    Rarity = "r"
+}
+Twig {
+    Title! ~ "Twig"
+    RawForm! ~ "Twigs"
+    Cost! = 0.01
+    Rarity = "e"
+}
+TwigFromTree {
+    Title! ~ "Twig from a Tree"
+    RawForm! ~ "Tree twigs"
+    Cost! = 0.01
+    Rarity = "e"
+}
+SharpenedTwigs {
+    Title! ~ "Sharpened Twigs"
+    RawForm! ~ "Tree twigs"
+    Cost! = 0.01
+    Rarity = "e"
+}
+UmberHulkBlood {
+    Title! ~ "Umber Hulk Blood (1 oz)"
+    RawForm! ~ ""
+    Cost! = 750.0
+    Rarity = "vr"
+}
+Unguent {
+    Title! ~ "Unguent (1 oz)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+ValerianRoot {
+    Title! ~ "Valerian Root"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+DustOfVampire {
+    Title! ~ "Dust of Vampire (1 oz)"
+    RawForm! ~ ""
+    Cost! = 5000.0
+    Rarity = "vr"
+}
+SpecialAndExpensiveVellum {
+    Title! ~ "Special and Expensive Vellum (1 sheet)"
+    RawForm! ~ ""
+    Cost! = 50.0
+    Rarity = "r"
+}
+Vermillion {
+    Title! ~ "Vermillion (1 oz)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "uc"
+}
+ClericalVestment {
+    Title! ~ "Clerical Vestment (1 set)"
+    RawForm! ~ ""
+    Cost! = 250.0
+    Rarity = "uc"
+}
+Vial {
+    Title! ~ "Vial"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+Vine {
+    Title! ~ "Vine"
+    RawForm! ~ "Vines"
+    Cost! = 0.01
+    Rarity = "e"
+}
+Vinegar {
+    Title! ~ "Vinegar (1 qt)"
+    RawForm! ~ ""
+    Cost! = 0.05
+    Rarity = "c"
+}
+VizMillon {
+    Title! ~ "Viz-Millon (1 oz)"
+    RawForm! ~ ""
+    Cost! = 10.0
+    Rarity = "uc"
+}
+WalnutOil {
+    Title! ~ "Walnut Oil (1 oz)"
+    RawForm! ~ "Walnuts"
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Water {
+    Title! ~ "Water"
+    RawForm! ~ "Fresh water"
+    Cost! = 0.01
+    Rarity = "e"
+}
+LumpOfWax {
+    Title! ~ "Lump of Wax (1 oz)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+WetLeavesFromAnInfusion {
+    Title! ~ "Wet Leaves from an Infusion (1 oz)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+WhiteClothStrip {
+    Title! ~ "White Cloth Strip (1 yard)"
+    RawForm! ~ ""
+    Cost! = 0.1
+    Rarity = "c"
+}
+DramOfWhitewash {
+    Title! ~ "Dram of Whitewash (1 gal)"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "c"
+}
+BentWillow {
+    Title! ~ "Bent Willow (1 yard)"
+    RawForm! ~ "Willow"
+    Cost! = 0.01
+    Rarity = "c"
+}
+FlexibleWood {
+    Title! ~ "Flexible Wood (1 yard)"
+    RawForm! ~ "Loose wood"
+    Cost! = 0.01
+    Rarity = "c"
+}
+SmallPieceOfWood {
+    Title! ~ "Small Piece of Wood"
+    RawForm! ~ "Loose wood"
+    Cost! = 0.01
+    Rarity = "e"
+}
+SplintersOfWood {
+    Title! ~ "Splinters of Wood"
+    RawForm! ~ "Loose wood"
+    Cost! = 0.01
+    Rarity = "e"
+}
+TinyWoodenPaddle {
+    Title! ~ "Tiny Wooden Paddle"
+    RawForm! ~ ""
+    Cost! = 1.0
+    Rarity = "uc"
+}
+Wool {
+    Title! ~ "Wool (1 oz)"
+    RawForm! ~ "Lone sheep"
+    Cost! = 0.01
+    Rarity = "c"
+}
+Wytchwood {
+    Title! ~ "Wytchwood (1 piece)"
+    RawForm! ~ ""
+    Cost! = 5.0
+    Rarity = "uc"
+}
+YellowTintedGlass {
+    Title! ~ "Yellow-Tinted Glass, Crystal, or Mica Zinc"
+    RawForm! ~ ""
+    Cost! = 3.0
+    Rarity = "uc"
+}
+
+BlacksmithComponent {
+  ^ [
+    *(x5) Charcoal
+    *(x5) CharcoalStick
+    *(x4) Alum
+    *(x4) Copper
+    *(x5) Clay
+    *(x5) Flint
+    *(x3) PowderedSilver
+    *(x4) IronFilings
+    *(x4) PowderedIron
+    *(x4) IronPyrite
+    *(x4) SmallIronRod
+    *(x4) SmallSheetOfIron
+    *(x5) PowderedBrass
+    *(x5) SmallStraightPieceOfIron
+    *(x4) SmallPieceOfSteel
+    *(x4) Sulphur
+  ]
+}
+
+RawComponentsInCaves {
+  ^ [
+    *(x2) AcidCrystals
+    *(x1) Agate
+    *(x3) Alkaline
+    *(x2) Alum
+    *(x2) PowderedAmber
+    *(x2) AmberRod
+    *(x1) CrushedAmethyst
+    *(x1) PowderedBlackOpal
+    *(x1) CrushedBlackPearl
+    *(x1) BrassDust
+    *(x1) PowderedBrass
+    *(x3) BromineSalts
+    *(x1) PowderedCarbon
+    *(x3) MiniatureCarp
+    *(x3) DriedCarrot
+    *(x3) EssenceOfCarrot
+    *(x2) CastorBeans
+    *(x2) CaterpillarCocoon
+    *(x2) PowderedHerringScales
+    *(x1) Charcoal
+    *(x1) CharcoalStick
+    *(x2) PowderedCitrine
+    *(x1) PowderedCornExtract
+    *(x2) CrushedPearl
+    *(x2) Crystal
+    *(x1) CrushedDiamond
+    *(x1) DiamondDust
+    *(x1) Diamond
+    *(x1) PowderedDiamond
+    *(x2) IodineCrystals
+    *(x2) PowderedIron
+    *(x2) IronPyrite
+    *(x3) Mercury
+    *(x2) OpalescentFeldspar
+    *(x2) Phosphorus
+    *(x1) PowderedRuby
+    *(x1) SapphireDust
+    *(x3) SilverDust
+    *(x3) PowderedSilver
+    *(x3) SnakeScales
+    *(x2) Talc
+  ]
+}
+
+MineralComponent {
+  ^ [
+    *(x4) AcidCrystals
+    *(x5) Agate
+    *(x3) Alkaline
+    *(x4) Alum
+    *(x3) PowderedAmber
+    *(x2) AmberRod
+    *(x1) CrushedAmethyst
+    *(x4) AventurineFeldspar
+    *(x4) Bitumen
+    *(x1) PowderedBlackOpal
+    *(x1) CrushedBlackPearl
+    *(x5) BrassDust
+    *(x5) PowderedBrass
+    *(x3) BromineSalts
+    *(x5) PowderedCarbon
+    *(x5) Charcoal
+    *(x5) CharcoalStick
+    *(x4) PowderedCitrine
+    *(x5) Clay
+    *(x5) Coal
+    *(x3) CrystalOrGlassCone
+    *(x4) Copper
+    *(x5) SmallPieceOfFineDrawnCopper
+    *(x2) CrushedPearl
+    *(x4) Crystal
+    *(x5) SmallCrystalBead
+    *(x5) CrystalRod
+    *(x4) CrystalRodFilledWithPhosphorescentMaterial
+    *(x4) ThinCrystalSheet
+    *(x1) CrushedDiamond
+    *(x1) DiamondDust
+    *(x1) Diamond
+    *(x1) PowderedDiamond
+    *(x1) DiamondOrClearGemSphere
+    *(x1) PowderedEmerald
+    *(x5) Flint
+    *(x1) VariousGems
+    *(x4) SmallPieceOfGlass
+    *(x4) TintedYellowGlass
+    *(x4) GlassRod
+    *(x1) GoldDust
+    *(x5) GraniteDust
+    *(x5) BlockOfGranite
+    *(x4) IodineCrystals
+    *(x4) IronBarOrNailOrSpike
+    *(x4) SmallMagnetizedIronBars
+    *(x4) IronFilings
+    *(x4) PowderedIron
+    *(x4) IronPyrite
+    *(x4) SmallIronRod
+    *(x4) SmallSheetOfIron
+    *(x2) Lodestone
+    *(x1) Luckstone
+    *(x2) SmallMagnets
+    *(x4) PolishedMarble
+    *(x2) MercuricNitricAcidCrystals
+    *(x3) Mercury
+    *(x1) Meteorite
+    *(x4) ChipOfMica
+    *(x4) MineralSpheres
+    *(x2) SmallMithrilPlate
+    *(x4) Nitre
+    *(x4) NitricAcid
+    *(x5) OpalescentFeldspar
+    *(x1) Pearl
+    *(x1) CrushedPearls
+    *(x4) Phosphorus
+    *(x1) PowderedDiamondWorth2000gp
+    *(x4) Quartz
+    *(x4) SmokyQuartz
+    *(x2) Quicksilver
+    *(x5) Rock
+    *(x5) RockCrystal
+    *(x5) RockSalt
+    *(x4) RodMadeOfGlassAmberOrCrystal
+    *(x1) PowderedRuby
+    *(x4) Saltpeter
+    *(x4) FineColoredSand
+    *(x1) SapphireDust
+    *(x1) WhiteSapphire
+    *(x3) SilverDust
+    *(x3) PowderedSilver
+    *(x5) SmallStraightPieceOfIron
+    *(x4) SmallPieceOfSteel
+    *(x4) Sulphur
+    *(x4) Talc
+    *(x1) PowderedTopaz
+    *(x1) OrientalPowderedTopaz
+    *(x4) Vermillion
+    *(x4) YellowTintedGlass
+  ]
+}
+
+AlchemyComponent {
+  ^ [
+    *(x4) AcidCrystals
+    *(x5) Agate
+    *(x3) Alkaline
+    *(x4) Alum
+    *(x3) PowderedAmber
+    *(x2) AmberRod
+    *(x1) CrushedAmethyst
+    *(x4) AventurineFeldspar
+    *(x4) Bitumen
+    *(x1) PowderedBlackOpal
+    *(x1) CrushedBlackPearl
+    *(x5) BrassDust
+    *(x5) PowderedBrass
+    *(x3) BromineSalts
+    *(x5) PowderedCarbon
+    *(x5) Charcoal
+    *(x5) CharcoalStick
+    *(x4) PowderedCitrine
+    *(x5) Clay
+    *(x5) Coal
+    *(x4) Copper
+    *(x5) SmallPieceOfFineDrawnCopper
+    *(x2) CrushedPearl
+    *(x4) Crystal
+    *(x5) SmallCrystalBead
+    *(x5) CrystalRod
+    *(x4) CrystalRodFilledWithPhosphorescentMaterial
+    *(x4) ThinCrystalSheet
+    *(x1) CrushedDiamond
+    *(x1) DiamondDust
+    *(x1) Diamond
+    *(x1) PowderedDiamond
+    *(x1) DiamondOrClearGemSphere
+    *(x1) PowderedEmerald
+    *(x5) Flint
+    *(x4) GlassRod
+    *(x1) GoldDust
+    *(x5) GraniteDust
+    *(x5) BlockOfGranite
+    *(x4) IodineCrystals
+    *(x4) IronFilings
+    *(x4) PowderedIron
+    *(x2) MercuricNitricAcidCrystals
+    *(x3) Mercury
+    *(x1) Meteorite
+    *(x4) ChipOfMica
+    *(x4) MineralSpheres
+    *(x2) SmallMithrilPlate
+    *(x4) Nitre
+    *(x4) NitricAcid
+    *(x5) OpalescentFeldspar
+    *(x1) CrushedPearls
+    *(x4) Phosphorus
+    *(x1) PowderedDiamondWorth2000gp
+    *(x4) Quartz
+    *(x4) SmokyQuartz
+    *(x2) Quicksilver
+    *(x5) RockCrystal
+    *(x5) RockSalt
+    *(x4) RodMadeOfGlassAmberOrCrystal
+    *(x1) PowderedRuby
+    *(x4) Saltpeter
+    *(x4) FineColoredSand
+    *(x1) SapphireDust
+    *(x1) WhiteSapphire
+    *(x3) SilverDust
+    *(x3) PowderedSilver
+    *(x5) SmallStraightPieceOfIron
+    *(x4) SmallPieceOfSteel
+    *(x4) Sulphur
+    *(x1) PowderedTopaz
+    *(x1) OrientalPowderedTopaz
+    *(x4) Vermillion
+    *(x4) YellowTintedGlass
+    *(x4) AcidCrystals
+    *(x3) AdderStomach
+    *(x3) Alkaline
+    *(x3) BromineSalts
+    *(x1) DragonBlood
+    *(x1) PowderedPinealGland
+    *(x1) DustOfVampire
+  ]
+}
+
+OccultComponent {
+  ^ [
+    *(x4) AcidCrystals
+    *(x3) AdderStomach
+    *(x3) Alkaline
+    *(x1) BloodFromBlackDragon
+    *(x2) HumanBlood
+    *(x2) BonesFromUndeadSkeleton
+    *(x2) BonesFromUndeadZombie
+    *(x2) BonesFromUndeadGhoul
+    *(x2) BonesFromUndeadGhast
+    *(x2) BonesFromUndeadMummie
+    *(x4) NewtBrain
+    *(x3) BromineSalts
+    *(x1) TypeIDemonIchor
+    *(x1) TypeIIDemonIchor
+    *(x1) TypeIIIDemonIchor
+    *(x1) DragonBlood
+    *(x1) BasiliskEyelash
+    *(x4) EyelashFromOgreMagi
+    *(x2) HumanFlesh
+    *(x4) HolyUnholySymbols
+    *(x4) HolyUnholyWater
+    *(x1) PowderedPinealGland
+    *(x1) EssenceOfSpectre
+    *(x1) DustOfVampire
+  ]
+}
+
+HerbalismComponent {
+  ^ [
+    *(x5) Acorns
+    *(x3) AdderStomach
+    *(x2) AmaryllisStalks
+    *(x5) AsterSeed
+    *(x5) Bark
+    *(x5) BarkChips
+    *(x5) OakBark
+    *(x5) Basil
+    *(x5) Berries
+    *(x4) NewtBrain
+    *(x5) Burrs
+    *(x3) EssenceOfCarrot
+    *(x2) CastorBeans
+    *(x4) Catnip
+    *(x4) Chamomile
+    *(x5) EvergreenSprig
+    *(x5) GarlicBud
+    *(x5) CrushedGarlic
+    *(x5) VariousHerbs
+    *(x5) Holly
+    *(x5) HollyBerries
+    *(x5) HollyLeaves
+    *(x4) Hops
+    *(x5) PowderedLeafFromPoisonIvyOakOrSumac
+    *(x4) LemonBalm
+    *(x3) MandrakeRoot
+    *(x5) CrushedMarigoldFlowers
+    *(x4) BorrowedMistletoe
+    *(x3) GreaterMistletoe
+    *(x3) MoonseedPlant
+    *(x2) MushroomSpores
+    *(x4) CrushedStingingNettleLeaves
+    *(x5) PineSprig
+    *(x4) PowderedRhubarbLeaf
+    *(x5) RosePetals
+    *(x5) RosemarySprig
+    *(x4) SeedsFromAMoonseedPlant
+    *(x4) ShamrockLeaf
+    *(x4) SkunkCabbageLeaves
+    *(x4) StalksFromAnAmaryllis
+    *(x4) SumacLeaf
+    *(x4) ValerianRoot
+    *(x1) OintmentMadeFromMushroomPowderSaffronAndFat
+    *(x2) OintmentMadeFromOilPoppyDustAndPinkOrchidEssence
+  ]
+}
+
+FoodComponent {
+  ^ [
+    *(x5) Acorns
+    *(x5) Berries
+    *(x5) Butter
+    *(x3) DriedCarrot
+    *(x3) EssenceOfCarrot
+    *(x2) CastorBeans
+    *(x4) TartCherryJuice
+    *(x4) CitricAcid
+    *(x5) PowderedCornExtract
+    *(x4) RottenEgg
+    *(x5) Fat
+    *(x5) WhiteFlour
+    *(x5) GarlicBud
+    *(x5) Grain
+    *(x5) Honey
+    *(x1) SpeciallyFermentedHoney
+    *(x5) Honeycomb
+    *(x4) JuiceMadeFromDriedPlums
+    *(x5) Lard
+    *(x5) WholeAndCrushedLeek
+    *(x5) LegumeSeed
+    *(x4) CrushedLime
+    *(x4) PowderedLime
+    *(x5) SolidifiedMilkFat
+    *(x5) NutShells
+    *(x4) DropOfOil
+    *(x4) OilMadeFromCastorPlantBeans
+    *(x4) SweetOilRefinedFromHickoryAndWalnuts
+    *(x4) PassionFruit
+    *(x5) PowderedPeas
+    *(x5) DriedSplitPeas
+    *(x5) PineTar
+    *(x5) Pitch
+    *(x5) DriedPlums
+    *(x5) PorkRind
+    *(x5) Raisins
+    *(x5) Salt
+    *(x4) SesameSeeds
+    *(x5) SplitDriedPeas
+    *(x5) Sugar
+    *(x4) SweetOil
+    *(x5) Tallow
+    *(x4) Tea
+    *(x4) TeaLeaves
+    *(x5) Treacle
+    *(x2) Tryptophan
+    *(x5) Vinegar
+    *(x4) WalnutOil
+    *(x4) WetLeavesFromAnInfusion
+  ]
+}
+
+GeneralComponent {
+  ^ [
+    *(x5) Alcohol
+    *(x4) SmallBarMagnets
+    *(x4) TinyBell
+    *(x4) BellWithoutAClapper
+    *(x5) Brandy
+    *(x4) TinyBucket
+    *(x5) Chalk
+    *(x5) CopperPiece
+    *(x5) FineCopperWire
+    *(x2) DigestiveJuiceFromGiantSlug
+    *(x5) EggShell
+    *(x4) Ink
+    *(x4) Melatonin
+    *(x2) MagnetizedNeedle
+    *(x2) DigestiveJuiceFromGiantSlug
+    *(x4) VizMillon
+  ]
+}
+
+NaturalComponent {
+  ^ [
+    *(x2) AcidCrystals
+    *(x1) Acorns
+    *(x3) AdderStomach
+    *(x1) Agate
+    *(x3) Alkaline
+    *(x2) Alum
+    *(x2) AmaryllisStalks
+    *(x3) PowderedAmber
+    *(x2) AmberRod
+    *(x1) CrushedAmethyst
+    *(x2) PowderedAnimalHoof
+    *(x1) AsterSeed
+    *(x2) AventurineFeldspar
+    *(x1) Bark
+    *(x1) BarkChips
+    *(x1) OakBark
+    *(x1) Basil
+    *(x3) BatFur
+    *(x3) BatHairs
+    *(x1) Beeswax
+    *(x2) Berries
+    *(x2) Bitumen
+    *(x1) PowderedBlackOpal
+    *(x1) CrushedBlackPearl
+    *(x2) NewtBrain
+    *(x1) BrassDust
+    *(x1) PowderedBrass
+    *(x3) BromineSalts
+    *(x1) Burrs
+    *(x1) PowderedCarbon
+    *(x3) MiniatureCarp
+    *(x3) DriedCarrot
+    *(x3) EssenceOfCarrot
+    *(x2) CastorBeans
+    *(x2) CaterpillarCocoon
+    *(x2) Catnip
+    *(x1) Chalk
+    *(x2) Chamomile
+    *(x1) Charcoal
+    *(x1) CharcoalStick
+    *(x2) TartCherryJuice
+    *(x2) CitricAcid
+    *(x2) PowderedCitrine
+    *(x1) Clay
+    *(x1) SmallClayTablet
+    *(x1) Coal
+    *(x2) Copper
+    *(x1) PowderedCornExtract
+    *(x2) LiveCrickets
+    *(x2) CrushedPearl
+    *(x2) Crystal
+    *(x1) CrushedDiamond
+    *(x1) DiamondDust
+    *(x1) Diamond
+    *(x1) PowderedDiamond
+    *(x2) DigestiveJuiceFromGiantSlug
+    *(x1) Dirt
+    *(x1) PieceOfDown
+    *(x1) Dung
+    *(x1) DungFromStrongAnimal
+    *(x1) Dust
+    *(x1) Earth
+    *(x2) RottenEgg
+    *(x1) EggShell
+    *(x1) PowderedEmerald
+    *(x1) EvergreenSprig
+    *(x2) Feather
+    *(x3) CoutlFeathers
+    *(x3) FeatherFromExoticBirdOrCreature
+    *(x1) WhiteOwlFeather
+    *(x2) FeatherFromABirdWing
+    *(x1) ChickenFeather
+    *(x2) LiveFirefly
+    *(x2) TailPortionsOfFireflies
+    *(x1) Fleece
+    *(x1) Flint
+    *(x1) WhiteFlour
+    *(x1) FlowerPetal
+    *(x1) GarlicBud
+    *(x1) CrushedGarlic
+    *(x1) Glowworm
+    *(x1) GoldDust
+    *(x1) Grain
+    *(x1) GraniteDust
+    *(x1) BlockOfGranite
+    *(x1) BladesOfGrass
+    *(x2) GrasshopperHindLegs
+    *(x2) GumArabic
+    *(x2) SphereOfGumArabic
+    *(x3) HawkEye
+    *(x2) HeartOfAHen
+    *(x2) VariousHerbs
+    *(x2) HickoryNutOil
+    *(x1) Holly
+    *(x1) HollyBerries
+    *(x1) HollyLeaves
+    *(x1) Honey
+    *(x1) Honeycomb
+    *(x2) PowderedHoof
+    *(x2) Hops
+    *(x1) HornCarvedIntoACrescentShape
+    *(x1) Humus
+    *(x2) IodineCrystals
+    *(x1) Incense
+    *(x2) PowderedIron
+    *(x2) IronPyrite
+    *(x2) JuiceMadeFromDriedPlums
+    *(x1) Lampblack
+    *(x1) Leaf
+    *(x1) PowderedLeafFromPoisonIvyOakOrSumac
+    *(x2) AshLeaves
+    *(x1) GreenLeaves
+    *(x1) OakLeaves
+    *(x2) YewLeaves
+    *(x1) WholeAndCrushedLeek
+    *(x1) LegumeSeed
+    *(x2) LemonBalm
+    *(x3) ShavingOfLicoriceRoot
+    *(x2) CrushedLime
+    *(x2) PowderedLime
+    *(x1) Loam
+    *(x2) Lodestone
+    *(x2) SmallMagnets
+    *(x3) MandrakeRoot
+    *(x2) PolishedMarble
+    *(x1) CrushedMarigoldFlowers
+    *(x3) Mercury
+    *(x1) Meteorite
+    *(x2) BorrowedMistletoe
+    *(x3) GreaterMistletoe
+    *(x3) ModelOfAZigguratMadeOfClay
+    *(x3) MoonseedPlant
+    *(x1) Mud
+    *(x2) MushroomSpores
+    *(x1) NutShells
+    *(x1) DeadOakLeaf
+    *(x1) OakLeaves
+    *(x2) DropOfOil
+    *(x2) OilMadeFromCastorPlantBeans
+    *(x2) OpalescentFeldspar
+    *(x2) OwlFeather
+    *(x2) PassionFruit
+    *(x1) PowderedPeas
+    *(x1) DriedSplitPeas
+    *(x1) Pearl
+    *(x1) CrushedPearls
+    *(x2) Phosphorus
+    *(x1) PineSprig
+    *(x1) PineTar
+    *(x1) Pinecone
+    *(x1) GreenPlant
+    *(x1) DriedPlums
+    *(x1) PollutedWater
+    *(x1) PowderedDiamondWorth2000gp
+    *(x2) Quartz
+    *(x2) SmokyQuartz
+    *(x2) Quicksilver
+    *(x1) Raisins
+    *(x1) Reed
+    *(x1) Resin
+    *(x2) LumpOfResinFromACamphorTree
+    *(x2) PowderedRhubarbLeaf
+    *(x1) Rock
+    *(x1) RockCrystal
+    *(x1) RockSalt
+    *(x1) RosePetals
+    *(x1) RosemarySprig
+    *(x1) PowderedRuby
+    *(x1) Salt
+    *(x1) SapphireDust
+    *(x1) WhiteSapphire
+    *(x1) ScrapingsFromBeneathADungPile
+    *(x2) SeedsFromAMoonseedPlant
+    *(x2) SesameSeeds
+    *(x2) ShamrockLeaf
+    *(x3) SilverDust
+    *(x3) PowderedSilver
+    *(x2) SkunkCabbageLeaves
+    *(x2) DigestiveJuiceFromGiantSlug
+    *(x3) SnakeScales
+    *(x3) SnakeSkin
+    *(x2) SnakeTongue
+    *(x1) Soot
+    *(x2) LiveSpiders
+    *(x1) SpiderWeb
+    *(x1) SplitDriedPeas
+    *(x2) Soot
+    *(x2) StalksFromAnAmaryllis
+    *(x1) Stick
+    *(x1) SmallStone
+    *(x1) Straw
+    *(x1) Sugar
+    *(x2) Sulphur
+    *(x2) SumacLeaf
+    *(x2) SweetOil
+    *(x2) Talc
+    *(x2) Tea
+    *(x2) TeaLeaves
+    *(x2) Thistledown
+    *(x1) PowderedTopaz
+    *(x1) TreeSap
+    *(x1) Twig
+    *(x1) TwigFromTree
+    *(x1) SharpenedTwigs
+    *(x1) Vine
+    *(x2) WalnutOil
+    *(x1) Water
+    *(x1) BentWillow
+    *(x1) FlexibleWood
+    *(x1) SmallPieceOfWood
+    *(x1) SplintersOfWood
+    *(x1) Wool
+  ]
+}
+
+NaturalComponentOcean {
+  ^ [
+    *(x2) PowderedHerringScales
+    *(x2) Ink
+    *(x3) FineInk
+    *(x1) InkFromSquid
+    *(x2) OctopusTentacle
+    *(x1) PollutedWater
+    *(x1) Seashell
+    *(x2) SecretionFromSquid
+    *(x2) TentacleFromGiantSquid
+  ]
+}
+
+CraftedComponent {
+  ^ [
+    *(x5) TinyBag
+    *(x5) GlassOrCrystalBeads
+    *(x4) Brazier
+    *(x5) BronzeDisc
+    *(x5) SmallCandle
+    *(x4) BlackCandles
+    *(x4) MiniatureChains
+    *(x5) SmallClayTablet
+    *(x5) FineCloth
+    *(x5) OakenClub
+    *(x3) CrystalOrGlassCone
+    *(x2) SmallConeFromBullOrRam
+    *(x5) FineCopperWire
+    *(x5) Cork
+    *(x5) CrystalRod
+    *(x4) CrystalRodFilledWithPhosphorescentMaterial
+    *(x4) ThinCrystalSheet
+    *(x4) TwoTinyCylinders
+    *(x5) Dart
+    *(x1) CopperAndZincDevice
+    *(x4) BronzeDisc
+    *(x5) Dish
+    *(x1) DisplacerBeastHide
+    *(x4) DivinationCounters
+    *(x2) DragonBones
+    *(x4) SmallDrum
+    *(x5) TinyFan
+    *(x4) Font
+    *(x5) Gauze
+    *(x1) GemInlaidSticks
+    *(x4) GlassRod
+    *(x5) Glove
+    *(x4) LeatherGlove
+    *(x3) SnakeSkinGlove
+    *(x1) FineGoldenWire
+    *(x5) HornCarvedIntoACrescentShape
+    *(x4) IronBlade
+    *(x2) IvoryPlaque
+    *(x2) IvoryStrips
+    *(x2) IvoryBaton
+    *(x2) JadeCirclet
+    *(x1) JailbirdsTongue
+    *(x1) KirinHorn
+    *(x5) Lampblack
+    *(x5) SmallLeatherLoop
+    *(x4) LeatherBlessedByACleric
+    *(x5) WhiteLinen
+    *(x5) SmallMetalBar
+    *(x5) SmallMetalRod
+    *(x4) SmallForkedMetalRod
+    *(x4) MinuteTort
+    *(x4) SilverMirror
+    *(x1) HighlyPolishedSilverMirror
+    *(x3) ModelOfAZigguratMadeOfClay
+    *(x4) TinyGoldenNeedle
+    *(x4) NumberedWheel
+    *(x5) WoodenPaddle
+    *(x5) Parchment
+    *(x4) ConeOfParchment
+    *(x4) TwistedLoopParchment
+    *(x2) SpecialAndExpensivePen
+    *(x4) Pigments
+    *(x1) SpeciallyPreparedPigments
+    *(x4) IvoryOrSilverPin
+    *(x5) Pole
+    *(x4) MiniaturePortalMadeOfIvory
+    *(x5) ColoredPowderOrSand
+    *(x5) PrayerBeads
+    *(x5) PrayerBook
+    *(x5) PrayerDevice
+    *(x5) PrayerWheel
+    *(x4) CrystalPrism
+    *(x4) MiniatureQuiver
+    *(x4) RodMadeOfGlassAmberOrCrystal
+    *(x5) Rope
+    *(x5) SacrificialCreature
+    *(x5) Scroll
+    *(x5) MinuteTortoiseShell
+    *(x4) MiniatureShovel
+    *(x3) BlackSilk
+    *(x3) SmallSquarePieceOfSilk
+    *(x3) MiniatureWhipMadeOfBraidedSilk
+    *(x3) MultiColoredSilk
+    *(x3) SilverPins
+    *(x3) SmallSilverHorn
+    *(x3) TinySilverWhistle
+    *(x3) FineSilverWire
+    *(x4) SmallSilverMirror
+    *(x2) SpellBooks
+    *(x2) TravelingSpellBooks
+    *(x4) SpheresOfCrystalGlassOrMineral
+    *(x3) SilverSpoon
+    *(x2) CanineStatuettes
+    *(x5) String
+    *(x4) KnottedString
+    *(x4) Stylus
+    *(x2) MiniaturePlatinumSword
+    *(x5) Thread
+    *(x5) MinuteTort
+    *(x2) HollowAndMinuteGoldTube
+    *(x4) Unguent
+    *(x2) SpecialAndExpensiveVellum
+    *(x4) ClericalVestment
+    *(x5) Vial
+    *(x5) WhiteClothStrip
+    *(x4) TinyWoodenPaddle
+  ]
+}
+
+OddOrCraftedComponent {
+  ^ [
+    *(x4) PowderedAnimalHoof
+    *(x5) TinyBag
+    *(x3) BatFur
+    *(x3) BatHairs
+    *(x5) GlassOrCrystalBeads
+    *(x5) HumanOrHumanoidBones
+    *(x2) BonesFromUndeadSkeleton
+    *(x2) BonesFromUndeadZombie
+    *(x2) BonesFromUndeadGhoul
+    *(x2) BonesFromUndeadGhast
+    *(x2) BonesFromUndeadMummie
+    *(x4) Brazier
+    *(x5) BronzeDisc
+    *(x5) SmallCandle
+    *(x4) BlackCandles
+    *(x4) MiniatureChains
+    *(x5) SmallClayTablet
+    *(x5) FineCloth
+    *(x5) OakenClub
+    *(x3) CrystalOrGlassCone
+    *(x2) SmallConeFromBullOrRam
+    *(x5) FineCopperWire
+    *(x5) Cork
+    *(x5) CrystalRod
+    *(x4) CrystalRodFilledWithPhosphorescentMaterial
+    *(x4) ThinCrystalSheet
+    *(x4) TwoTinyCylinders
+    *(x5) Dart
+    *(x1) CopperAndZincDevice
+    *(x4) BronzeDisc
+    *(x5) Dish
+    *(x1) DisplacerBeastHide
+    *(x4) DivinationCounters
+    *(x2) DragonBones
+    *(x4) SmallDrum
+    *(x5) EyeOfAHawkEagleOrRok
+    *(x5) TinyFan
+    *(x3) CoutlFeathers
+    *(x4) Font
+    *(x5) Gauze
+    *(x1) GemInlaidSticks
+    *(x4) SmallPieceOfGlass
+    *(x4) GlassRod
+    *(x5) Glove
+    *(x4) LeatherGlove
+    *(x3) SnakeSkinGlove
+    *(x1) FineGoldenWire
+    *(x5) Grease
+    *(x4) StrandsOfGut
+    *(x3) HawkEye
+    *(x5) HornCarvedIntoACrescentShape
+    *(x5) Incense
+    *(x3) FineInk
+    *(x1) InkFromSquid
+    *(x4) LeadBasedInk
+    *(x4) IronBlade
+    *(x2) IvoryPlaque
+    *(x2) IvoryStrips
+    *(x2) IvoryBaton
+    *(x2) JadeCirclet
+    *(x1) JailbirdsTongue
+    *(x1) KirinHorn
+    *(x5) Lampblack
+    *(x5) SmallLeatherLoop
+    *(x4) LeatherBlessedByACleric
+    *(x5) WhiteLinen
+    *(x5) SmallMetalBar
+    *(x5) SmallMetalRod
+    *(x4) SmallForkedMetalRod
+    *(x4) MinuteTort
+    *(x4) SilverMirror
+    *(x1) HighlyPolishedSilverMirror
+    *(x3) ModelOfAZigguratMadeOfClay
+    *(x4) TinyGoldenNeedle
+    *(x4) NumberedWheel
+    *(x5) WoodenPaddle
+    *(x5) Parchment
+    *(x4) ConeOfParchment
+    *(x4) TwistedLoopParchment
+    *(x2) SpecialAndExpensivePen
+    *(x4) Pigments
+    *(x1) SpeciallyPreparedPigments
+    *(x4) IvoryOrSilverPin
+    *(x5) Pole
+    *(x4) MiniaturePortalMadeOfIvory
+    *(x5) ColoredPowderOrSand
+    *(x5) PrayerBeads
+    *(x5) PrayerBook
+    *(x5) PrayerDevice
+    *(x5) PrayerWheel
+    *(x4) CrystalPrism
+    *(x4) MiniatureQuiver
+    *(x4) RodMadeOfGlassAmberOrCrystal
+    *(x5) Rope
+    *(x5) SacrificialCreature
+    *(x5) Scroll
+    *(x5) MinuteTortoiseShell
+    *(x4) MiniatureShovel
+    *(x3) BlackSilk
+    *(x3) SmallSquarePieceOfSilk
+    *(x3) MiniatureWhipMadeOfBraidedSilk
+    *(x3) MultiColoredSilk
+    *(x3) SilverPins
+    *(x3) SmallSilverHorn
+    *(x3) TinySilverWhistle
+    *(x3) FineSilverWire
+    *(x4) SmallSilverMirror
+    *(x2) SpellBooks
+    *(x2) TravelingSpellBooks
+    *(x4) SpheresOfCrystalGlassOrMineral
+    *(x3) SilverSpoon
+    *(x2) CanineStatuettes
+    *(x5) String
+    *(x4) KnottedString
+    *(x4) Stylus
+    *(x2) MiniaturePlatinumSword
+    *(x5) Thread
+    *(x5) MinuteTort
+    *(x2) HollowAndMinuteGoldTube
+    *(x4) Unguent
+    *(x2) SpecialAndExpensiveVellum
+    *(x4) ClericalVestment
+    *(x5) Vial
+    *(x5) WhiteClothStrip
+    *(x5) DramOfWhitewash
+    *(x5) FlexibleWood
+    *(x4) TinyWoodenPaddle
+    *(x5) Wool
+  ]
+}

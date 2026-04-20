@@ -53,16 +53,16 @@ RoomTypePantry {
     *(x2) Countless creepy crawlies all over rush back into the darkness
     *(x3) This area was likely used as a pantry
     *(x3) This place was likely used to store food in the past
-    *(x3) A few small rats, so it seems, scurried back into hiding
-    *(x3) Smashed wooden boxes litter boundaries
+    *(x3) A few small rats, so it seems, scurried back into hiding,
+    *(x3) Smashed wooden boxes litter the boundaries
     *(x3) Torn and empty grain bags are scattered all around
     *(x3) Old and rotting food remains are stacked in several piles
     *(x3) {{capitalize(Several)}} small hay bales are stacked here
     *(x3) Empty storage crates are thrown all over
-    *(x3) Assorted dusty bottles and jars are stored inside recessed shalves
+    *(x3) Assorted dusty bottles and jars are stored inside recessed shelves
   ]
 }
-  
+
 RoomTypeShrine {
   | RoomType
   Title! @ [
@@ -82,8 +82,8 @@ RoomTypeShrine {
     *(x3) A large pentagram was painted here
     *(x3) A small wooden altar is placed here
     *(x3) An engraved stone altar is placed here
-    *(x3) An altar decorated with horned demons figurines stands here
-    *(x3) An altar decorated with winged women figurines stands here
+    *(x3) An altar decorated with figurines of horned demons stands here
+    *(x3) An altar decorated with figurines of winged women stands here
     *(x3) A decorated ceremonial stone was placed here
     *(x3) A red-painted ceremonial totem stands here
     *(x3) A red-painted ceremonial straw-doll is hanging from above
@@ -92,7 +92,7 @@ RoomTypeShrine {
   ]
 }
 
-   
+
 RoomTypeLibrary {
   | RoomType
   Title! = Library
@@ -114,7 +114,7 @@ RoomTypeLibrary {
     *(x3) There are several reading alcoves here
   ]
 }
-   
+
 RoomTypeTortureChamber {
   | RoomType
   Title! = Torture Chamber
@@ -137,7 +137,7 @@ RoomTypeTortureChamber {
     *(x3) Chains and shackles are fixtured all around
   ]
 }
-   
+
 RoomTypeCrypt {
   | RoomType
   Title! = Crypt
@@ -148,7 +148,7 @@ RoomTypeCrypt {
     * wooden
     * marble
   ]
-  
+
   Preface! @ [
     *(x2) It is dark and damp here
     *(x2) You hear the sound of water dripping down
@@ -168,10 +168,10 @@ RoomTypeCrypt {
     *(x3) An oversized wooden coffin was smashed to pieces here
     *(x3) The strong foul smell of rotting flesh is unavoidable
     *(x3) There are about a dozen body-sized alcoves here
-    *(x3) Various embalming tools are hanging beside strips of linen
+    *(x3) Ancient embalming tools are hanging beside strips of linen
   ]
 }
-   
+
 RoomTypeLaboratory {
   | RoomType
   Title! = Laboratory
@@ -190,13 +190,13 @@ RoomTypeLaboratory {
     *(x3) Preserved organs in glass jars are placed inside wall cavities
     *(x3) Deformed humanoid skulls are displayed inside recessed shelves
     *(x3) Various minerals and stone samples are placed on recessed shelves
-    *(x3) Assorted dusty bottles and jars are stored inside recessed shalves
+    *(x3) Assorted dusty bottles and jars are stored inside recessed shelves
     *(x3) Torn and bloody canvas curtains partition the area
     *(x3) Worn and bloody leather curtains partition the area
     *(x3) Various cutting tools are hanging beside strips of linen
   ]
 }
-   
+
 RoomTypeCeremonial {
   | RoomType
   Title! = Ceremonial Chamber

@@ -61,7 +61,7 @@ OceanFeatureVortex(OceanFeature) {
   Name! = "Vortex"
   Details! ~ <%
     <p>
-    There's a <strong>2 in 6 chance</strong> to be sucked into a violent vortex
+    There's a {{dice_roller("1d6","2 in 6")}} to be sucked into a violent vortex
     here.
     </p>
   %>
@@ -71,7 +71,7 @@ OceanFeatureIceberg(OceanFeature) {
   Name! = "Iceberg"
   Details! ~ <%
     <p>
-    There's a <strong>2 in 6 chance</strong> to crash against a giant
+    There's a {{dice_roller("1d6","2 in 6")}} to crash against a giant
     iceberg here during the dark.
     </p>
   %>
@@ -279,7 +279,7 @@ OceanFeaturePirateShip(OceanFeature) {
     </p>
 
     <p>
-    There’s a <strong>2-in-6</strong> chance that it will
+    There’s a {{dice_roller("1d6","2 in 6")}} chance that it will
     spot any vessel in this area and try to encounter it.
     </p>
 
@@ -363,7 +363,7 @@ Details! ~ <%
     <hr/>
     {%if not Monster.TreasureType.Empty and (trim(Monster.TreasureType.Details))!=""%}
     <ul><li>
-    <strong>Lair</strong> hoard (<strong>1-in-6</strong> base chance of finding if an encounter occured):
+    <strong>Lair</strong> hoard ({{dice_roller("1d6","1 in 6")}} base chance of finding if an encounter occured):
     {{Monster.TreasureType.Details}}
     </li></ul>
     {%endif%}
@@ -424,7 +424,7 @@ OceanWeather {
 OceanWeatherVariant1(OceanWeather) {
   Description! ~ <%
     <table class="condensed">
-    <tr> <th> 2d6   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
+    <tr> <th> {{dice_roller("2d6","2d6")}}   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
 
     <tr> <td> <strong> 2     </strong> </td> <td> Rainy         <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWarm}}  </small> </td> <td> Heatwave       <br/> <small> <strong> wind: </strong> None     / {{WindDirDry}} </small></td>  <td> Thuderstorms   <br/> <small> <strong> wind: </strong> Storm    / {{WindDirWet}} </small></td> <td> Blizzard   <br/> <small> <strong> wind: </strong> Hurricane / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 3-4   </strong> </td> <td> Foggy         <br/> <small> <strong> wind: </strong> Strong   / {{WindDirWarm}}  </small> </td> <td> Clear & Humid  <br/> <small> <strong> wind: </strong> Calm     / {{WindDirDry}} </small></td>  <td> Stormy         <br/> <small> <strong> wind: </strong> Storm    / {{WindDirWet}} </small></td> <td> Snowstorm  <br/> <small> <strong> wind: </strong> Storm     / {{WindDirCold}} </small> </td> </tr>
@@ -439,7 +439,7 @@ OceanWeatherVariant1(OceanWeather) {
 OceanWeatherVariant2(OceanWeather) {
   Description! ~ <%
     <table class="condensed">
-    <tr> <th> 2d6   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
+    <tr> <th> {{dice_roller("2d6","2d6")}}   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
 
     <tr> <td> <strong> 2     </strong> </td> <td> Cloudy          <br/> <small> <strong> wind: </strong> Strong   / {{WindDirWarm}}  </small> </td> <td> Clear & Humid   <br/> <small> <strong> wind: </strong> Calm     / {{WindDirDry}} </small></td>  <td> Stormy       <br/> <small> <strong> wind: </strong> Storm    / {{WindDirWet}} </small></td> <td> Snowstorm      <br/> <small> <strong> wind: </strong> Storm     / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 3-4   </strong> </td> <td> Partly Cloudy   <br/> <small> <strong> wind: </strong> Moderate / {{WindDirWarm}}  </small> </td> <td> Clear           <br/> <small> <strong> wind: </strong> Moderate / {{WindDirDry}} </small></td>  <td> Rainy        <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Snowy          <br/> <small> <strong> wind: </strong> Gale      / {{WindDirCold}} </small> </td> </tr>
@@ -453,7 +453,7 @@ OceanWeatherVariant2(OceanWeather) {
 OceanWeatherVariant3(OceanWeather) {
   Description! ~ <%
     <table class="condensed">
-    <tr> <th> 2d6   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
+    <tr> <th> {{dice_roller("2d6","2d6")}}   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
 
     <tr> <td> <strong> 2     </strong> </td> <td> Partly Cloudy   <br/> <small> <strong> wind: </strong> Moderate / {{WindDirWarm}}  </small> </td> <td> Clear           <br/> <small> <strong> wind: </strong> None     / {{WindDirDry}} </small></td>  <td> Stormy           <br/> <small> <strong> wind: </strong> Storm    / {{WindDirWet}} </small></td> <td> Blizzard      <br/> <small> <strong> wind: </strong> Hurricane / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 3-4   </strong> </td> <td> Clear           <br/> <small> <strong> wind: </strong> Calm     / {{WindDirWarm}}  </small> </td> <td> Clear           <br/> <small> <strong> wind: </strong> Calm     / {{WindDirDry}} </small></td>  <td> Rain & Wind      <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Snowstorm     <br/> <small> <strong> wind: </strong> Storm     / {{WindDirCold}} </small> </td> </tr>
@@ -467,11 +467,11 @@ OceanWeatherVariant3(OceanWeather) {
 OceanWeatherVariant4(OceanWeather) {
   Description! ~ <%
     <table class="condensed">
-    <tr> <th> 2d6   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
+    <tr> <th> {{dice_roller("2d6","2d6")}}   </th> <th> Warm Season     </th> <th> Dry Season     </th>  <th> Wet Season     </th> <th> Cold Season    </th </tr>
 
     <tr> <td> <strong> 2     </strong> </td> <td> Heatwave        <br/> <small> <strong> wind: </strong> None     / {{WindDirWarm}}  </small> </td> <td> Scorching      <br/> <small> <strong> wind: </strong> None     / {{WindDirDry}} </small></td>  <td> Stormy  <br/> <small> <strong> wind: </strong> Storm    / {{WindDirWet}} </small></td> <td> Snowstorm    <br/> <small> <strong> wind: </strong> Storm     / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 3-4   </strong> </td> <td> Clear & Humid   <br/> <small> <strong> wind: </strong> Calm     / {{WindDirWarm}}  </small> </td> <td> Heatwave       <br/> <small> <strong> wind: </strong> None     / {{WindDirDry}} </small></td>  <td> Rainy   <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Snowy        <br/> <small> <strong> wind: </strong> Gale      / {{WindDirCold}} </small> </td> </tr>
-    <tr> <td> <strong> 5-9   </strong> </td> <td> Partly Clouhy   <br/> <small> <strong> wind: </strong> Moderate / {{WindDirWarm}}  </small> </td> <td> Clear          <br/> <small> <strong> wind: </strong> Calm     / {{WindDirDry}} </small></td>  <td> Rainy   <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Snowy        <br/> <small> <strong> wind: </strong> Moderate  / {{WindDirCold}} </small> </td> </tr>
+    <tr> <td> <strong> 5-9   </strong> </td> <td> Partly Cloudy   <br/> <small> <strong> wind: </strong> Moderate / {{WindDirWarm}}  </small> </td> <td> Clear          <br/> <small> <strong> wind: </strong> Calm     / {{WindDirDry}} </small></td>  <td> Rainy   <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Snowy        <br/> <small> <strong> wind: </strong> Moderate  / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 10-11 </strong> </td> <td> Clear           <br/> <small> <strong> wind: </strong> Calm     / {{WindDirWarm}}  </small> </td> <td> Clear & Breezy <br/> <small> <strong> wind: </strong> Breeze   / {{WindDirDry}} </small></td>  <td> Rainy   <br/> <small> <strong> wind: </strong> Gale     / {{WindDirWet}} </small></td> <td> Frost        <br/> <small> <strong> wind: </strong> Moderate  / {{WindDirCold}} </small> </td> </tr>
     <tr> <td> <strong> 12    </strong> </td> <td> Clear & Breezy  <br/> <small> <strong> wind: </strong> Breeze   / {{WindDirWarm}}  </small> </td> <td> Partly Cloudy  <br/> <small> <strong> wind: </strong> Moderate / {{WindDirDry}} </small></td>  <td> Cloudy  <br/> <small> <strong> wind: </strong> Calm     / {{WindDirWet}} </small></td> <td> Frost        <br/> <small> <strong> wind: </strong> Calm      / {{WindDirCold}} </small> </td> </tr>
     </table>
@@ -501,8 +501,9 @@ OceanHex {
     <p> There's a <strong>1 in 6</strong> chance when sailing here (or <strong>2 in 6</strong> chance
         if anchoring overnight) to encounter: </p>
 
-    {%set counter.value=1%}
+    {%set counter = namespace(value=1)%}
     <table class="condensed">
+    <tbody id='random-encounters'>
     <tr> <th> 1d4 </th> <th> Encounter </th> <th> Stats </th> </tr>
     {%for e in RandomEncounters.OtherEncounters %}
     <tr> <td> {{counter.value}} </td>
@@ -512,6 +513,7 @@ OceanHex {
     {%set counter.value = counter.value+1%}
     {%endfor%}
     </table>
+    </tbody>
     {%endif%}
 
     {% if Weather %}

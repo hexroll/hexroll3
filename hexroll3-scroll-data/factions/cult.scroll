@@ -86,7 +86,7 @@ Cult (Faction) {
     FactionUUID = &uuid
     Faction = <%
         <a href="{{sandbox()}}/faction/{{FactionUUID}}"><strong>{{FactionName.Full}}</strong></a>
-        are using this dungeon, and there's a 2 in 6 chance to find
+        are using this dungeon, and there's a {{dice_roller("1d6","2 in 6")}} chance to find
         <a href="{{sandbox()}}/faction/{{FactionUUID}}/npc/{{FactionLeader.uuid}}"><strong>{{FactionLeader.Name.Full}}</strong></a>
         together with {{FactionLeader.Gender.PronounPossessive}} acolytes or mediums here.
     %>

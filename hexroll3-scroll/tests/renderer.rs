@@ -98,8 +98,11 @@ mod renderer {
     #[test]
     fn test_recursive_render() {
         let mut instance = SandboxInstance::new();
-        instance.parse_buffer(
-            "
+        {
+            let mut blueprint = instance.blueprint.lock().unwrap();
+            instance.parse_buffer(
+                &mut blueprint,
+                "
 Hex {
     Description! = <%foo%>
     realm = *Realm.Name
@@ -122,24 +125,40 @@ main {
     output! ~ <%{{realm.name}}%>
 }
 ",
-        );
-        let tmp = create_tempfile();
-        instance.create(tmp.path().to_str().unwrap()).unwrap();
-        instance
-            .repo
-            .inspect(|tx| {
-                let main = tx.fetch("root").unwrap();
-                Ok(main.clone())
-            })
-            .and_then(|realm_uid| instance.repo.load(&realm_uid.as_str().unwrap()))
-            .and_then(|main| {
-                let rendered_result = instance
-                    .repo
-                    .inspect(|tx| render_entity(&instance, tx, &main, false))
-                    .unwrap();
-                assert_eq!(rendered_result["output"], "bar");
-                Ok(())
-            })
-            .unwrap();
+            );
+        }
+        {
+            let tmp = create_tempfile();
+            instance.create(tmp.path().to_str().unwrap()).unwrap();
+        }
+        {
+            let mut blueprint = instance.blueprint.lock().unwrap();
+            instance
+                .repo
+                .inspect(|tx| {
+                    let main = tx.fetch("root").unwrap();
+                    Ok(main.clone())
+                })
+                .and_then(|realm_uid| {
+                    instance.repo.load(&realm_uid.as_str().unwrap())
+                })
+                .and_then(|main| {
+                    let rendered_result = instance
+                        .repo
+                        .inspect(|tx| {
+                            render_entity(
+                                &instance,
+                                &mut blueprint,
+                                tx,
+                                &main,
+                                false,
+                            )
+                        })
+                        .unwrap();
+                    assert_eq!(rendered_result["output"], "bar");
+                    Ok(())
+                })
+                .unwrap();
+        }
     }
 }

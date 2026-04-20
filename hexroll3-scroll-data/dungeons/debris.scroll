@@ -29,7 +29,7 @@ DungeonDebris {
     * spread all over the place
     ]
 
-  Debris1 @ [
+  Debris1Singulars @ [
     * an old, ripped backpack
     * a used flask of oil
     * a torn quiver
@@ -45,34 +45,27 @@ DungeonDebris {
     * a dirty stuffed doll
     * a pile of cockroaches
     * a figure made of sticks and twine
-    * several large decorative pillows
     * a nest of straw and blankets
-    * many candles, burnt out in a pile of wax
     * a ring of fist-sized stones
     * a broken talisman
     * a torn cloak
     * a spotted mushroom
     * a collection of offerings, long ago forgotten
-    * several iron bars, each about a foot in length
     * a bouquet of flowers
     * a muddy puddle
-    * knitting needles and yarn
     * a pile of papers
     * the rotting hide of a large animal
     * a pile of gravel and small stones
-    * three large bird skulls
     * the skull of a strange animal
     * a carved idol
     * a pile of bones
     * a bundle of sticks
     * a broken table
     * a tangle of vines
-    * many shoes and boots, piled together
     * a tall pointy hat
     * a boot, skeletal foot still inside
     * a bucket of guts
     * a pouch of dice
-    * feathers
     * a blanket, laid out and covering something small
     * a broken music box
     * vomit
@@ -84,6 +77,17 @@ DungeonDebris {
     * an empty cage with the bars bent out
     * a smashed lyre
     ]
+
+  Debris1Plurals @ [
+    * several large decorative pillows
+    * many candles, burnt out in a pile of wax
+    * several iron bars, each about a foot in length
+    * knitting needles and yarn
+    * three large bird skulls
+    * many shoes and boots, piled together
+    * feathers
+    ]
+
   Debris2 @ [
     * broken pieces of wood
     * torn pieces of clothing
@@ -95,9 +99,9 @@ DungeonDebris {
     * hundred tiny bones
     * feathers
     * cube shaped stones
-    * shreded pieces of clothing
-    * shreded pages of a book
-    * shreded pieces of a map
+    * shredded pieces of clothing
+    * shredded pages of a book
+    * shredded pieces of a map
     * small mounds of ashes
     * dried flowers
     * brightly colored leaves
@@ -114,10 +118,16 @@ DungeonDebris {
     * small iron cages
     ]
   Description! @ [
-    * There’s also {{Debris1}} {{Debris1Location}} and some {{Debris2}}
+    * There’s also {{Debris1Singulars}} {{Debris1Location}} and some {{Debris2}}
+      {{Debris2Location}}.
+    * There’s also {{Debris1Singulars}} {{Debris1Location}} and some {{Debris2}}
+      {{Debris2Location}}.
+    * There are also {{Debris1Plurals}} {{Debris1Location}} and some {{Debris2}}
       {{Debris2Location}}.
     * {{capitalize(Debris2)}} litter the area.
-    * {{capitalize(Debris1)}} can be found {{Debris1Location}}.
+    * {{capitalize(Debris1Singulars)}} can be found {{Debris1Location}}.
+    * {{capitalize(Debris1Singulars)}} can be found {{Debris1Location}}.
+    * {{capitalize(Debris1Plurals)}} can be found {{Debris1Location}}.
     ]
 }
 

@@ -103,6 +103,7 @@
 + /factions/militia
 + /factions/syndicate
 + /osr/equipment
++ /osr/spell_components
 + /osr/npc
 + /osr/npc_allocs
 + /osr/magic_items
@@ -115,7 +116,7 @@
 main {
   Version = 2
   << IndexedEntity
-  [1..1 realms!] @ RuledRealm
+  [0..0 realms!] @ RuledRealm
   [0..0 ocean!] @ OceanHex
   Header! ~ <%
     <h4 id="title">

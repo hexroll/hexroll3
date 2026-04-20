@@ -144,6 +144,98 @@ RuledRealm (Realm){
       admired for {{RealmType.Ruler.NPC.Gender.PronounPossessive}} wise and thoughtful reign.
       Is there anyone in the {{RealmType.Title | lower}} who knows {{RealmType.Ruler.NPC.Gender.PronounPossessive}}
       very dark secret?
+
+    * A sickening blight sweeps the {{decap(RealmType.Title)}}, currently decimating the rural
+      population. The cause of the sickness is unknown, but those in power are
+      desperate for answers – and heroes.
+
+    * The {{capitalize(RealmType.Ruler.Title)}} is dead, assassinated on the first anniversary of
+      {{RealmType.Ruler.NPC.Gender.PronounPossessive}} coronation.
+      Turmoil reigns as nobles rush to fill the power vacuum left in the wake of this tragedy.
+
+    * Mutated beasts raid isolated farms near the realms borders, and
+      blood-curdling howls fill the night. A red moon rises over the land, but
+      what could it mean?
+
+    * A lucky prospector has discovered a wondrous new substance in a remote
+      valley. This discovery threatens to change life in the realm forever, and
+      they have made powerful enemies.
+
+    * A titanic eruption has buried a city in molten rock and
+      thousands of refugees seek new homes across the land. Rumours abound that
+      the eruption was unnatural.
+
+    * Solvar Dreadblade has come to plunder the realm with his army of darkness.
+      The warlord is famously invulnerable, yet there must be a way to defeat
+      him.
+
+    * A cataclysmic fire has reduced half of the Library of {{capitalize(Name.Title)}} to cinders
+      and ash. The fire started in the restricted section of the west wing.
+
+    * The sun grows black in the sky, obscured by a skull-faced moon. The
+      celestial terror draws closer each day. Can it be stopped?
+
+    * Released from centuries of confinement the Demon Lord {{EvilName.Full}} seeks
+      revenge on the {{capitalize(RealmType.Ruler.Title)}} whose ancestors imprisoned him.
+
+    * A great hero of legend has returned to the land after being lost centuries
+      ago. However, they are changed by the experience and have openly challenged
+      {{capitalize(RealmType.Ruler.Title)}} {{RealmType.Ruler.NPC.Name.First}}.
+
+    * A great beast has emerged from the outskirts of {{capitalize(Name.Title)}}, tearing through
+      the land like a scythe through wheat. Can it be stopped?
+
+    * Towering pillars of radiant crystal have erupted across {{capitalize(Name.Title)}} overnight.
+      These arcane monoliths thrum with wild power, saturating everything nearby
+      with magic. What caused them to appear?
+
+    * The {{capitalize(RealmType.Ruler.Title)}} has not been seen in public since
+      {{RealmType.Ruler.NPC.Gender.PronounPossessive}} return from the shadowed
+      lands. People have started to disappear, dragged away by guards in the
+      night.
+
+    * A colourful troupe of theatre folk have arrived to {{capitalize(Name.Title)}} and delighted
+      everyone with their antics. Strangely, no one remembers what they saw at
+      the show.
+
+    * The dead are restless since a great storm swept across {{capitalize(Name.Title)}} two days
+      ago. Rotting corpses and skeletons alike rise from the earth to terrorise
+      the land.
+
+    * A dragon has arrived in the realm, making its lair in the ruins of an
+      ancient observatory in the mountains and demanding tribute from the city
+      below.
+
+    * A great tower of black stone has appeared overnight, the rusted bell at its
+      top ringing each night at twelve. The peals are getting louder each night.
+
+    * A plague of curses has befallen the realm since a legendary blade was
+      rediscovered in sealed, ancient ruins beneath the royal castle. What powers
+      does the weapon possess?
+
+    * A charismatic leader has united {{capitalize(Name.Title)}}’s disparate thieves’ guilds into
+      one organisation. {{capitalize(RealmType.Ruler.Title)}} {{RealmType.Ruler.NPC.Name.First}}
+      wants this figurehead removed lest they threaten the status quo.
+
+    * Terrible earthquakes devastate the land, and howling demons pour from the
+      gaping fissures in the earth. Can anyone stem the unholy tide?
+
+    * A saintly figure has appeared in a remote village near the borderlands, and
+      rumours abound of the miracles they perform. Is this a holy portent or
+      something darker?
+
+    * Ships have been disappearing along the realm’s busiest trade route, and
+      commerce has plummeted as captains refuse to risk their vessels in the
+      area. What’s behind the disappearances?
+
+    * A warrior with alabaster skin and ancient armour arrived in the royal
+      court, addressing the {{capitalize(RealmType.Ruler.Title)}} like an equal.
+      The ruler ordered that no harm come to the stranger.
+
+    * A great tidal wave has destroyed one of the coastal settlements. In its wake a
+      strange group of aquatic beings has emerged from the sea to colonise the
+      ruins.
+
   ]
 
   RulerTitle! = <{{RealmType.Ruler.Title}} {{RealmType.Ruler.NPC.Name.Full}}>

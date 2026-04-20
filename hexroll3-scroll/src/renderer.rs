@@ -26,13 +26,13 @@ use anyhow::anyhow;
 use minijinja::Environment;
 use std::collections::HashMap;
 
-use crate::instance::SandboxInstance;
+use crate::instance::{SandboxBlueprint, SandboxInstance};
 use crate::renderer_env::prepare_renderer;
 use crate::repository::{ReadOnlyLoader, ReadOnlyTransaction};
 
-struct RendererContext<'a> {
-    cache: HashMap<String, serde_json::value::Value>,
-    env: Environment<'a>,
+pub struct RendererContext<'a> {
+    pub cache: HashMap<String, serde_json::value::Value>,
+    pub env: Environment<'a>,
 }
 
 /// Generates HTML for the given object using a specified template.
@@ -50,6 +50,7 @@ struct RendererContext<'a> {
 /// The function sets up a rendering environment, prepares the renderer, and attempts to render the template with the provided data.
 pub fn render_entity_html(
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &ReadOnlyTransaction,
     obj: &serde_json::Value,
 ) -> anyhow::Result<(String, String)> {
@@ -57,19 +58,24 @@ pub fn render_entity_html(
     prepare_renderer(&mut env, instance);
     if let Some(class_spec) = obj["class"]
         .as_str()
-        .and_then(|name| instance.classes.get(name))
+        .and_then(|name| instance.resolve_class(blueprint, &name))
     {
         if let (Some(html_body), Some(html_header)) =
             (&class_spec.html_body, &class_spec.html_header)
         {
-            let rendered_header = env
-                .render_str(
-                    html_header.as_str(),
-                    render_entity(instance, tx, obj, true)?,
-                )
+            let rendered_entity =
+                render_entity(instance, blueprint, tx, obj, true)?;
+            let mut rendered_header = env
+                .render_str(html_header.as_str(), &rendered_entity)
                 .map_err(anyhow::Error::new)?;
+            if let Some(html_metadata) = &class_spec.html_metadata {
+                let rendered_metadata = env
+                    .render_str(html_metadata.as_str(), &rendered_entity)
+                    .map_err(anyhow::Error::new)?;
+                rendered_header.insert_str(0, &rendered_metadata);
+            }
             let rendered_body = env
-                .render_str(html_body.as_str(), render_entity(instance, tx, obj, true)?)
+                .render_str(html_body.as_str(), &rendered_entity)
                 .map_err(anyhow::Error::new)?;
             return Ok((rendered_header, rendered_body));
         }
@@ -79,6 +85,7 @@ pub fn render_entity_html(
 
 pub fn render_entity<T: ReadOnlyLoader>(
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &T,
     obj: &serde_json::Value,
     is_root: bool,
@@ -95,6 +102,7 @@ pub fn render_entity<T: ReadOnlyLoader>(
             env,
         },
         instance,
+        blueprint,
         tx,
         obj,
         is_root,
@@ -129,6 +137,7 @@ pub fn render_entity<T: ReadOnlyLoader>(
 fn recursive_entity_renderer<T: ReadOnlyLoader>(
     context: &mut RendererContext,
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &T,
     obj: &serde_json::Value,
     is_root: bool,
@@ -139,7 +148,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
         return Ok(context.cache.get(&uuid).unwrap().clone());
     }
     let class_name = obj["class"].as_str().unwrap();
-    let class_spec = &instance.classes[class_name];
+    let class_spec = instance.resolve_class(blueprint, class_name).unwrap();
 
     let mut ctx = serde_json::json!({
         "uuid" : obj["uid"]
@@ -154,7 +163,8 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                 continue;
             }
             let frame = tx.retrieve(&format!("{}_frame", uuid))?;
-            let unused = &frame.value["$collections"]["$unused"][&spec.class_name];
+            let unused =
+                &frame.value["$collections"]["$unused"][&spec.class_name];
             ctx[&attr.attr_name] = serde_json::Value::from(
                 unused
                     .as_array()
@@ -162,7 +172,15 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                     .iter()
                     .map(|unused_id| {
                         let next = tx.retrieve(unused_id.as_str().unwrap())?;
-                        recursive_entity_renderer(context, instance, tx, &next.value, false, None)
+                        recursive_entity_renderer(
+                            context,
+                            instance,
+                            blueprint,
+                            tx,
+                            &next.value,
+                            false,
+                            None,
+                        )
                     })
                     .collect::<Result<Vec<serde_json::Value>, _>>()?,
             );
@@ -216,6 +234,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                                 recursive_entity_renderer(
                                     context,
                                     instance,
+                                    blueprint,
                                     tx,
                                     &next.value,
                                     false,
@@ -226,13 +245,13 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                     )
                 } else if let Some(id) = raw_value.as_array().unwrap().iter().next() {
                     let next = tx.retrieve(id.as_str().unwrap())?;
-                    recursive_entity_renderer(context, instance, tx, &next.value, false, None)?
+                    recursive_entity_renderer(context, instance, blueprint, tx, &next.value, false, None)?
                 } else {
                     serde_json::json!({})
                 }
             }
             serde_json::Value::Object(_) => {
-                render_indirections(context, instance, tx, obj, attr_name)?
+                render_indirections(context, instance, blueprint, tx, obj, attr_name)?
             }
             serde_json::Value::Null => {
                 let tmpl_str = class_spec.attrs[attr_name].cmd.value().unwrap();
@@ -282,13 +301,21 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
 fn render_pointer_attribute<T: ReadOnlyLoader>(
     context: &mut RendererContext,
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &T,
     uid: &str,
     attr: &str,
 ) -> anyhow::Result<serde_json::Value> {
     let pointed_entity = tx.retrieve(uid)?.value;
-    let pointed_render =
-        recursive_entity_renderer(context, instance, tx, &pointed_entity, true, Some(attr))?;
+    let pointed_render = recursive_entity_renderer(
+        context,
+        instance,
+        blueprint,
+        tx,
+        &pointed_entity,
+        true,
+        Some(attr),
+    )?;
     Ok(pointed_render[attr].clone())
 }
 
@@ -315,6 +342,7 @@ fn render_pointer_attribute<T: ReadOnlyLoader>(
 fn render_parent_attribute<T: ReadOnlyLoader>(
     context: &mut RendererContext,
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &T,
     pid: &str,
     parent_class: &str,
@@ -322,8 +350,12 @@ fn render_parent_attribute<T: ReadOnlyLoader>(
 ) -> anyhow::Result<serde_json::Value> {
     let parent = tx.retrieve(pid)?.value;
     let class = parent["class"].as_str().unwrap();
-    let Some(class_spec) = &instance.classes.get(class) else {
-        return Err(anyhow!("Could not find class {} in entity {}", class, pid));
+    let Some(class_spec) = instance.resolve_class(blueprint, class) else {
+        return Err(anyhow!(
+            "Could not find class {} in entity {}",
+            class,
+            pid
+        ));
     };
     if class_spec.hierarchy.contains(&parent_class.to_string()) {
         // Theoretically, we should have done:
@@ -339,11 +371,27 @@ fn render_parent_attribute<T: ReadOnlyLoader>(
         //
         let v = &parent[parent_attr];
         return if v.is_array() && !v.as_array().unwrap().is_empty() {
-            let data_uid = v.as_array().unwrap().first().unwrap().as_str().unwrap();
+            let data_uid =
+                v.as_array().unwrap().first().unwrap().as_str().unwrap();
             let data = tx.retrieve(data_uid)?.value;
-            recursive_entity_renderer(context, instance, tx, &data, false, Some(parent_attr))
+            recursive_entity_renderer(
+                context,
+                instance,
+                blueprint,
+                tx,
+                &data,
+                false,
+                Some(parent_attr),
+            )
         } else if v.is_object() {
-            render_indirections(context, instance, tx, &parent, parent_attr)
+            render_indirections(
+                context,
+                instance,
+                blueprint,
+                tx,
+                &parent,
+                parent_attr,
+            )
         } else {
             Ok(parent[parent_attr].clone())
         };
@@ -353,6 +401,7 @@ fn render_parent_attribute<T: ReadOnlyLoader>(
             return render_parent_attribute(
                 context,
                 instance,
+                blueprint,
                 tx,
                 my_pid.as_str().unwrap(),
                 parent_class,
@@ -376,9 +425,10 @@ fn render_parent_attribute<T: ReadOnlyLoader>(
 ///
 /// # Returns
 /// - `anyhow::Result<serde_json::Value>`: The rendered or retrieved attribute value.
-fn render_indirections<T: ReadOnlyLoader>(
+pub fn render_indirections<T: ReadOnlyLoader>(
     context: &mut RendererContext,
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     tx: &T,
     obj: &serde_json::Value,
     attr_name: &str,
@@ -391,6 +441,7 @@ fn render_indirections<T: ReadOnlyLoader>(
         return render_parent_attribute(
             context,
             instance,
+            blueprint,
             tx,
             pid,
             spec["parent"].as_str().unwrap(),
@@ -402,6 +453,7 @@ fn render_indirections<T: ReadOnlyLoader>(
         return render_pointer_attribute(
             context,
             instance,
+            blueprint,
             tx,
             spec["uid"].as_str().unwrap(),
             attr,

@@ -297,7 +297,7 @@ NPC (Character) {
     <strong>{{Name.Full}}</strong>, a level {{Level}} {{Class}}.{{note_button(uuid)}}
     {{DescriptionInscript}}
     {{capitalize(Gender.PronounSubject)}} {{Gender.Possession}} {{Appearance}}
-    <em>({{State}})</em>. {{InThePocket.Details}}
+    (<em>{{State}}</em>). {{InThePocket.Details}}
     {{note_container(uuid)}}
     {{DescriptionPostscript}}
   %>
@@ -318,7 +318,7 @@ NPC (Character) {
   Stats! ~ <%
     <strong>Armour Class</strong> {{Armor.Format}}
     <strong>Hit Points:</strong> {{max(HP+int(CON_modifier)*HDRolls, 1)}}
-    <strong>Attacks:</strong> 1 × {{Weapon.Title}} ({{Weapon.Damage}}) {%if Spell1 %}or 1 × spell {%endif%}
+    <strong>Attacks:</strong> 1 × {{dice_roller(Weapon.Damage,Weapon.Title + " (" + Weapon.Damage +")")}} {%if Spell1%}or 1 × spell {%endif%}
     <strong>THAC0:</strong> {{THAC0}}
     <strong>Movement Rate:</strong> 90' (30')
     <strong>Saves:</strong> {{SavingThrows}}
@@ -367,9 +367,9 @@ Magicuser (NPC) {
 
 MagicuserLevel1 (Magicuser) {
   Level! = 1
-  HD = "1d4"
+  HD = 1d4
   HDRolls = 1
-  THAC0 = < 19 [0] >
+  THAC0 = < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 1d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -379,9 +379,9 @@ MagicuserLevel1 (Magicuser) {
 
 MagicuserLevel2 (Magicuser){
   Level! = 2
-  HD = "2d4"
+  HD = 2d4
   HDRolls = 2
-  THAC0 = < 19 [0] >
+  THAC0 = < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 2d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -391,9 +391,9 @@ MagicuserLevel2 (Magicuser){
 
 MagicuserLevel3 (Magicuser){
   Level! = 3
-  HD = "3d4"
+  HD = 3d4
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 3d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -404,9 +404,9 @@ MagicuserLevel3 (Magicuser){
 
 MagicuserLevel4 (Magicuser){
   Level! = 4
-  HD = "4d4"
+  HD = 4d4
   HDRolls = 4
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 4d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -418,9 +418,9 @@ MagicuserLevel4 (Magicuser){
 
 MagicuserLevel5 (Magicuser){
   Level! = 5
-  HD = "5d4"
+  HD = 5d4
   HDRolls = 5
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 5d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -433,9 +433,9 @@ MagicuserLevel5 (Magicuser){
 
 MagicuserLevel6 (Magicuser){
   Level! = 6
-  HD = "6d4"
+  HD = 6d4
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D11 W12 P11 B14 S12
   HP @ 6d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -449,9 +449,9 @@ MagicuserLevel6 (Magicuser){
 
 MagicuserLevel7 (Magicuser){
   Level! = 7
-  HD = "7d4"
+  HD = 7d4
   HDRolls = 7
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D11 W12 P11 B14 S12
   HP @ 7d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -467,9 +467,9 @@ MagicuserLevel7 (Magicuser){
 
 MagicuserLevel8 (Magicuser){
   Level! = 8
-  HD = "8d4"
+  HD = 8d4
   HDRolls = 8
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D11 W12 P11 B14 S12
   HP @ 8d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -487,9 +487,9 @@ MagicuserLevel8 (Magicuser){
 
 MagicuserLevel9 (Magicuser){
   Level! = 9
-  HD = "9d4"
+  HD = 9d4
   HDRolls = 9
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D11 W12 P11 B14 S12
   HP @ 9d4
   Spell1 @ $kMagicuserSpellLevel1
@@ -509,9 +509,9 @@ MagicuserLevel9 (Magicuser){
 
 MagicuserLevel10 (Magicuser){
   Level! = 10
-  HD = "9d4+1"
+  HD = 9d4+1
   HDRolls = 9
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D11 W12 P11 B14 S12
   HP @ 9d4+1
   Spell1 @ $kMagicuserSpellLevel1
@@ -533,9 +533,9 @@ MagicuserLevel10 (Magicuser){
 
 MagicuserLevel11 (Magicuser){
   Level! = 11
-  HD = "9d4+2"
+  HD = 9d4+2
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P8 B11 S8
   HP @ 9d4+2
   Spell1 @ $kMagicuserSpellLevel1
@@ -559,9 +559,9 @@ MagicuserLevel11 (Magicuser){
 
 MagicuserLevel12 (Magicuser){
   Level! = 12
-  HD = "9d4+3"
+  HD = 9d4+3
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P8 B11 S8
   HP @ 9d4+3
   Spell1 @ $kMagicuserSpellLevel1
@@ -588,9 +588,9 @@ MagicuserLevel12 (Magicuser){
 
 MagicuserLevel13 (Magicuser){
   Level! = 13
-  HD = "9d4+4"
+  HD = 9d4+4
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P8 B11 S8
   HP @ 9d4+4
   Spell1 @ $kMagicuserSpellLevel1
@@ -619,9 +619,9 @@ MagicuserLevel13 (Magicuser){
 
 MagicuserLevel14 (Magicuser){
   Level! = 14
-  HD = "9d4+5"
+  HD = 9d4+5
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P8 B11 S8
   HP @ 9d4+5
   Spell1 @ $kMagicuserSpellLevel1
@@ -698,9 +698,9 @@ Fighter (NPC) {
 
 FighterLevel1 (Fighter){
   Level! = 1
-  HD = "1d8"
+  HD = 1d8
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P14 B15 S16
   HP @ 1d8
   | Fighter
@@ -708,9 +708,9 @@ FighterLevel1 (Fighter){
 
 FighterLevel2 (Fighter){
   Level! = 2
-  HD = "2d8"
+  HD = 2d8
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P14 B15 S16
   HP @ 2d8
   | Fighter
@@ -718,9 +718,9 @@ FighterLevel2 (Fighter){
 
 FighterLevel3 (Fighter){
   Level! = 3
-  HD = "3d8"
+  HD = 3d8
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P14 B15 S16
   HP @ 3d8
   | Fighter
@@ -728,9 +728,9 @@ FighterLevel3 (Fighter){
 
 FighterLevel4 (Fighter){
   Level! = 4
-  HD = "4d8"
+  HD = 4d8
   HDRolls = 4
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P12 B13 S14
   HP @ 4d8
   | Fighter
@@ -738,9 +738,9 @@ FighterLevel4 (Fighter){
 
 FighterLevel5 (Fighter){
   Level! = 5
-  HD = "5d8"
+  HD = 5d8
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P12 B13 S14
   HP @ 5d8
   | Fighter
@@ -748,9 +748,9 @@ FighterLevel5 (Fighter){
 
 FighterLevel6 (Fighter){
   Level! = 6
-  HD = "6d8"
+  HD = 6d8
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P12 B13 S14
   HP @ 6d8
   | Fighter
@@ -758,9 +758,9 @@ FighterLevel6 (Fighter){
 
 FighterLevel7 (Fighter){
   Level! = 7
-  HD = "7d8"
+  HD = 7d8
   HDRolls = 7
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P10 B10 S12
   HP @ 7d8
   | Fighter
@@ -768,9 +768,9 @@ FighterLevel7 (Fighter){
 
 FighterLevel8 (Fighter){
   Level! = 8
-  HD = "8d8"
+  HD = 8d8
   HDRolls = 8
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P10 B10 S12
   HP @ 8d8
   | Fighter
@@ -778,9 +778,9 @@ FighterLevel8 (Fighter){
 
 FighterLevel9 (Fighter){
   Level! = 9
-  HD = "9d8"
+  HD = 9d8
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P10 B10 S12
   HP @ 9d8
   | Fighter
@@ -788,9 +788,9 @@ FighterLevel9 (Fighter){
 
 FighterLevel10 (Fighter){
   Level! = 10
-  HD = "9d8+2"
+  HD = 9d8+2
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D6 W7 P8 B8 S10
   HP @ 9d8+2
   | Fighter
@@ -798,9 +798,9 @@ FighterLevel10 (Fighter){
 
 FighterLevel11 (Fighter){
   Level! = 11
-  HD = "9d8+4"
+  HD = 9d8+4
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D12 W13 P14 B15 S16
   HP @ 9d8+4
   | Fighter
@@ -808,9 +808,9 @@ FighterLevel11 (Fighter){
 
 FighterLevel12 (Fighter){
   Level! = 12
-  HD = "9d8+6"
+  HD = 9d8+6
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D6 W7 P8 B8 S10
   HP @ 9d8+6
   | Fighter
@@ -818,9 +818,9 @@ FighterLevel12 (Fighter){
 
 FighterLevel13 (Fighter){
   Level! = 13
-  HD = "9d8+8"
+  HD = 9d8+8
   HDRolls = 9
-  THAC0 =< 10 [+9] >
+  THAC0 ~ < 10 {{dice_roller("1d20+9","[+9]")}} >
   SavingThrows = D4 W5 P6 B5 S8
   HP @ 9d8+8
   | Fighter
@@ -828,9 +828,9 @@ FighterLevel13 (Fighter){
 
 FighterLevel14 (Fighter){
   Level! = 14
-  HD = "9d8+10"
+  HD = 9d8+10
   HDRolls = 9
-  THAC0 =< 10 [+9] >
+  THAC0 ~ < 10 {{dice_roller("1d20+9","[+9]")}} >
   SavingThrows = D4 W5 P6 B5 S8
   HP @ 9d8+10
   | Fighter
@@ -870,9 +870,9 @@ Cleric (NPC) {
 
 ClericLevel1 (Cleric) {
   Level! = 1
-  HD = "1d6"
+  HD = 1d6
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D11 W12 P14 B16 S15
   HP @ 1d6
   | Cleric
@@ -880,9 +880,9 @@ ClericLevel1 (Cleric) {
 
 ClericLevel2 (Cleric) {
   Level! = 2
-  HD = "2d6"
+  HD = 2d6
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D11 W12 P14 B16 S15
   HP @ 2d6
   Spell1 @ $kClericSpellLevel1
@@ -891,9 +891,9 @@ ClericLevel2 (Cleric) {
 
 ClericLevel3 (Cleric) {
   Level! = 3
-  HD = "3d6"
+  HD = 3d6
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D11 W12 P14 B16 S15
   HP @ 3d6
   Spell1 @ $kClericSpellLevel1
@@ -903,9 +903,9 @@ ClericLevel3 (Cleric) {
 
 ClericLevel4 (Cleric) {
   Level! = 4
-  HD = "4d6"
+  HD = 4d6
   HDRolls = 4
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D11 W12 P14 B16 S15
   HP @ 4d6
   Spell1 @ $kClericSpellLevel1
@@ -916,9 +916,9 @@ ClericLevel4 (Cleric) {
 
 ClericLevel5 (Cleric) {
   Level! = 5
-  HD = "5d6"
+  HD = 5d6
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D9 W10 P12 B14 S12
   HP @ 5d6
   Spell1 @ $kClericSpellLevel1
@@ -930,9 +930,9 @@ ClericLevel5 (Cleric) {
 
 ClericLevel6 (Cleric) {
   Level! = 6
-  HD = "6d6"
+  HD = 6d6
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D9 W10 P12 B14 S12
   HP @ 6d6
   Spell1 @ $kClericSpellLevel1
@@ -946,9 +946,9 @@ ClericLevel6 (Cleric) {
 
 ClericLevel7 (Cleric) {
   Level! = 7
-  HD = "7d6"
+  HD = 7d6
   HDRolls = 7
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D9 W10 P12 B14 S12
   HP @ 7d6
   Spell1 @ $kClericSpellLevel1
@@ -964,9 +964,9 @@ ClericLevel7 (Cleric) {
 
 ClericLevel8 (Cleric) {
   Level! = 8
-  HD = "8d6"
+  HD = 8d6
   HDRolls = 8
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D9 W10 P12 B14 S12
   HP @ 8d6
   Spell1 @ $kClericSpellLevel1
@@ -985,9 +985,9 @@ ClericLevel8 (Cleric) {
 
 ClericLevel9 (Cleric) {
   Level! = 9
-  HD = "9d6"
+  HD = 9d6
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D6 W7 P9 B11 S9
   HP @ 9d6
   Spell1 @ $kClericSpellLevel1
@@ -1008,9 +1008,9 @@ ClericLevel9 (Cleric) {
 
 ClericLevel10 (Cleric) {
   Level! = 10
-  HD = "9d6+1"
+  HD = 9d6+1
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D6 W7 P9 B11 S9
   HP @ 9d6+1
   Spell1 @ $kClericSpellLevel1
@@ -1034,9 +1034,9 @@ ClericLevel10 (Cleric) {
 
 ClericLevel11 (Cleric) {
   Level! = 11
-  HD = "9d6+2"
+  HD = 9d6+2
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D6 W7 P9 B11 S9
   HP @ 9d6+2
   Spell1 @ $kClericSpellLevel1
@@ -1063,9 +1063,9 @@ ClericLevel11 (Cleric) {
 
 ClericLevel12 (Cleric) {
   Level! = 12
-  HD = "9d6+3"
+  HD = 9d6+3
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D6 W7 P9 B11 S9
   HP @ 9d6+3
   Spell1 @ $kClericSpellLevel1
@@ -1095,9 +1095,9 @@ ClericLevel12 (Cleric) {
 
 ClericLevel13 (Cleric) {
   Level! = 13
-  HD = "9d6+4"
+  HD = 9d6+4
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D3 W5 P7 B8 S7
   HP @ 9d6+4
   Spell1 @ $kClericSpellLevel1
@@ -1128,9 +1128,9 @@ ClericLevel13 (Cleric) {
 
 ClericLevel14 (Cleric) {
   Level! = 14
-  HD = "9d6+5"
+  HD = 9d6+5
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D3 W5 P7 B8 S7
   HP @ 9d6+5
   Spell1 @ $kClericSpellLevel1
@@ -1197,7 +1197,7 @@ Dwarf (NPC){
         * Warhammer
   ]
   Feature2 @ [
-    * big, bulbous nose
+    * a big, bulbous nose
     * short, fat fingers
     * a golden tooth
     * big red cheeks
@@ -1208,9 +1208,9 @@ Dwarf (NPC){
 
 DwarfLevel1 (Dwarf) {
   Level! = 1
-  HD = "1d8"
+  HD = 1d8
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 1d8
   | Dwarf
@@ -1218,9 +1218,9 @@ DwarfLevel1 (Dwarf) {
 
 DwarfLevel2 (Dwarf) {
   Level! = 2
-  HD = "2d8"
+  HD = 2d8
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 2d8
   | Dwarf
@@ -1228,9 +1228,9 @@ DwarfLevel2 (Dwarf) {
 
 DwarfLevel3 (Dwarf) {
   Level! = 3
-  HD = "3d8"
+  HD = 3d8
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 3d8
   | Dwarf
@@ -1238,9 +1238,9 @@ DwarfLevel3 (Dwarf) {
 
 DwarfLevel4 (Dwarf) {
   Level! = 4
-  HD = "4d8"
+  HD = 4d8
   HDRolls = 4
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 4d8
   | Dwarf
@@ -1248,9 +1248,9 @@ DwarfLevel4 (Dwarf) {
 
 DwarfLevel5 (Dwarf) {
   Level! = 5
-  HD = "5d8"
+  HD = 5d8
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 5d8
   | Dwarf
@@ -1258,9 +1258,9 @@ DwarfLevel5 (Dwarf) {
 
 DwarfLevel6 (Dwarf) {
   Level! = 6
-  HD = "6d8"
+  HD = 6d8
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 6d8
   | Dwarf
@@ -1268,9 +1268,9 @@ DwarfLevel6 (Dwarf) {
 
 DwarfLevel7 (Dwarf) {
   Level! = 7
-  HD = "7d8"
+  HD = 7d8
   HDRolls = 7
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D4 W5 P6 B7 S8
   HP @ 7d8
   | Dwarf
@@ -1278,9 +1278,9 @@ DwarfLevel7 (Dwarf) {
 
 DwarfLevel8 (Dwarf) {
   Level! = 8
-  HD = "8d8"
+  HD = 8d8
   HDRolls = 8
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D4 W5 P6 B7 S8
   HP @ 8d8
   | Dwarf
@@ -1288,9 +1288,9 @@ DwarfLevel8 (Dwarf) {
 
 DwarfLevel9 (Dwarf) {
   Level! = 9
-  HD = "9d8"
+  HD = 9d8
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D4 W5 P6 B7 S8
   HP @ 9d8
   | Dwarf
@@ -1298,9 +1298,9 @@ DwarfLevel9 (Dwarf) {
 
 DwarfLevel10 (Dwarf) {
   Level! = 10
-  HD = "9d8+3"
+  HD = 9d8+3
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D2 W3 P4 B4 S6
   HP @ 9d8+2
   | Dwarf
@@ -1308,9 +1308,9 @@ DwarfLevel10 (Dwarf) {
 
 DwarfLevel11 (Dwarf) {
   Level! = 11
-  HD = "9d8+6"
+  HD = 9d8+6
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D2 W3 P4 B4 S6
   HP @ 9d8+4
   | Dwarf
@@ -1318,9 +1318,9 @@ DwarfLevel11 (Dwarf) {
 
 DwarfLevel12 (Dwarf) {
   Level! = 12
-  HD = "9d8+9"
+  HD = 9d8+9
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D2 W3 P4 B4 S6
   HP @ 9d8+6
   | Dwarf
@@ -1377,9 +1377,9 @@ Elf (NPC){
 
 ElfLevel1 (Elf) {
   Level! = 1
-  HD = "1d6"
+  HD = 1d6
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P13 B15 S15
   HP @ 1d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1388,9 +1388,9 @@ ElfLevel1 (Elf) {
 
 ElfLevel2 (Elf) {
   Level! = 2
-  HD = "2d6"
+  HD = 2d6
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P13 B15 S15
   HP @ 2d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1400,9 +1400,9 @@ ElfLevel2 (Elf) {
 
 ElfLevel3 (Elf) {
   Level! = 3
-  HD = "3d6"
+  HD = 3d6
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D12 W13 P13 B15 S15
   HP @ 3d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1413,9 +1413,9 @@ ElfLevel3 (Elf) {
 
 ElfLevel4 (Elf) {
   Level! = 4
-  HD = "4d6"
+  HD = 4d6
   HDRolls = 4
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P11 B13 S12
   HP @ 4d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1427,9 +1427,9 @@ ElfLevel4 (Elf) {
 
 ElfLevel5 (Elf) {
   Level! = 5
-  HD = "5d6"
+  HD = 5d6
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P11 B13 S12
   HP @ 5d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1442,9 +1442,9 @@ ElfLevel5 (Elf) {
 
 ElfLevel6 (Elf) {
   Level! = 6
-  HD = "6d6"
+  HD = 6d6
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D10 W11 P11 B13 S12
   HP @ 6d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1458,9 +1458,9 @@ ElfLevel6 (Elf) {
 
 ElfLevel7 (Elf) {
   Level! = 7
-  HD = "7d6"
+  HD = 7d6
   HDRolls = 7
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P9 B10 S10
   HP @ 7d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1476,9 +1476,9 @@ ElfLevel7 (Elf) {
 
 ElfLevel8 (Elf) {
   Level! = 8
-  HD = "8d6"
+  HD = 8d6
   HDRolls = 8
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P9 B10 S10
   HP @ 8d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1496,9 +1496,9 @@ ElfLevel8 (Elf) {
 
 ElfLevel9 (Elf) {
   Level! = 9
-  HD = "9d6"
+  HD = 9d6
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D8 W9 P9 B10 S10
   HP @ 9d6
   Spell1 @ $kMagicuserSpellLevel1
@@ -1518,9 +1518,9 @@ ElfLevel9 (Elf) {
 
 ElfLevel10 (Elf) {
   Level! = 10
-  HD = "9d6+2"
+  HD = 9d6+2
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D6 W7 P8 B8 S8
   HP @ 9d6+2
   Spell1 @ $kMagicuserSpellLevel1
@@ -1578,7 +1578,7 @@ Halfling (NPC){
   Feature2 @ [
     * short, chunky fingers
     * extremely large feet, even for a halfling
-    * round, bulbous nose
+    * a round, bulbous nose
     * chubby cheeks
     * big red cheeks
   ]
@@ -1587,9 +1587,9 @@ Halfling (NPC){
 
 HalflingLevel1 (Halfling) {
   Level! = 1
-  HD = "1d6"
+  HD = 1d6
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 1d6
   | Halfling
@@ -1597,9 +1597,9 @@ HalflingLevel1 (Halfling) {
 
 HalflingLevel2 (Halfling) {
   Level! = 2
-  HD = "2d6"
+  HD = 2d6
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 2d6
   | Halfling
@@ -1607,9 +1607,9 @@ HalflingLevel2 (Halfling) {
 
 HalflingLevel3 (Halfling) {
   Level! = 3
-  HD = "3d6"
+  HD = 3d6
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D8 W9 P10 B13 S12
   HP @ 3d6
   | Halfling
@@ -1617,9 +1617,9 @@ HalflingLevel3 (Halfling) {
 
 HalflingLevel4 (Halfling) {
   Level! = 4
-  HD = "4d6"
+  HD = 4d6
   HDRolls = 4
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 4d6
   | Halfling
@@ -1627,9 +1627,9 @@ HalflingLevel4 (Halfling) {
 
 HalflingLevel5 (Halfling) {
   Level! = 5
-  HD = "5d6"
+  HD = 5d6
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 5d6
   | Halfling
@@ -1637,9 +1637,9 @@ HalflingLevel5 (Halfling) {
 
 HalflingLevel6 (Halfling) {
   Level! = 6
-  HD = "6d6"
+  HD = 6d6
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D6 W7 P8 B10 S10
   HP @ 6d6
   | Halfling
@@ -1647,9 +1647,9 @@ HalflingLevel6 (Halfling) {
 
 HalflingLevel7 (Halfling) {
   Level! = 7
-  HD = "7d6"
+  HD = 7d6
   HDRolls = 7
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D4 W5 P6 B7 S8
   HP @ 7d6
   | Halfling
@@ -1657,9 +1657,9 @@ HalflingLevel7 (Halfling) {
 
 HalflingLevel8 (Halfling) {
   Level! = 8
-  HD = "8d6"
+  HD = 8d6
   HDRolls = 8
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D4 W5 P6 B7 S8
   HP @ 8d6
   | Halfling
@@ -1709,9 +1709,9 @@ Thief (NPC){
 
 ThiefLevel1 (Thief) {
   Level! = 1
-  HD = "1d4"
+  HD = 1d4
   HDRolls = 1
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 1d4
   | Thief
@@ -1719,9 +1719,9 @@ ThiefLevel1 (Thief) {
 
 ThiefLevel2 (Thief) {
   Level! = 2
-  HD = "2d4"
+  HD = 2d4
   HDRolls = 2
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 2d4
   | Thief
@@ -1729,9 +1729,9 @@ ThiefLevel2 (Thief) {
 
 ThiefLevel3 (Thief) {
   Level! = 3
-  HD = "3d4"
+  HD = 3d4
   HDRolls = 3
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 3d4
   | Thief
@@ -1739,9 +1739,9 @@ ThiefLevel3 (Thief) {
 
 ThiefLevel4 (Thief) {
   Level! = 4
-  HD = "4d4"
+  HD = 4d4
   HDRolls = 4
-  THAC0 =< 19 [0] >
+  THAC0 ~ < 19 {{dice_roller("1d20","[0]")}} >
   SavingThrows = D13 W14 P13 B16 S15
   HP @ 4d4
   | Thief
@@ -1749,9 +1749,9 @@ ThiefLevel4 (Thief) {
 
 ThiefLevel5 (Thief) {
   Level! = 5
-  HD = "5d4"
+  HD = 5d4
   HDRolls = 5
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D12 W13 P11 B14 S13
   HP @ 5d4
   | Thief
@@ -1759,9 +1759,9 @@ ThiefLevel5 (Thief) {
 
 ThiefLevel6 (Thief) {
   Level! = 6
-  HD = "6d4"
+  HD = 6d4
   HDRolls = 6
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D12 W13 P11 B14 S13
   HP @ 6d4
   | Thief
@@ -1769,9 +1769,9 @@ ThiefLevel6 (Thief) {
 
 ThiefLevel7 (Thief) {
   Level! = 7
-  HD = "7d4"
+  HD = 7d4
   HDRolls = 7
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D12 W13 P11 B14 S13
   HP @ 7d4
   | Thief
@@ -1779,9 +1779,9 @@ ThiefLevel7 (Thief) {
 
 ThiefLevel8 (Thief) {
   Level! = 8
-  HD = "8d4"
+  HD = 8d4
   HDRolls = 8
-  THAC0 =< 17 [+2] >
+  THAC0 ~ < 17 {{dice_roller("1d20+2","[+2]")}} >
   SavingThrows = D12 W13 P11 B14 S13
   HP @ 8d4
   | Thief
@@ -1789,9 +1789,9 @@ ThiefLevel8 (Thief) {
 
 ThiefLevel9 (Thief) {
   Level! = 9
-  HD = "9d4"
+  HD = 9d4
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D10 W11 P9 B12 S10
   HP @ 9d4
   | Thief
@@ -1799,9 +1799,9 @@ ThiefLevel9 (Thief) {
 
 ThiefLevel10 (Thief) {
   Level! = 10
-  HD = "9d4+2"
+  HD = 9d4+2
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D10 W11 P9 B12 S10
   HP @ 9d4+2
   | Thief
@@ -1809,9 +1809,9 @@ ThiefLevel10 (Thief) {
 
 ThiefLevel11 (Thief) {
   Level! = 11
-  HD = "9d4+4"
+  HD = 9d4+4
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D10 W11 P9 B12 S10
   HP @ 9d4+4
   | Thief
@@ -1819,9 +1819,9 @@ ThiefLevel11 (Thief) {
 
 ThiefLevel12 (Thief) {
   Level! = 12
-  HD = "9d4+6"
+  HD = 9d4+6
   HDRolls = 9
-  THAC0 =< 14 [+5] >
+  THAC0 ~ < 14 {{dice_roller("1d20+5","[+5]")}} >
   SavingThrows = D10 W11 P9 B12 S10
   HP @ 9d4+6
   | Thief
@@ -1829,9 +1829,9 @@ ThiefLevel12 (Thief) {
 
 ThiefLevel13 (Thief) {
   Level! = 13
-  HD = "9d4+8"
+  HD = 9d4+8
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D8 W9 P7 B10 S8
   HP @ 9d4+8
   | Thief
@@ -1839,9 +1839,9 @@ ThiefLevel13 (Thief) {
 
 ThiefLevel14 (Thief) {
   Level! = 14
-  HD = "9d4+10"
+  HD = 9d4+10
   HDRolls = 9
-  THAC0 =< 12 [+7] >
+  THAC0 ~ < 12 {{dice_roller("1d20+7","[+7]")}} >
   SavingThrows = D8 W9 P7 B10 S8
   HP @ 9d4+10
   | Thief

@@ -32,7 +32,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::instance::SandboxInstance;
+use crate::{instance::SandboxInstance, repository::ReadOnlyLoader};
 
 pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
     env.add_filter("bulletize", func_bulletize);
@@ -41,21 +41,23 @@ pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
     env.add_function("appender", func_appender);
     env.add_function("articlize", func_articlize);
     env.add_function("capitalize", func_capitalize);
-    env.add_function("currency", func_currency(instance));
+    env.add_function("currency", func_currency(/*instance*/));
     env.add_function("first", func_first);
     env.add_function("float", func_float);
-    env.add_function("hex_coords", func_hex_coords);
+    env.add_function("hex_coords", func_hex_coords(instance));
     env.add_function("if_plural_else", func_if_plural_else);
     env.add_function("int", func_int);
     env.add_function("length", func_length);
     env.add_function("list_to_obj", func_list_to_obj);
     env.add_function("max", func_max);
     env.add_function("maybe", func_maybe);
+    env.add_function("maybe2", func_maybe2);
     env.add_function("plural", func_plural);
     env.add_function("plural_with_count", func_plural_with_count);
     env.add_function("round", func_round);
     env.add_function("sandbox", func_sandbox(instance));
     env.add_function("sortby", func_sortby);
+    env.add_function("dice", func_unstable_dice);
     env.add_function("stable_dice", func_stable_dice);
     env.add_function("sum", func_sum);
     env.add_function("title", func_capitalize);
@@ -63,12 +65,15 @@ pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
     env.add_function("unique", func_unique);
     env.add_function("html_link", func_html_link(instance));
     env.add_function("reroller", func_reroll);
+    env.add_function("toc_breadcrumb", func_toc(instance));
+    env.add_function("sandbox_breadcrumb", func_map);
+    env.add_function("dice_roller", func_dice_roller);
+    env.add_function("nobrackets", func_nobrackets);
+    env.add_function("opposite", func_opposite);
 
     // unimplemented
     env.add_function("begin_spoiler", func_nop_0);
     env.add_function("end_spoiler", func_nop_0);
-    env.add_function("toc_breadcrumb", func_nop_0);
-    env.add_function("sandbox_breadcrumb", func_nop_0);
     env.add_function("note_button", func_nop_1);
     env.add_function("note_container", func_nop_1);
 }
@@ -82,7 +87,10 @@ fn func_articlize(
 ) -> Result<String, minijinja::Error> {
     if let Some(noun) = value.as_str() {
         fn is_plural(noun: &str) -> bool {
-            noun.ends_with('s') && noun != "bus" && noun != "grass" && noun != "kiss"
+            noun.ends_with('s')
+                && noun != "bus"
+                && noun != "grass"
+                && noun != "kiss"
         }
         fn starts_with_vowel_sound(word: &str) -> bool {
             let vowels = ["a", "e", "i", "o", "u"];
@@ -123,10 +131,10 @@ fn func_capitalize(
     }
 }
 
-fn func_currency(
-    _instance: &SandboxInstance,
-) -> impl Fn(minijinja::value::ViaDeserialize<serde_json::Value>) -> Result<String, minijinja::Error>
-{
+fn func_currency(// _instance: &SandboxInstance,
+) -> impl Fn(
+    minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<String, minijinja::Error> {
     let currency_factor = 1.0;
     move |v: minijinja::value::ViaDeserialize<serde_json::Value>| -> Result<String, minijinja::Error> {
         if let Some(v) = v.as_f64() {
@@ -240,6 +248,18 @@ fn func_trim(
     ))
 }
 
+fn func_nobrackets(
+    _c: minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<String, minijinja::Error> {
+    if let Some(value) = _c.as_str() {
+        return Ok(value.to_string());
+    }
+    Err(minijinja::Error::new(
+        minijinja::ErrorKind::UndefinedError,
+        "Function trim did not get a string",
+    ))
+}
+
 fn func_sortby(
     list: minijinja::value::ViaDeserialize<serde_json::Value>,
     attr_to_sortby: &str,
@@ -248,8 +268,10 @@ fn func_sortby(
     if let Some(list) = list.as_array() {
         let mut list_to_sort = list.clone();
         list_to_sort.sort_by(|a, b| {
-            let a_value = a.get(attr_to_sortby).and_then(|v| v.as_str()).unwrap_or("");
-            let b_value = b.get(attr_to_sortby).and_then(|v| v.as_str()).unwrap_or("");
+            let a_value =
+                a.get(attr_to_sortby).and_then(|v| v.as_str()).unwrap_or("");
+            let b_value =
+                b.get(attr_to_sortby).and_then(|v| v.as_str()).unwrap_or("");
             a_value.cmp(b_value)
         });
         ret = serde_json::Value::Array(list_to_sort.to_vec());
@@ -258,9 +280,59 @@ fn func_sortby(
 }
 
 fn func_hex_coords(
-    _: minijinja::value::ViaDeserialize<serde_json::Value>,
-) -> Result<String, minijinja::Error> {
-    Ok(String::from("TBD"))
+    instance: &SandboxInstance,
+) -> impl Fn(
+    minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<String, minijinja::Error>
++ 'static {
+    let repo = instance.repo.clone();
+    move |uid: minijinja::value::ViaDeserialize<serde_json::Value>| -> Result<String, minijinja::Error> {
+        if let Ok(tmpl) = repo.inspect(|tx|{
+            // FIXME: There was a crash on the next line - need to investigate
+
+            // protect against the unwrap() panicking
+            let Some(uid) = uid.as_str() else {
+                return Ok(format!("uid error in {:?}", uid.0).into())
+            };
+            let obj = tx.retrieve(uid)?;
+
+            let x = obj.value["$coords"]["x"].as_i64().unwrap_or(0) as i32;
+            let y = obj.value["$coords"]["y"].as_i64().unwrap_or(0) as i32;
+
+            let x_dir = if x > 0 {
+                "E"
+            } else if x < 0 {
+                "W"
+            } else {
+                ""
+            };
+            let y_dir = if y > 0 {
+                "S"
+            } else if y < 0 {
+                "N"
+            } else {
+                ""
+            };
+
+            let abs_x = x.abs();
+            let abs_y = y.abs();
+
+            let tmpl = if x != 0 && y != 0 {
+                format!("{}{}{}{}", x_dir, abs_x, y_dir, abs_y)
+            } else if x != 0 {
+                format!("{}{}", x_dir, abs_x)
+            } else if y != 0 {
+                format!("{}{}", y_dir, abs_y)
+            } else {
+                "BASE".to_string()
+            };
+            Ok(tmpl)
+        }) {
+            Ok(tmpl)
+        } else {
+            Ok("[unknown]".to_string())
+        }
+    }
 }
 
 fn func_maybe(
@@ -272,12 +344,28 @@ fn func_maybe(
     Ok(String::new())
 }
 
-fn func_sandbox(instance: &SandboxInstance) -> impl Fn() -> Result<String, minijinja::Error> {
-    let sid = match instance.sid.as_ref() {
-        Some(sid) => sid.clone(),
-        None => "".to_string(),
-    };
-    move || -> Result<String, minijinja::Error> { Ok(format!("/inspect/{}", sid)) }
+fn func_maybe2(
+    p: &str,
+    v: minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<String, minijinja::Error> {
+    if let Some(s) = v.as_str() {
+        let mut p = p.to_string();
+        p.push_str(s);
+        return Ok(p);
+    }
+    Ok(String::new())
+}
+
+fn func_sandbox(
+    instance: &SandboxInstance,
+) -> impl Fn() -> Result<String, minijinja::Error> + 'static
+// where
+//     'a: 'static,
+{
+    let sid = instance.sid.clone().unwrap_or_default();
+    move || -> Result<String, minijinja::Error> {
+        Ok(format!("/inspect/{}", sid))
+    }
 }
 
 fn func_round(value: f32, _dec: f32) -> Result<f32, minijinja::Error> {
@@ -301,11 +389,37 @@ fn func_max(a: i32, b: i32) -> Result<i32, minijinja::Error> {
     Ok(max(a, b))
 }
 
+fn func_opposite(v: &str) -> &'static str {
+    match v {
+        "E" => "W",
+        "W" => "E",
+        "S" => "N",
+        "N" => "S",
+        _ => "?",
+    }
+}
+
 fn func_appender(parent_uid: &str, attr: &str, cls: &str) -> String {
-    format!(
+    #[cfg(feature = "testbed")]
+    let html = format!(
         r#"
         <a href="/append/{parent_uid}/{attr}/{cls}">⊞</a>
         "#
+    );
+
+    #[cfg(not(feature = "testbed"))]
+    let html = format!(
+        r#"<a class="btn-icon" data-uuid="{parent_uid}" data-attr="{attr}" data-type="{cls}">
+           <i class="fa-solid fa-circle-plus"></i></a>"#
+    );
+    html
+}
+
+fn func_dice_roller(dice_str: &str, label: &str) -> String {
+    format!(
+        r#"<a class="btn-spawn-dice" data-dice='{dice_str}'
+           onclick="javascript:window.app.spawn_dice('{dice_str}');">
+           <strong>{label}</strong></a>"#
     )
 }
 
@@ -335,7 +449,10 @@ fn func_plural(count: f32, v: &str) -> Result<String, minijinja::Error> {
     Ok(plural)
 }
 
-fn func_plural_with_count(count: f32, v: &str) -> Result<String, minijinja::Error> {
+fn func_plural_with_count(
+    count: f32,
+    v: &str,
+) -> Result<String, minijinja::Error> {
     if count <= 1.0 {
         return Ok(v.to_string());
     }
@@ -362,7 +479,7 @@ fn func_if_plural_else(
 fn func_sum(l: minijinja::value::ViaDeserialize<serde_json::Value>) -> f64 {
     let mut sum = 0.0;
     for v in l.as_array().unwrap() {
-        if let Ok(a) = v.as_str().unwrap().parse::<f64>() {
+        if let Ok(a) = v.as_str().unwrap().trim().parse::<f64>() {
             sum += a;
         }
     }
@@ -378,7 +495,9 @@ fn func_unique(
 
     if let Some(v) = v.as_array() {
         for e in v.iter() {
-            if let Some(value) = e.as_object().unwrap().get(attr.as_str().unwrap()) {
+            if let Some(value) =
+                e.as_object().unwrap().get(attr.as_str().unwrap())
+            {
                 if !unique_set.contains(value) {
                     ret.as_array_mut().unwrap().push(e.clone());
                     unique_set.insert(value.clone());
@@ -392,7 +511,28 @@ fn func_unique(
     )))
 }
 
-fn func_stable_dice(roll: &str, uid: &str, index: u64) -> Result<i32, minijinja::Error> {
+fn func_unstable_dice(roll: &str) -> Result<i32, minijinja::Error> {
+    if false {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::UndefinedError,
+            "",
+        ));
+    }
+    let roller = caith::Roller::new(roll).unwrap();
+    let mut rng = rand::thread_rng();
+    if let RollResultType::Single(value) =
+        roller.roll_with(&mut rng).unwrap().get_result()
+    {
+        return Ok(value.get_total() as i32);
+    }
+    Ok(0)
+}
+
+fn func_stable_dice(
+    roll: &str,
+    uid: &str,
+    index: u64,
+) -> Result<i32, minijinja::Error> {
     if false {
         return Err(minijinja::Error::new(
             minijinja::ErrorKind::UndefinedError,
@@ -402,7 +542,9 @@ fn func_stable_dice(roll: &str, uid: &str, index: u64) -> Result<i32, minijinja:
     let roller = caith::Roller::new(roll).unwrap();
     let seed = string_to_seed(uid) + index;
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
-    if let RollResultType::Single(value) = roller.roll_with(&mut rng).unwrap().get_result() {
+    if let RollResultType::Single(value) =
+        roller.roll_with(&mut rng).unwrap().get_result()
+    {
         return Ok(value.get_total() as i32);
     }
     Ok(0)
@@ -410,7 +552,7 @@ fn func_stable_dice(roll: &str, uid: &str, index: u64) -> Result<i32, minijinja:
 
 fn func_html_link(
     instance: &SandboxInstance,
-) -> impl Fn(&str, &str) -> Result<String, minijinja::Error> {
+) -> impl Fn(&str, &str) -> Result<String, minijinja::Error> + 'static {
     let sid = match instance.sid.as_ref() {
         Some(sid) => sid.clone(),
         None => "".to_string(),
@@ -419,6 +561,22 @@ fn func_html_link(
         Ok(format!(
             "<a href='/inspect/{}/entity/{}'>{}</a>",
             sid, uid, text
+        ))
+    }
+}
+
+fn func_map() -> Result<String, minijinja::Error> {
+    Ok("<a class='breadcrumbs-icon' href='/sandbox/00000000'></a>".to_string())
+}
+
+fn func_toc(
+    instance: &SandboxInstance,
+) -> impl Fn() -> Result<String, minijinja::Error> + 'static {
+    let sid = instance.sid.clone().unwrap_or_default();
+    move || -> Result<String, minijinja::Error> {
+        Ok(format!(
+            "<a class='breadcrumbs-icon' href='/sandbox/{}/toc'></a>",
+            sid
         ))
     }
 }
@@ -435,20 +593,33 @@ fn func_nop_1(
 
 fn func_reroll(
     uid: minijinja::value::ViaDeserialize<serde_json::Value>,
-    _: minijinja::value::ViaDeserialize<serde_json::Value>,
-    _: minijinja::value::ViaDeserialize<serde_json::Value>,
+    class: &str,
+    reload: bool,
 ) -> Result<String, minijinja::Error> {
-    // "<a href='/reroll/{}'>⬣</a>",
     let id = if let Some(obj) = uid.get("uuid") {
         obj.to_string().trim_matches('"').to_string()
     } else {
         uid.to_string().trim_matches('"').to_string()
     };
-    Ok(format!(
+    let class = if class.is_empty() { "default" } else { class };
+    #[cfg(feature = "testbed")]
+    let html = Ok(format!(
         "<a href='/reroll/{}'>⟳</a><a href='/unroll/{}'>🗑</a>",
         id, id
     )
-    .to_string())
+    .to_string());
+    #[cfg(not(feature = "testbed"))]
+    let html = Ok(format!(
+        "<a class='btn-icon' data-uuid='{}' data-override='{}' {} href='/reroll/{}'>⟳</a>",
+        id,
+        class,
+        if reload {
+            "data-reload='true'"
+        } else {""},
+
+        id
+    ).to_string());
+    html
 }
 
 fn clean_string(mut s: String) -> String {

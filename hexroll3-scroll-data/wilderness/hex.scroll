@@ -141,7 +141,7 @@ Hex {
       {{Residency[0].Details}}
       {%if Residency[0].Encounter == "Yes"%}
         <ul><li>
-          There's a 2 in 6 chance (daily) of encountering
+          There's a {{dice_roller("1d6","2 in 6")}} chance (daily) of encountering
           {%if first(RandomEncounters.OtherEncounters).NumberAppearingLair >1%}{{first(RandomEncounters.OtherEncounters).TitlePluralizedByLair}}
           {%else%}{{articlize(first(RandomEncounters.OtherEncounters).TitlePluralizedByLair)}}{%endif%} here.
 
@@ -179,11 +179,12 @@ Hex {
       </p>
       {%if not Feature[0].HideRandomEncounters%}
       <h5> {{reroller(RandomEncounters, "", False)}} Random encounter </h5>
-      <p> There's a <strong>1 in 6</strong> chance when exploring (or <strong>2 in 6</strong> chance
+      <p> There's a {{dice_roller("1d6","1 in 6")}} chance when exploring (or {{dice_roller("1d6","2 in 6")}} chance
           if camping overnight) to be ambushed or preyed upon by: </p>
       {%set counter = namespace(value=1)%}
       <table class='condensed'>
-      <tr> <th> 1d4 </th> <th> Encounter </th> <th> Stats </th> </tr>
+      <tbody id='random-encounters'>
+      <tr> <th> {{dice_roller("1d4","1d4")}} </th> <th> Encounter </th> <th> Stats </th> </tr>
       {%for e in RandomEncounters.OtherEncounters %}
       <tr> <td> {{counter.value}} </td>
            <td> {{e.TitlePluralizedByLair}} </td>
@@ -191,6 +192,7 @@ Hex {
       </tr>
       {%set counter.value = counter.value+1%}
       {%endfor%}
+      </tbody>
       </table>
       {%endif%}
 
@@ -202,6 +204,7 @@ Hex {
       <li> {{appender(uuid, "Settlement", "Settlement")}} Settlement </li>
       <li> {{appender(uuid, "Dungeon", "Dungeon")}} Dungeon </li>
       <li> {{appender(uuid, "Residency", "Residency")}} Dwelling </li>
+      <li> {{appender(uuid, "Inn", "Inn")}} Inn </li>
       <li> {{appender(uuid, "Encounter", "Encounter")}} Encounter </li>
       </ul>
       (<strong>Unlock</strong> the page and press the <strong>plus sign</strong>)

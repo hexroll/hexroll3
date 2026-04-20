@@ -53,8 +53,16 @@ DungeonEncounterAberrationsTier2(DungeonEncounterAberrations) {
 }
 
 
-DungeonEncounterAberrationsTier3(DungeonEncounterAberrations) {  
+DungeonEncounterAberrationsTier3(DungeonEncounterAberrations) {
   Monster! @ MonstersAberrationTier3
+  | DungeonEncounterAberrations
+  Rumor @ DungeonMonsterRumor {
+    DungeonMonster = &Monster
+  }
+}
+
+DungeonEncounterAberrationsTier4(DungeonEncounterAberrations) {
+  Monster! @ MonstersAberrationTier4
   | DungeonEncounterAberrations
   Rumor @ DungeonMonsterRumor {
     DungeonMonster = &Monster

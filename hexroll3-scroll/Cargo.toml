@@ -24,17 +24,18 @@
 #
 [package]
 name = "hexroll3-scroll"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Pen, Dice & Paper"]
 description = "HEXROLL3 Scroll - the sandbox content generator"
 license-file = "../LICENSE"
 repository = "https://github.com/hexroll/hexroll3"
 homepage = "https://hexroll.app"
 readme = "../README.md"
-edition = "2021"
+edition = "2024"
 
 [features]
 zstd = ["dep:zstd"]
+testbed = []
 
 [dependencies]
 anyhow = "1.0.82"
@@ -43,16 +44,18 @@ ciborium = "0.2.2"
 getrandom = { version = "0.2", features = ["js"] }
 indexmap = {version="2.2.6",features=["serde"]}
 log = "0.4.22"
-minijinja = {version="2.3.0" , features=["builtins"]}
+minijinja = {version="2.16.0" , features=["builtins"]}
 moka = {version="0.12.8",features=["sync"]}
-pest = "2.7"
-pest_derive = "2.7"
+pest = "2.8.6"
+pest_derive = "2.8.6"
 rand = {version="0.8.5", features=["std_rng"]}
 rand_chacha = "0.3.1"
-redb = "2.3.0"
-serde = {version="1.0.197",features = ["derive"]}
-serde_json = { version="1.0.133",features = ["preserve_order"]}
+redb = "3.1.0"
+serde = {version="1.0.216",features = ["derive"]}
+serde_json = { version="1.0.134",features = ["preserve_order"]}
+json_value_merge = { version="2.0.1" }
 zstd = {version = "0.13.2", optional= true}
+lz4_flex = {version="0.13.0"}
 
 [lib]
 path = "src/lib.rs"

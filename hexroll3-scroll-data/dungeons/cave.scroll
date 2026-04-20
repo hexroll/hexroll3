@@ -52,6 +52,13 @@ CaveEncounterTier3 {
     ]
 }
 
+CaveEncounterTier4 {
+  ^ [
+    *(x1) DungeonEncounterDragonsTier4
+    *(x2) DungeonEncounterAberrationsTier4
+    ]
+}
+
 CaveFeatureTier1 {
   ^ [
     *(x2) CaveEncounterTier1
@@ -79,6 +86,15 @@ CaveFeatureTier3 {
     ]
 }
 
+CaveFeatureTier4 {
+  ^ [
+    *(x2) CaveEncounterTier4
+    * DungeonTreasureTier4
+    ]
+}
+
+CaveMap {}
+
 Cavern(Dungeon) {
   Name! @ CavernName
   HexLink! = :Hex.uuid
@@ -99,7 +115,7 @@ Cavern(Dungeon) {
   DungeonFeatureTier3 = CaveFeatureTier3
   DungeonFeatureTier4 = CaveFeatureTier4
 
-  # map @ CaveMap
+  map @ CaveMap
 
   WanderingMonsters @ DungeonWanderingMonsters
 }

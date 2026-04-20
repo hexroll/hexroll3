@@ -48,6 +48,7 @@ TempleEncounterTier3 {
 TempleEncounterTier4 {
   ^ [
     *(x3) DungeonEncounterDragonsTier3
+    *(x2) DungeonEncounterMagicalTier4
     * DungeonEncounterDragonsTier4
     ]
 }
@@ -105,8 +106,8 @@ Temple(Dungeon) {
   DungeonFeatureTier2 = TempleFeatureTier2
   DungeonFeatureTier3 = TempleFeatureTier3
   DungeonFeatureTier4 = TempleFeatureTier4
-  # TODO: add a dungeon map
-  # map @ DungeonMap
+
+  map @ DungeonMap
 
   WanderingMonsters @ DungeonWanderingMonsters
 }

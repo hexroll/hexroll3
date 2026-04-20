@@ -234,7 +234,7 @@ MissingPersonQuest(Quest) {
           QuestTimeframe = &Timeframe
           QuestRelation = *Relation
           QuestFolk = *QuestgiverName
-          QuestLink = &QuestgiverLink
+          QuestLink = *QuestgiverLink
           QuestPronounSubject = "{{QuestRelation.PronounSubject}}"
           QuestPronounPossessive = "{{QuestRelation.PronounPossessive}}"
           QuestSettlementName = &QuestSettlementName

@@ -27,15 +27,20 @@ mod tests {
     // ------------------------------------------------------------------------
     #[test]
     fn test_class_hierarchy() {
-        let mut instance = SandboxInstance::new();
+        let instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {}
 class2(class1) {}
 class3(class2) {}
 ",
         );
-        let hierarchy = &instance.classes.get("class3").unwrap().hierarchy;
+        let hierarchy = &instance
+            .resolve_class(&mut blueprint, "class3")
+            .unwrap()
+            .hierarchy;
         assert_eq!(hierarchy.len(), 3);
         assert!(hierarchy.first().unwrap() == "class3");
         assert!(hierarchy.get(1).unwrap() == "class2");
@@ -46,7 +51,9 @@ class3(class2) {}
     #[test]
     fn test_roll_value_from_list() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     value @ [
@@ -63,6 +70,7 @@ class1 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class1",
                     "root",
@@ -71,14 +79,19 @@ class1 {
             })
             .unwrap();
         let generated_root = instance.repo.load(&generated_ids).unwrap();
-        assert!(["a", "b", "c"].contains(&generated_root["value"].as_str().unwrap()));
+        assert!(
+            ["a", "b", "c"]
+                .contains(&generated_root["value"].as_str().unwrap())
+        );
     }
 
     // ------------------------------------------------------------------------
     #[test]
     fn test_strings_numbers_and_dice() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     test1 = This is a string
@@ -97,6 +110,7 @@ class1 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class1",
                     "root",
@@ -110,7 +124,9 @@ class1 {
     #[test]
     fn test_rolling_a_list() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {}
 
@@ -125,6 +141,7 @@ class2 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class2",
                     "root",
@@ -141,7 +158,9 @@ class2 {
     #[test]
     fn test_rolling_an_entity_using_indirection() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {}
 
@@ -157,6 +176,7 @@ class2 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class2",
                     "root",
@@ -176,7 +196,9 @@ class2 {
     #[test]
     fn test_context_attribute() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     value1! = :class2.foo
@@ -195,6 +217,7 @@ class2 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class2",
                     "root",
@@ -205,7 +228,15 @@ class2 {
         let generated_root = instance.repo.load(&generated_ids).unwrap();
         let rendered_result = instance
             .repo
-            .inspect(|tx| render_entity(&instance, tx, &generated_root, false))
+            .inspect(|tx| {
+                render_entity(
+                    &instance,
+                    &mut blueprint,
+                    tx,
+                    &generated_root,
+                    false,
+                )
+            })
             .unwrap();
         assert_eq!(rendered_result["child"]["value1"], "bar");
         assert_eq!(rendered_result["child"]["value2"], "bar");
@@ -215,7 +246,9 @@ class2 {
     #[test]
     fn test_pointer_attribute() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     injected! = null
@@ -236,6 +269,7 @@ class2 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class2",
                     "root",
@@ -246,7 +280,15 @@ class2 {
         let generated_root = instance.repo.load(&generated_ids).unwrap();
         let rendered_result = instance
             .repo
-            .inspect(|tx| render_entity(&instance, tx, &generated_root, false))
+            .inspect(|tx| {
+                render_entity(
+                    &instance,
+                    &mut blueprint,
+                    tx,
+                    &generated_root,
+                    false,
+                )
+            })
             .unwrap();
         assert_eq!(rendered_result["output"], "bar");
     }
@@ -255,7 +297,9 @@ class2 {
     #[test]
     fn test_use_from_collection() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     foo = bar
@@ -281,6 +325,7 @@ class3 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class3",
                     "root",
@@ -291,7 +336,8 @@ class3 {
                 instance.repo.inspect(|tx| {
                     let a = tx.fetch(&generated_ids).unwrap().clone();
                     let b = tx.fetch(a.first_in("b").unwrap()).unwrap().clone();
-                    let c = tx.fetch(b.first_in("use").unwrap()).unwrap().clone();
+                    let c =
+                        tx.fetch(b.first_in("use").unwrap()).unwrap().clone();
                     assert_eq!(b["use"], a["a"]);
                     assert_eq!(c["xyz"], "abc");
                     Ok(())
@@ -303,7 +349,9 @@ class3 {
     #[test]
     fn test_unroll_removes_entities() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     foo = bar
@@ -326,6 +374,7 @@ class3 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class3",
                     "root",
@@ -335,7 +384,8 @@ class3 {
             .and_then(|generated_id| {
                 instance.repo.inspect(|tx| {
                     let e3 = tx.fetch(&generated_id).unwrap().clone();
-                    let e2 = tx.fetch(e3.first_in("b").unwrap()).unwrap().clone();
+                    let e2 =
+                        tx.fetch(e3.first_in("b").unwrap()).unwrap().clone();
                     v.push(e3.first_in("b").unwrap().to_string());
                     v.push(e2.first_in("a").unwrap().to_string());
                     v.push(generated_id.to_string());
@@ -346,6 +396,7 @@ class3 {
                 instance.repo.mutate(|tx| {
                     unroll(
                         &SandboxBuilder::from_instance(&instance),
+                        &mut blueprint,
                         tx,
                         &generated_id,
                         None,
@@ -366,7 +417,9 @@ class3 {
     #[test]
     fn test_unroll_clears_a_user() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     foo = bar
@@ -392,6 +445,7 @@ class3 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class3",
                     "root",
@@ -406,15 +460,22 @@ class3 {
                 })
             })
             .and_then(|a| {
-                instance
-                    .repo
-                    .mutate(|tx| unroll(&SandboxBuilder::from_instance(&instance), tx, &a, None))
+                instance.repo.mutate(|tx| {
+                    unroll(
+                        &SandboxBuilder::from_instance(&instance),
+                        &mut blueprint,
+                        tx,
+                        &a,
+                        None,
+                    )
+                })
             })
             .and_then(|parent_id| {
                 instance.repo.inspect(|tx| {
                     let c3 = tx.fetch(&parent_id).unwrap().clone();
                     assert!(c3["a"].as_array().unwrap().is_empty());
-                    let b = tx.fetch(c3.first_in("b").unwrap()).unwrap().clone();
+                    let b =
+                        tx.fetch(c3.first_in("b").unwrap()).unwrap().clone();
                     assert!(b["use"].as_array().unwrap().is_empty());
                     Ok(())
                 })
@@ -425,7 +486,9 @@ class3 {
     #[test]
     fn test_reroll() {
         let mut instance = SandboxInstance::new();
+        let mut blueprint = instance.blueprint.lock().unwrap();
         instance.parse_buffer(
+            &mut blueprint,
             "
 class1 {
     foo = bar
@@ -459,6 +522,7 @@ class3 {
             .mutate(|tx| {
                 roll(
                     &SandboxBuilder::from_instance(&instance),
+                    &mut blueprint,
                     tx,
                     "class3",
                     "root",
@@ -473,9 +537,15 @@ class3 {
                 })
             })
             .and_then(|a| {
-                instance
-                    .repo
-                    .mutate(|tx| reroll(&SandboxBuilder::from_instance(&instance), tx, &a, None))
+                instance.repo.mutate(|tx| {
+                    reroll(
+                        &SandboxBuilder::from_instance(&instance),
+                        &mut blueprint,
+                        tx,
+                        &a,
+                        None,
+                    )
+                })
             })
             .and_then(|rerolled_id| {
                 instance.repo.inspect(|tx| {
@@ -487,7 +557,8 @@ class3 {
                 instance.repo.inspect(|tx| {
                     let c3 = tx.fetch(&parent_id).unwrap().clone();
                     assert!(c3["a"].as_array().unwrap().len() == 1);
-                    let b = tx.fetch(c3.first_in("b").unwrap()).unwrap().clone();
+                    let b =
+                        tx.fetch(c3.first_in("b").unwrap()).unwrap().clone();
                     assert!(
                         b["use"]
                             .as_array()
@@ -508,22 +579,30 @@ class3 {
     #[test]
     fn test_create_instance() {
         let tmp = create_tempfile();
+        let mut instance = SandboxInstance::new();
         {
-            let mut instance = SandboxInstance::new();
+            let mut blueprint = instance.blueprint.lock().unwrap();
             instance.parse_buffer(
+                &mut blueprint,
                 "
 main {
 }",
             );
+        }
+        {
             instance.create(tmp.path().to_str().unwrap()).unwrap();
         }
         {
-            let mut instance = SandboxInstance::new();
+            let instance = SandboxInstance::new();
+            let mut blueprint = instance.blueprint.lock().unwrap();
             instance.parse_buffer(
+                &mut blueprint,
                 "
-main {
-}",
+        main {
+        }",
             );
+        }
+        {
             instance.open(tmp.path().to_str().unwrap()).unwrap();
         }
     }

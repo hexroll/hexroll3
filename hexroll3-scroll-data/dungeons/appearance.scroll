@@ -50,10 +50,11 @@ AreaAppearance {
     * a few
     * some
     * several
+    * dozens of
     ]
   Description! @ [
     * there are {{Quantity}} {{Cover}} on the {{Part}}
-    * the {{Part}} {{if_plural_else(Part,"have","has")}} {{Quantity}} {{Cover}} on
+    * the {{Part}} {{if_plural_else(Part,"have","has")}} {{Quantity}} {{Cover}} on {{if_plural_else(Part,"them","it")}}
     * the {{Part}} {{if_plural_else(Part,"are","is")}} covered with {{Cover}}
     * the {{Part}} {{if_plural_else(Part,"are","is")}} {{State}}
     ]

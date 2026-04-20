@@ -23,24 +23,24 @@
 // for more information about commercial licensing terms.
 */
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::path::PathBuf; // Trait that provides the `choose` method
+use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use caith::RollResultType;
 use minijinja::Environment;
-use rand::distributions::Alphanumeric;
-use rand::rngs::ThreadRng;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
-use rand::Rng;
+use rand::{
+    Rng, distributions::Alphanumeric, rngs::ThreadRng, seq::SliceRandom,
+    thread_rng,
+};
+use serde_json::Value;
 
-use crate::generators::roll;
-use crate::parser::parse_buffer;
-use crate::parser::parse_file;
-use crate::renderer_env::prepare_renderer;
-use crate::repository::*;
-use crate::semantics::*;
+use crate::{
+    generators::roll,
+    parser::{parse_buffer, parse_file},
+    renderer_env::prepare_renderer,
+    repository::*,
+    semantics::*,
+};
 
 /// SandboxBuilder is a wrapper for sandbox instances, providing the
 /// additional facilities required to generate content.
@@ -62,27 +62,61 @@ impl<'a> SandboxBuilder<'a> {
     }
 }
 
+/// SandboxBlueprint stores the generation model read from the scroll
+/// files as well as any extenions stored and dynamically loaded from
+/// the sandbox repo.
+pub struct SandboxBlueprint {
+    pub classes: HashMap<String, Class>,
+    pub globals: HashMap<String, serde_json::Value>,
+    pub map_data_provider: fn(
+        &SandboxBuilder,
+        &mut SandboxBlueprint,
+        &mut ReadWriteTransaction,
+        &str,
+    ) -> Result<Option<(String, Value)>>,
+}
+
+impl SandboxBlueprint {
+    pub fn new() -> Self {
+        SandboxBlueprint {
+            classes: HashMap::new(),
+            globals: HashMap::new(),
+            map_data_provider: |_, _, _, _| Ok(None),
+        }
+    }
+    pub fn parse_buffer(&mut self, buffer: &str) -> &mut Self {
+        parse_buffer(self, buffer, None, None).unwrap();
+        self
+    }
+}
+
 /// SandboxInstance holds all the data needed to read and render
-/// generated content as well as the model for generating content.
+/// generated content as well as the sandbox blueprint
+#[derive(Clone)]
 pub struct SandboxInstance {
     pub sid: Option<String>,
-    pub classes: HashMap<String, Class>,
     pub repo: Repository,
-    pub globals: HashMap<String, serde_json::Value>,
+    pub blueprint: std::sync::Arc<std::sync::Mutex<SandboxBlueprint>>,
 }
 
 impl SandboxInstance {
     pub fn new() -> Self {
         SandboxInstance {
             sid: None,
-            classes: HashMap::new(),
             repo: Repository::new(),
-            globals: HashMap::new(),
+            // blueprint has to allow internal mutability to support dynamically
+            // generated model elements such as dungeon maps.
+            blueprint: std::sync::Arc::new(std::sync::Mutex::new(
+                SandboxBlueprint::new(),
+            )),
         }
     }
 
-    pub fn with_scroll(&mut self, scroll_filepath: PathBuf) -> Result<&mut Self> {
-        parse_file(self, scroll_filepath)?;
+    pub fn with_scroll(
+        &mut self,
+        scroll_filepath: PathBuf,
+    ) -> Result<&mut Self> {
+        parse_file(&mut self.blueprint.lock().unwrap(), scroll_filepath)?;
         Ok(self)
     }
 
@@ -101,9 +135,16 @@ impl SandboxInstance {
         self.repo.create(filepath)?;
 
         if let Ok(sid) = self.repo.mutate(|tx| {
-            let builder = SandboxBuilder::from_instance(self);
-            let ret = roll(&builder, tx, "main", "root", None);
+            let mut builder = SandboxBuilder::from_instance(self);
+            let mut blueprint = builder.sandbox.blueprint.lock().unwrap();
+            // NOTE: Precreate a root placeholder so that collection in the following
+            // roll call will not fail, and later set the uid for root in a following
+            // `store` call.
+            tx.store("root", &serde_json::Value::Null)?;
+            let ret =
+                roll(&mut builder, &mut blueprint, tx, "main", "root", None);
             tx.store("root", &serde_json::json!(ret.as_ref().unwrap()))?;
+            tx.store("rerolls", &serde_json::json!({"entities":[]}))?;
             ret
         }) {
             self.sid = Some(sid.to_string());
@@ -120,9 +161,35 @@ impl SandboxInstance {
         self.sid.clone()
     }
 
-    pub fn parse_buffer(&mut self, buffer: &str) -> &mut Self {
-        parse_buffer(self, buffer, None, None).unwrap();
+    pub fn parse_buffer(
+        &self,
+        blueprint: &mut SandboxBlueprint,
+        buffer: &str,
+    ) -> &Self {
+        parse_buffer(blueprint, buffer, None, None).unwrap();
         self
+    }
+
+    pub fn resolve_class(
+        &self,
+        blueprint: &mut SandboxBlueprint,
+        class_name: &str,
+    ) -> Option<Class> {
+        {
+            // NOTE: This is the optimistic path, where the class
+            // was loaded as part of the scroll files.
+            if blueprint.classes.contains_key(class_name) {
+                return blueprint.classes.get(class_name).cloned();
+            }
+        }
+        // NOTE: This is the exception, where the class was dynamically
+        // generated and stored in the repo.
+        if let Ok(stored_class) =
+            self.repo.inspect(|tx| tx.retrieve(class_name))
+        {
+            self.parse_buffer(blueprint, stored_class.value.as_str().unwrap());
+        }
+        return blueprint.classes.get(class_name).cloned();
     }
 }
 
@@ -158,6 +225,28 @@ impl Randomizer {
     pub fn in_range(&self, min: i32, max: i32) -> i32 {
         let mut rng = self.rng.borrow_mut();
         rng.gen_range(min..max + 1)
+    }
+
+    pub fn shuffle<T>(&self, collection: &mut [T]) {
+        let mut rng = self.rng.borrow_mut();
+        collection.shuffle(&mut *rng);
+    }
+
+    pub fn u64(&self) -> u64 {
+        let mut rng = self.rng.borrow_mut();
+        rng.r#gen::<u64>()
+    }
+
+    pub fn dice(&self, roll: &str) -> Option<i32> {
+        let mut rng = self.rng.borrow_mut();
+        let roller = caith::Roller::new(roll).unwrap();
+        if let RollResultType::Single(value) =
+            roller.roll_with(&mut *rng).unwrap().get_result()
+        {
+            Some(value.get_total() as i32)
+        } else {
+            None
+        }
     }
 }
 

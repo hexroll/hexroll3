@@ -60,50 +60,48 @@ DesertRandomEncounter {
 
 ForestFeatureEncounter {
   ^ [
-    * Basilisk
-    * BlackDragon
-    * BlueDragon
-    * Boar
-    * Bugbear
-    * Chimera
-    * Cockatrice
-    * CrabSpider
-    * Cyclops
-    * DireWolf
-    * Dryad
-    * Gargoyle
-    * Gecko
-    * GiantHawk
-    * Gnoll
-    * Goblin
-    * GoldDragon
-    * GreenDragon
-    * Griffon
-    * HillGiant
-    * Hippogriff
-    * Hobgoblin
-    * Hydra
-    * Hydra
-    * KillerBee
-    * NormalWolf
-    * Ogre
-    * Orc
-    * Panther
-    * Pegasus
-    * PitViper
-    * Pixie
-    * RedDragon
-    * RobberFly
-    * SmallRoc
-    * Sprite
-    * Stirge
-    * Thoul
-    * Tiger
-    * Troll
-    * Tuatara
-    * Unicorn
-    * WhiteDragon
-    * Wyvern
+    *(x1) BlackDragon
+    *(x1) BlueDragon
+    *(x1) GoldDragon
+    *(x1) GreenDragon
+    *(x1) WhiteDragon
+    *(x2) Wyvern
+    *(x2) Chimera
+    *(x2) Basilisk
+    *(x2) Cyclops
+    *(x2) HillGiant
+    *(x3) Boar
+    *(x3) Bugbear
+    *(x3) Cockatrice
+    *(x3) CrabSpider
+    *(x3) DireWolf
+    *(x3) Dryad
+    *(x3) Gargoyle
+    *(x3) Gecko
+    *(x3) GiantHawk
+    *(x3) Gnoll
+    *(x3) Goblin
+    *(x3) Griffon
+    *(x3) Hippogriff
+    *(x3) Hobgoblin
+    *(x3) Hydra
+    *(x3) KillerBee
+    *(x3) NormalWolf
+    *(x3) Ogre
+    *(x3) Orc
+    *(x3) Panther
+    *(x3) Pegasus
+    *(x3) PitViper
+    *(x3) Pixie
+    *(x3) RobberFly
+    *(x3) SmallRoc
+    *(x3) Sprite
+    *(x3) Stirge
+    *(x3) Thoul
+    *(x3) Tiger
+    *(x3) Troll
+    *(x3) Tuatara
+    *(x3) Unicorn
 ]}
 
 ForestRandomEncounter {
@@ -140,43 +138,40 @@ MountainsFeatureEncounter {
     *(x3) Ogre
     *(x3) Orc
     *(x3) Troll
-    *(x2) CloudGiant
-    *(x2) FrostGiant
+    *(x1) CloudGiant
+    *(x1) FrostGiant
     *(x2) HillGiant
-    * Basilisk
-    * Basilisk
-    * BlackDragon
-    * BlinkDog
-    * BlueDragon
-    * Centaur
-    * Chimera
-    * DireWolf
-    * Gargoyle
-    * GiantRattler
-    * GiantRoc
-    * GoldDragon
-    * Gorgon
-    * GreenDragon
-    * Griffon
-    * Harpy
-    * Hippogriff
-    * Hydra
-    * LargeRoc
-    * Manticore
-    * Medusa
-    * MountainLion
-    * PitViper
-    * RedDragon
-    * Treant
-    * Troglodyte
-    * WarpBeast
-    * Werebear
-    * Wereboar
-    * Wererat
-    * Weretiger
-    * Werewolf
+    *(x2) Basilisk
+    *(x2) BlinkDog
+    *(x2) Centaur
+    *(x2) Chimera
+    *(x3) DireWolf
+    *(x3) Gargoyle
+    *(x3) GiantRattler
+    *(x2) GiantRoc
+    *(x2) Gorgon
+    *(x2) Griffon
+    *(x2) Harpy
+    *(x2) Hippogriff
+    *(x2) Hydra
+    *(x2) LargeRoc
+    *(x2) Manticore
+    *(x2) Medusa
+    *(x2) MountainLion
+    *(x2) PitViper
+    *(x2) Troglodyte
+    *(x2) WarpBeast
+    *(x2) Wereboar
+    *(x2) Wererat
+    *(x2) Weretiger
+    *(x2) Werewolf
+    *(x2) Wyvern
     * WhiteDragon
-    * Wyvern
+    * RedDragon
+    * BlackDragon
+    * BlueDragon
+    * GoldDragon
+    * GreenDragon
 ]}
 
 MountainsRandomEncounter {
@@ -331,7 +326,6 @@ TundraFeatureEncounter {
     * Medusa
     * MountainLion
     * PitViper
-    * RedDragon
     * Treant
     * Troglodyte
     * WarpBeast

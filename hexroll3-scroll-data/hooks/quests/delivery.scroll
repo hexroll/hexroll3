@@ -93,7 +93,7 @@ DeliveryQuest(Quest) {
         Yours,
         <a href="{{sandbox()}}/location/{{QuestLink}}">
         <strong>{{QuestFolk.Name.Full}}</strong></a>”
-      * “<strong>Travelling{%if QuestDestination.SettlementName%} to
+      * “Travelling{%if QuestDestination.SettlementName%} to
         <strong>{{capitalize(QuestDestination.SettlementName)}}</strong>{%endif%}?
         I will pay anyone carrying a package for me.
         Yours,

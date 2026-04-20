@@ -210,7 +210,7 @@ Region { ^ $region_classes
   }
 
   RealmUUID = :Realm.uuid
-  RealmName = *Realm.Title
+  RealmName! = *Realm.Title
   Breadcrumbs? ~ <%
     <span class="breadcrumbs">
       {{sandbox_breadcrumb()}}
@@ -314,8 +314,17 @@ Region { ^ $region_classes
     {{Extension.Postscript}}
   %>
 
+  $IndexRef @ IndexedEntity {
+    Link = &uuid
+    Render = "Name"
+    Details = <%A region in {{RealmName}}%>
+    Type = "hex"
+    Icon = "location-dot"
+  }
+
   <metadata%
     <a class="map-coords" region="{{uuid}}"> </a>
+    <span data-reroll="false"></span>
   %metadata>
 
   <header%
@@ -330,17 +339,17 @@ Region { ^ $region_classes
   %body>
 }
 
-minimum_tiles_per_mountains_region = 12
-maximum_tiles_per_mountains_region = 32
-minimum_tiles_per_forest_region = 12
-maximum_tiles_per_forest_region = 32
-minimum_tiles_per_desert_region = 12
-maximum_tiles_per_desert_region = 32
-minimum_tiles_per_plains_region = 12
-maximum_tiles_per_plains_region = 32
-minimum_tiles_per_jungle_region = 12
-maximum_tiles_per_jungle_region = 32
-minimum_tiles_per_swamps_region = 12
-maximum_tiles_per_swamps_region = 32
-minimum_tiles_per_tundra_region = 12
-maximum_tiles_per_tundra_region = 32
+minimum_tiles_per_mountains_region = 0
+maximum_tiles_per_mountains_region = 0
+minimum_tiles_per_forest_region = 0
+maximum_tiles_per_forest_region = 0
+minimum_tiles_per_desert_region = 0
+maximum_tiles_per_desert_region = 0
+minimum_tiles_per_plains_region = 0
+maximum_tiles_per_plains_region = 0
+minimum_tiles_per_jungle_region = 0
+maximum_tiles_per_jungle_region = 0
+minimum_tiles_per_swamps_region = 0
+maximum_tiles_per_swamps_region = 0
+minimum_tiles_per_tundra_region = 0
+maximum_tiles_per_tundra_region = 0

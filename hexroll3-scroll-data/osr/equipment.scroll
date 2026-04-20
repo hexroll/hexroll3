@@ -60,7 +60,7 @@ MiningPickAxe {
 BushcraftKnife {
   Title!= "Bushcraft Knife"
   Cost! = 12
- } 
+ }
 
 SmokingPipe {
   Title!= "Smoking Pipe"
@@ -80,7 +80,7 @@ Quill {
 EmptyScroll {
   Title!= "Empty Scroll"
   Cost! = 1
- }   
+ }
 
 Lens {
   Title!= "Lens"
@@ -220,7 +220,7 @@ RoyalWine {
 
 
 Backpack {
-  Title!= "Backback"
+  Title!= "Backpack"
   Cost! = 5
 }
 
@@ -525,7 +525,7 @@ ClothingLeatherVest {
 }
 
 ClothingFurVest {
-  Title! = "FurVest"
+  Title! = "Fur Vest"
   Cost! = 0.18
 }
 
@@ -600,13 +600,13 @@ ClothingLeatherHat {
 }
 
 MusicalInstruments {
-	^ [
+  ^ [
     * SmallBell
     * Flute
     * Harp
     * Lute
     * HandDrum
-	]
+  ]
 }
 Flute {
   Title! = "Flute"

@@ -61,8 +61,8 @@ FactionMember {
         {{begin_spoiler()}}
         Member of the
         <a href="{{sandbox()}}/faction/{{FactionUUID}}">
-        <strong>{{FactionName.Full}}</strong>
-        </a>.
+        <strong>{{FactionName.Full}}</strong>.
+        </a>
         {{end_spoiler()}}
         </li>
     %>

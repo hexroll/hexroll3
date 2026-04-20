@@ -22,15 +22,15 @@
 // license. Please contact ithai at pendicepaper.com
 // for more information about commercial licensing terms.
 */
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::borrow::BorrowMut;
 use std::cell::{RefCell, RefMut};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use pest::iterators::{Pair, Pairs};
 use pest::Parser;
+use pest::iterators::{Pair, Pairs};
 
 use crate::commands::*;
 use crate::instance::*;
@@ -40,8 +40,13 @@ use crate::semantics::*;
 #[grammar = "scroll.pest"]
 struct ScrollParser;
 
-pub fn parse_file(instance: &mut SandboxInstance, filename: PathBuf) -> Result<()> {
-    if let Ok(unparsed_file) = std::fs::read_to_string(filename.to_str().unwrap()) {
+pub fn parse_file(
+    instance: &mut SandboxBlueprint,
+    filename: PathBuf,
+) -> Result<()> {
+    if let Ok(unparsed_file) =
+        std::fs::read_to_string(filename.to_str().unwrap())
+    {
         let filepath = match filename.parent() {
             Some(parent) => parent.to_path_buf(),
             None => PathBuf::from("./"),
@@ -61,7 +66,7 @@ pub fn parse_file(instance: &mut SandboxInstance, filename: PathBuf) -> Result<(
 }
 
 pub fn parse_buffer(
-    instance: &mut SandboxInstance,
+    instance: &mut SandboxBlueprint,
     buffer: &str,
     filepath: Option<&str>,
     filename: Option<&str>,
@@ -140,7 +145,9 @@ fn parse_attribute_spec(pair: Pair<'_, Rule>) -> (&str, bool, bool) {
     (attr_name, is_public, is_optional)
 }
 
-fn parse_injection_roll_from_list(inner_pair: Pair<Rule>) -> Arc<InjectCommandRollFromList> {
+fn parse_injection_roll_from_list(
+    inner_pair: Pair<Rule>,
+) -> Arc<InjectCommandRollFromList> {
     let mut iter = inner_pair.into_inner();
     let (attr, _, _) = parse_attribute_spec(iter.next().unwrap());
 
@@ -148,10 +155,14 @@ fn parse_injection_roll_from_list(inner_pair: Pair<Rule>) -> Arc<InjectCommandRo
 
     for inner_pair in iter {
         match inner_pair.as_rule() {
-            Rule::free_text => value.push(serde_json::to_value(inner_pair.as_str()).expect("x")),
-            Rule::list_value => {
-                value.push(serde_json::to_value(inner_pair.as_str().trim()).expect("x"))
-            }
+            Rule::free_text => value.push(
+                serde_json::to_value(inner_pair.as_str())
+                    .expect("Error converting value"),
+            ),
+            Rule::list_value => value.push(
+                serde_json::to_value(inner_pair.as_str().trim())
+                    .expect("Error converting value"),
+            ),
             Rule::probability_spec => {}
             _ => unreachable!(),
         }
@@ -163,7 +174,9 @@ fn parse_injection_roll_from_list(inner_pair: Pair<Rule>) -> Arc<InjectCommandRo
     })
 }
 
-fn parse_injection_dice_roll(inner_pair: Pair<Rule>) -> Arc<InjectCommandDiceRoll> {
+fn parse_injection_dice_roll(
+    inner_pair: Pair<Rule>,
+) -> Arc<InjectCommandDiceRoll> {
     let mut iter = inner_pair.into_inner();
     let (attr, _, _) = parse_attribute_spec(iter.next().unwrap());
 
@@ -179,7 +192,9 @@ fn parse_injection_dice_roll(inner_pair: Pair<Rule>) -> Arc<InjectCommandDiceRol
     })
 }
 
-fn parse_injection_assign_by_ref<T: InjectCommand + RefInjectCommand + 'static>(
+fn parse_injection_assign_by_ref<
+    T: InjectCommand + RefInjectCommand + 'static,
+>(
     inner_pair: Pair<Rule>,
 ) -> Arc<dyn InjectCommand + Send + Sync> {
     let mut iter = inner_pair.into_inner();
@@ -204,24 +219,26 @@ fn parse_injections(pair: Pair<Rule>) -> anyhow::Result<Injectors> {
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
             Rule::prepend_copy_value => {
-                prependers.push(parse_injection_assign_by_ref::<InjectCommandCopyValue>(
-                    inner_pair,
-                ));
+                prependers.push(parse_injection_assign_by_ref::<
+                    InjectCommandCopyValue,
+                >(inner_pair));
             }
             Rule::append_copy_value => {
-                appenders.push(parse_injection_assign_by_ref::<InjectCommandCopyValue>(
-                    inner_pair,
-                ));
+                appenders.push(parse_injection_assign_by_ref::<
+                    InjectCommandCopyValue,
+                >(inner_pair));
             }
             Rule::prepend_ptr => {
-                prependers.push(parse_injection_assign_by_ref::<InjectCommandPtr>(
-                    inner_pair,
-                ));
+                prependers.push(parse_injection_assign_by_ref::<
+                    InjectCommandPtr,
+                >(inner_pair));
             }
             Rule::append_ptr => {
-                appenders.push(parse_injection_assign_by_ref::<InjectCommandPtr>(
-                    inner_pair,
-                ));
+                appenders.push(
+                    parse_injection_assign_by_ref::<InjectCommandPtr>(
+                        inner_pair,
+                    ),
+                );
             }
             Rule::prepend_assignment => {
                 prependers.push(parse_injection_assignment(inner_pair));
@@ -244,7 +261,10 @@ fn parse_injections(pair: Pair<Rule>) -> anyhow::Result<Injectors> {
     })
 }
 
-fn parse_dice_notation(name: String, mut pair: Pairs<Rule>) -> Arc<dyn AttrCommand + Send + Sync> {
+fn parse_dice_notation(
+    name: String,
+    mut pair: Pairs<Rule>,
+) -> Arc<dyn AttrCommand + Send + Sync> {
     Arc::new(AttrCommandDice {
         name,
         number_of_dice: pair.next().unwrap().as_str().parse().unwrap(),
@@ -263,7 +283,8 @@ fn parse_attribute_ex(
     mut class: RefMut<ClassBuilder>,
 ) {
     let mut inner = pair.into_inner();
-    let (attr, is_public, is_optional) = parse_attribute_spec(inner.next().unwrap());
+    let (attr, is_public, is_optional) =
+        parse_attribute_spec(inner.next().unwrap());
     class.add_attr(
         attr.to_string(),
         Attr {
@@ -307,7 +328,9 @@ fn parse_number_or_variable(pair: Pair<Rule>) -> CardinalityValue {
     }
 }
 
-fn parse_entity_attribute<CMD: AttrCommand + Send + Sync + EntityAssigner + 'static>(
+fn parse_entity_attribute<
+    CMD: AttrCommand + Send + Sync + EntityAssigner + 'static,
+>(
     pair: Pair<Rule>,
     mut class: RefMut<ClassBuilder>,
 ) {
@@ -332,7 +355,12 @@ fn parse_entity_attribute<CMD: AttrCommand + Send + Sync + EntityAssigner + 'sta
             }
             Rule::indirect => {
                 value = ClassNamesToRoll::Indirect(
-                    inner_pair.into_inner().next().unwrap().as_str().to_string(),
+                    inner_pair
+                        .into_inner()
+                        .next()
+                        .unwrap()
+                        .as_str()
+                        .to_string(),
                 );
             }
             Rule::array => {
@@ -351,11 +379,17 @@ fn parse_entity_attribute<CMD: AttrCommand + Send + Sync + EntityAssigner + 'sta
                 }
             }
             Rule::entities_list => {
+                let mut prob = ProbabilityHelper::new();
                 value = ClassNamesToRoll::List(vec![]);
                 if let ClassNamesToRoll::List(l) = &mut value {
                     for ip in inner_pair.into_inner() {
+                        if let Rule::probability_spec = ip.as_rule() {
+                            prob.parse_multiplier(&ip);
+                        }
                         if let Rule::entity_name = ip.as_rule() {
-                            l.push(ip.as_str().trim().to_string())
+                            prob.multiply(|| {
+                                l.push(ip.as_str().trim().to_string())
+                            });
                         }
                     }
                 }
@@ -375,7 +409,13 @@ fn parse_entity_attribute<CMD: AttrCommand + Send + Sync + EntityAssigner + 'sta
         class.add_attr(
             attr.to_string(),
             Attr {
-                cmd: std::sync::Arc::new(CMD::new(attr.to_string(), value, min, max, injectors)),
+                cmd: std::sync::Arc::new(CMD::new(
+                    attr.to_string(),
+                    value,
+                    min,
+                    max,
+                    injectors,
+                )),
                 is_public,
                 is_optional,
                 is_array,
@@ -394,12 +434,15 @@ fn parse_collection(pair: Pair<Rule>, mut class: RefMut<ClassBuilder>) {
     let mut is_public = false;
     for inner_pair in pair.into_inner() {
         match inner_pair.as_rule() {
-            Rule::entity_name => class_name = Some(inner_pair.as_str().to_string()),
+            Rule::entity_name => {
+                class_name = Some(inner_pair.as_str().to_string())
+            }
             Rule::property => {
                 for property_pair in inner_pair.into_inner() {
                     match property_pair.as_rule() {
                         Rule::property_name => {
-                            named_collection = Some(property_pair.as_str().to_string())
+                            named_collection =
+                                Some(property_pair.as_str().to_string())
                         }
                         Rule::is_public => is_public = true,
                         Rule::is_optional => is_optional = true,
@@ -412,12 +455,13 @@ fn parse_collection(pair: Pair<Rule>, mut class: RefMut<ClassBuilder>) {
     }
 
     if let Some(class_name) = class_name {
-        let virtual_attribute = named_collection.map(|named_collection| CollectionAttribute {
-            attr_name: named_collection,
-            is_optional,
-            is_array,
-            is_public,
-        });
+        let virtual_attribute =
+            named_collection.map(|named_collection| CollectionAttribute {
+                attr_name: named_collection,
+                is_optional,
+                is_array,
+                is_public,
+            });
         class.collect(CollectionSpecifier {
             class_name,
             virtual_attribute,
@@ -425,7 +469,10 @@ fn parse_collection(pair: Pair<Rule>, mut class: RefMut<ClassBuilder>) {
     }
 }
 
-fn parse_roll_from_list(name: String, pair: Pairs<Rule>) -> Arc<dyn AttrCommand + Send + Sync> {
+fn parse_roll_from_list(
+    name: String,
+    pair: Pairs<Rule>,
+) -> Arc<dyn AttrCommand + Send + Sync> {
     let mut value: Vec<serde_json::Value> = vec![];
 
     let mut prob = ProbabilityHelper::new();
@@ -435,7 +482,9 @@ fn parse_roll_from_list(name: String, pair: Pairs<Rule>) -> Arc<dyn AttrCommand 
                 prob.parse_multiplier(&inner_pair);
             }
             Rule::list_value => {
-                prob.multiply(|| value.push(upcast_string(inner_pair.as_str().trim())));
+                prob.multiply(|| {
+                    value.push(upcast_string(inner_pair.as_str().trim()))
+                });
             }
             _ => unreachable!(),
         }
@@ -452,14 +501,21 @@ fn parse_roll_via_variable(
     Arc::new(AttrCommandRollFromVariable { name, var })
 }
 
-fn parse_context(name: String, mut pair: Pairs<Rule>) -> Arc<dyn AttrCommand + Send + Sync> {
+fn parse_context(
+    name: String,
+    mut pair: Pairs<Rule>,
+) -> Arc<dyn AttrCommand + Send + Sync> {
     let next = pair.next().unwrap();
     match next.as_rule() {
         Rule::context | Rule::context_ptr => {
             let mut context_rule = next.into_inner();
             Arc::new(AttrCommandContext {
                 name,
-                context_parent: context_rule.next().unwrap().as_str().to_string(),
+                context_parent: context_rule
+                    .next()
+                    .unwrap()
+                    .as_str()
+                    .to_string(),
                 context_attr: context_rule.next().unwrap().as_str().to_string(),
             })
         }
@@ -478,7 +534,10 @@ fn parse_value_token(token: Pair<Rule>) -> serde_json::Value {
     }
 }
 
-fn parse_simple_value(name: String, mut pair: Pairs<Rule>) -> Arc<dyn AttrCommand + Send + Sync> {
+fn parse_simple_value(
+    name: String,
+    mut pair: Pairs<Rule>,
+) -> Arc<dyn AttrCommand + Send + Sync> {
     let next = pair.next().unwrap();
     match next.as_rule() {
         Rule::value => {
@@ -486,11 +545,17 @@ fn parse_simple_value(name: String, mut pair: Pairs<Rule>) -> Arc<dyn AttrComman
             let value = parse_value_token(token);
             Arc::new(AttrCommandAssigner { name, value })
         }
+        Rule::global => {
+            let global_var = next.as_str()[1..].to_string();
+            Arc::new(AttrCommandVarAssigner { name, global_var })
+        }
         _ => unreachable!(),
     }
 }
 
-fn parse_injection_assignment(inner_pair: Pair<Rule>) -> Arc<InjectCommandSetValue> {
+fn parse_injection_assignment(
+    inner_pair: Pair<Rule>,
+) -> Arc<InjectCommandSetValue> {
     let mut iter = inner_pair.into_inner();
     let (attr, _, _) = parse_attribute_spec(iter.next().unwrap());
 
@@ -503,7 +568,10 @@ fn parse_injection_assignment(inner_pair: Pair<Rule>) -> Arc<InjectCommandSetVal
     })
 }
 
-fn parse_weak_value(name: String, mut pair: Pairs<Rule>) -> Arc<dyn AttrCommand + Send + Sync> {
+fn parse_weak_value(
+    name: String,
+    mut pair: Pairs<Rule>,
+) -> Arc<dyn AttrCommand + Send + Sync> {
     let value: serde_json::Value;
     let next = pair.next().unwrap();
     match next.as_rule() {
@@ -548,7 +616,10 @@ fn parse_prerendered_value(
     }
 }
 
-fn parse_entity_tags(pair: Pairs<Rule>, mut class_builder: RefMut<ClassBuilder>) {
+fn parse_entity_tags(
+    pair: Pairs<Rule>,
+    mut class_builder: RefMut<ClassBuilder>,
+) {
     for inner_pair in pair {
         match inner_pair.as_rule() {
             Rule::tag_body_body => {
@@ -561,6 +632,11 @@ fn parse_entity_tags(pair: Pairs<Rule>, mut class_builder: RefMut<ClassBuilder>)
                     .borrow_mut()
                     .html_header(inner_pair.as_str().to_string());
             }
+            Rule::tag_metadata_body => {
+                class_builder
+                    .borrow_mut()
+                    .html_metadata(inner_pair.as_str().to_string());
+            }
             Rule::tag_html_body => {}
             // TODO: implement all tags
             _ => {}
@@ -568,7 +644,10 @@ fn parse_entity_tags(pair: Pairs<Rule>, mut class_builder: RefMut<ClassBuilder>)
     }
 }
 
-fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Class> {
+fn parse_entity(
+    instance: &mut SandboxBlueprint,
+    pair: Pair<Rule>,
+) -> Result<Class> {
     let class_builder = RefCell::new(ClassBuilder::new());
     pair.into_inner()
         .for_each(|inner_pair| match inner_pair.as_rule() {
@@ -583,7 +662,9 @@ fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Clas
                         .extends(instance, parent.as_str());
                 }
             }
-            Rule::subclasses => parse_subclasses(inner_pair, class_builder.borrow_mut()),
+            Rule::subclasses => {
+                parse_subclasses(inner_pair, class_builder.borrow_mut())
+            }
             Rule::pop_an_entity => {
                 parse_entity_attribute::<AttrCommandUseEntity>(
                     inner_pair,
@@ -615,10 +696,18 @@ fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Clas
                 );
             }
             Rule::roll_a_dice => {
-                parse_attribute_ex(parse_dice_notation, inner_pair, class_builder.borrow_mut());
+                parse_attribute_ex(
+                    parse_dice_notation,
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::roll_from_list => {
-                parse_attribute_ex(parse_roll_from_list, inner_pair, class_builder.borrow_mut());
+                parse_attribute_ex(
+                    parse_roll_from_list,
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::roll_from_global => {
                 parse_attribute_ex(
@@ -628,13 +717,25 @@ fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Clas
                 );
             }
             Rule::context_assignment => {
-                parse_attribute_ex(parse_context, inner_pair, class_builder.borrow_mut());
+                parse_attribute_ex(
+                    parse_context,
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::assignment => {
-                parse_attribute_ex(parse_simple_value, inner_pair, class_builder.borrow_mut());
+                parse_attribute_ex(
+                    parse_simple_value,
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::weak_assignment => {
-                parse_attribute_ex(parse_weak_value, inner_pair, class_builder.borrow_mut());
+                parse_attribute_ex(
+                    parse_weak_value,
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::inheritance => {
                 class_builder.borrow_mut().expand(
@@ -646,7 +747,10 @@ fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Clas
                 parse_collection(inner_pair, class_builder.borrow_mut());
             }
             Rule::tags => {
-                parse_entity_tags(inner_pair.into_inner(), class_builder.borrow_mut());
+                parse_entity_tags(
+                    inner_pair.into_inner(),
+                    class_builder.borrow_mut(),
+                );
             }
             Rule::prerendered_assignment => {
                 parse_attribute_ex(
@@ -663,7 +767,7 @@ fn parse_entity(instance: &mut SandboxInstance, pair: Pair<Rule>) -> Result<Clas
 }
 
 fn parse_scroll(
-    instance: &mut SandboxInstance,
+    instance: &mut SandboxBlueprint,
     pairs: Pairs<Rule>,
     include_path: &str,
 ) -> Result<()> {
@@ -679,12 +783,20 @@ fn parse_scroll(
                 let mut prob = ProbabilityHelper::new();
                 for inner_pair in inner {
                     match inner_pair.as_rule() {
-                        Rule::value => val = Some(upcast_string(inner_pair.as_str().trim())),
+                        Rule::value => {
+                            val =
+                                Some(upcast_string(inner_pair.as_str().trim()))
+                        }
                         Rule::probability_spec => {
                             prob.parse_multiplier(&inner_pair);
                         }
                         Rule::list_value => prob.multiply(|| {
-                            list.push(serde_json::to_value(inner_pair.as_str().trim()).expect("x"))
+                            list.push(
+                                serde_json::to_value(
+                                    inner_pair.as_str().trim(),
+                                )
+                                .expect("Error converting value"),
+                            )
                         }),
                         _ => unreachable!(),
                     }
@@ -707,10 +819,16 @@ fn parse_scroll(
             Rule::include_stmt => {
                 let mut ip = pair.into_inner();
                 let what = ip.next().unwrap().as_str();
-                let path = String::from_str(include_path).unwrap() + what + ".scroll";
+                let path =
+                    String::from_str(include_path).unwrap() + what + ".scroll";
                 log::info!("importing {}", path);
                 let unparsed_file = std::fs::read_to_string(path.clone())?;
-                parse_buffer(instance, &unparsed_file, Some(include_path), Some(&path))?;
+                parse_buffer(
+                    instance,
+                    &unparsed_file,
+                    Some(include_path),
+                    Some(&path),
+                )?;
             }
             Rule::EOI => {}
             _ => unreachable!(),

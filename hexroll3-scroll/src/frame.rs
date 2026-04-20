@@ -64,7 +64,28 @@ pub fn create_entity_frame(
 /// # Returns
 ///
 /// A `Result` indicating success or failure of the removal operation.
-pub fn remove_entity_frame(tx: &mut ReadWriteTransaction, uid: &str) -> Result<()> {
+pub fn remove_entity_frame(
+    tx: &mut ReadWriteTransaction,
+    uid: &str,
+) -> Result<()> {
+    let user_frame = tx.load(&format!("{}_frame", uid)).unwrap().as_frame();
+
+    let refs = &user_frame.obj["$refs"].clone();
+    for r in refs.as_array().unwrap() {
+        let ref_frame_uid = r["$frame"].as_str().unwrap();
+        let ref_class_name = r["$class"].as_str().unwrap();
+        let ref_frame = tx
+            .load(&format!("{}_frame", ref_frame_uid))
+            .unwrap()
+            .as_frame();
+        let demands =
+            &mut ref_frame.obj["$collections"]["$demand"][ref_class_name];
+        demands
+            .as_array_mut()
+            .unwrap()
+            .retain(|v| v.as_str().unwrap() != uid);
+        tx.save(&format!("{}_frame", ref_frame_uid))?;
+    }
     tx.remove(&format!("{}_frame", uid))
 }
 
@@ -99,21 +120,43 @@ pub fn remove_entity_frame(tx: &mut ReadWriteTransaction, uid: &str) -> Result<(
 /// ```
 pub fn collect(
     instance: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     parent_uid: &str,
     uid: &str,
     class_name: &str,
 ) -> anyhow::Result<()> {
     let mut frame_owner_uid: String = parent_uid.to_string();
+    let mut waitinglist = Waitinglist::new();
+    struct DerefTask {
+        user_uid: String,
+        ref_uid: String,
+        class_name: String,
+    }
+    let mut deref_backlog: Vec<DerefTask> = Vec::new();
     while frame_owner_uid != "root" {
         let parent_owner_uid = {
-            let frame = tx
+            let mut frame = tx
                 .load(&format!("{}_frame", frame_owner_uid))
                 .unwrap()
                 .as_frame();
-            for parent in instance.sandbox.classes[class_name].hierarchy.iter() {
-                let unused = &mut frame.obj["$collections"]["$unused"];
+            for parent in instance
+                .sandbox
+                .resolve_class(blueprint, class_name)
+                .unwrap()
+                .hierarchy
+                .iter()
+            {
+                let unused = &frame.obj["$collections"]["$unused"];
                 if unused.as_object().unwrap().contains_key(parent) {
+                    if let Some(uid) = waitinglist.stage(&mut frame, parent) {
+                        deref_backlog.push(DerefTask {
+                            user_uid: uid,
+                            ref_uid: frame_owner_uid.clone(),
+                            class_name: parent.clone(),
+                        })
+                    }
+                    let unused = &mut frame.obj["$collections"]["$unused"];
                     unused[parent]
                         .as_array_mut()
                         .unwrap()
@@ -125,6 +168,22 @@ pub fn collect(
         };
         tx.save(&format!("{}_frame", frame_owner_uid))?;
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
+    }
+    waitinglist.apply(tx)?;
+
+    for task in deref_backlog {
+        let user_frame = tx
+            .load(&format!("{}_frame", task.user_uid))
+            .unwrap()
+            .as_frame();
+
+        let refs = &mut user_frame.obj["$refs"];
+        refs.as_array_mut().unwrap().retain(|v| {
+            let ref_frame_uid = v["$frame"].as_str().unwrap();
+            let ref_class_name = v["$class"].as_str().unwrap();
+            ref_frame_uid != task.ref_uid || ref_class_name != task.class_name
+        });
+        tx.save(&format!("{}_frame", task.user_uid))?;
     }
     Ok(())
 }
@@ -150,6 +209,7 @@ pub fn collect(
 ///   collections.
 pub fn withdraw(
     instance: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     origin_owner_uid: &str,
     class_name: &str,
@@ -161,7 +221,13 @@ pub fn withdraw(
                 .load(&format!("{}_frame", frame_owner_uid))
                 .unwrap()
                 .as_frame();
-            for parent in instance.sandbox.classes[class_name].hierarchy.iter() {
+            for parent in instance
+                .sandbox
+                .resolve_class(blueprint, class_name)
+                .unwrap()
+                .hierarchy
+                .iter()
+            {
                 let unused = &mut frame.obj["$collections"]["$unused"];
                 if unused.as_object().unwrap().contains_key(parent) {
                     unused[parent]
@@ -170,7 +236,13 @@ pub fn withdraw(
                         .retain(|v| v != origin_owner_uid);
                 }
             }
-            for parent in instance.sandbox.classes[class_name].hierarchy.iter() {
+            for parent in instance
+                .sandbox
+                .resolve_class(blueprint, class_name)
+                .unwrap()
+                .hierarchy
+                .iter()
+            {
                 let used = &mut frame.obj["$collections"]["$unused"];
                 if used.as_object().unwrap().contains_key(parent) {
                     used[parent]
@@ -216,7 +288,7 @@ pub fn use_collected(
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" && ret.is_none() {
         let parent_owner_uid = {
-            let frame = tx
+            let mut frame = tx
                 .load(&format!("{}_frame", frame_owner_uid))
                 .unwrap()
                 .as_frame();
@@ -224,6 +296,24 @@ pub fn use_collected(
             if unused.as_object().unwrap().contains_key(class_name) {
                 let unused_list = unused[class_name].as_array().unwrap();
                 if unused_list.is_empty() {
+                    if add_pending_entity(
+                        &mut frame,
+                        class_name,
+                        origin_owner_uid,
+                    )? {
+                        tx.save(&format!("{}_frame", frame_owner_uid))?;
+                        let frame = tx
+                            .load(&format!("{}_frame", origin_owner_uid))
+                            .unwrap()
+                            .as_frame();
+                        frame.obj["$refs"].as_array_mut().unwrap().push(
+                            serde_json::json!({
+                                "$frame": frame_owner_uid,
+                                "$class": class_name,
+                            }),
+                        );
+                        tx.save(&format!("{}_frame", origin_owner_uid))?;
+                    }
                     return Ok(None);
                 }
                 let selected = instance
@@ -321,7 +411,7 @@ pub fn pick_collected(
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" {
         let parent_owner_uid = {
-            let frame = tx
+            let mut frame = tx
                 .load(&format!("{}_frame", frame_owner_uid))
                 .unwrap()
                 .as_frame();
@@ -329,6 +419,24 @@ pub fn pick_collected(
             if unused.as_object().unwrap().contains_key(class_name) {
                 let unused_list = unused[class_name].as_array().unwrap();
                 if unused_list.is_empty() {
+                    if add_pending_entity(
+                        &mut frame,
+                        class_name,
+                        origin_owner_uid,
+                    )? {
+                        tx.save(&format!("{}_frame", frame_owner_uid))?;
+                        let frame = tx
+                            .load(&format!("{}_frame", origin_owner_uid))
+                            .unwrap()
+                            .as_frame();
+                        frame.obj["$refs"].as_array_mut().unwrap().push(
+                            serde_json::json!({
+                                "$frame": frame_owner_uid,
+                                "$class": class_name,
+                            }),
+                        );
+                        tx.save(&format!("{}_frame", origin_owner_uid))?;
+                    }
                     return Ok(None);
                 }
                 let selected = instance
@@ -345,6 +453,57 @@ pub fn pick_collected(
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     Ok(ret)
+}
+
+/// Mark an entity demand to a class. This is used when the picking could not
+/// satisfy the minimum number of entities required in an array.
+///
+/// # Arguments
+///
+/// * `tx` - A mutable read/write transaction to load and save frames.
+/// * `origin_owner_uid` - The UID of the initial frame owner where the search begins.
+/// * `class_name` - The class name of the entity to be selected.
+///
+/// # Returns
+///
+/// `Ok(true)` demand was succesfully registered
+/// `Ok(false)` demand was not registered (likely no matching class was found)
+pub fn add_demand(
+    tx: &mut ReadWriteTransaction,
+    origin_owner_uid: &str,
+    class_name: &str,
+) -> Result<bool> {
+    let mut frame_owner_uid: String = origin_owner_uid.to_string();
+    while frame_owner_uid != "root" {
+        let parent_owner_uid = {
+            let mut frame = tx
+                .load(&format!("{}_frame", frame_owner_uid))
+                .unwrap()
+                .as_frame();
+            let unused = &mut frame.obj["$collections"]["$unused"];
+            if unused.as_object().unwrap().contains_key(class_name) {
+                if add_pending_entity(&mut frame, class_name, origin_owner_uid)?
+                {
+                    tx.save(&format!("{}_frame", frame_owner_uid))?;
+                    let frame = tx
+                        .load(&format!("{}_frame", origin_owner_uid))
+                        .unwrap()
+                        .as_frame();
+                    frame.obj["$refs"].as_array_mut().unwrap().push(
+                        serde_json::json!({
+                            "$frame": frame_owner_uid,
+                            "$class": class_name,
+                        }),
+                    );
+                    tx.save(&format!("{}_frame", origin_owner_uid))?;
+                    return Ok(true);
+                }
+            }
+            frame.obj["$parent"].clone()
+        };
+        frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
+    }
+    Ok(false)
 }
 
 /// Every entity has a Frame record stored in the format of:
@@ -377,9 +536,11 @@ impl<'a> Frame<'a> {
         let frame_uid = format!("{}_frame", uid2);
         let frame = tx.create(&frame_uid)?.as_frame();
         frame.obj["$parent"] = serde_json::Value::from(parent_uid);
+        frame.obj["$refs"] = serde_json::json!([]);
         let collections = &mut frame.obj["$collections"];
         collections["$unused"] = serde_json::json!({});
         collections["$used"] = serde_json::json!({});
+        collections["$demand"] = serde_json::json!({});
         Ok(frame)
     }
 }
@@ -399,4 +560,60 @@ fn subscribe(frame: &mut Frame, class_name: &str) {
     let collections = &mut frame.obj["$collections"];
     collections["$unused"][class_name] = serde_json::json!([]);
     collections["$used"][class_name] = serde_json::json!([]);
+    collections["$demand"][class_name] = serde_json::json!([]);
+}
+
+///
+#[derive(Default)]
+struct Waitinglist {
+    appends: Vec<serde_json::Value>,
+}
+
+impl Waitinglist {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn stage(&mut self, frame: &mut Frame, parent: &str) -> Option<String> {
+        let demand = &frame.obj["$collections"]["$demand"];
+        if demand[parent].as_array().unwrap().len() > 0 {
+            let demand = &mut frame.obj["$collections"]["$demand"];
+            let to_list = demand[parent].as_array_mut().unwrap().pop().unwrap();
+            self.appends.push(to_list.clone());
+            Some(to_list.as_str().unwrap().to_string())
+        } else {
+            None
+        }
+    }
+    pub fn apply(&mut self, tx: &mut ReadWriteTransaction) -> Result<()> {
+        if !self.appends.is_empty() {
+            let rerolls = tx.load("rerolls")?;
+            rerolls["entities"]
+                .as_array_mut()
+                .unwrap()
+                .append(&mut self.appends);
+            tx.save("rerolls")?;
+        }
+        Ok(())
+    }
+}
+
+fn add_pending_entity(
+    frame: &mut Frame,
+    class_name: &str,
+    entity_uid: &str,
+) -> Result<bool> {
+    let demand = frame.obj["$collections"]["$demand"][class_name]
+        .as_array_mut()
+        .unwrap();
+
+    let already_present = demand
+        .iter()
+        .any(|v| v.as_str().is_some_and(|s| s == entity_uid));
+
+    if !already_present {
+        demand.push(entity_uid.into());
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }

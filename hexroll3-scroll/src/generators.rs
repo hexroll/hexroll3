@@ -22,12 +22,10 @@
 // license. Please contact ithai at pendicepaper.com
 // for more information about commercial licensing terms.
 */
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
+use serde_json::Value;
 
-use crate::frame::*;
-use crate::instance::*;
-use crate::repository::*;
-use crate::semantics::*;
+use crate::{frame::*, instance::*, repository::*, semantics::*};
 
 /// Rolls an entity within the given parent, creating a new entity with a unique identifier,
 /// Roll an entity.
@@ -54,45 +52,72 @@ use crate::semantics::*;
 /// A `Result` containing the unique identifier of the newly created entity, or an error if the process fails.
 pub fn roll(
     builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     class_name: &str,
     parent_uid: &str,
     injectors: Option<&Injectors>,
 ) -> Result<String> {
-    let class = resolve_actual_class_to_roll(builder, class_name)?;
+    let (map_data, class) = {
+        let map_data =
+            (blueprint.map_data_provider)(builder, blueprint, tx, class_name)?;
+
+        let class = {
+            if let Some((class_name, _)) = map_data.as_ref() {
+                blueprint.classes.get(class_name).unwrap().clone()
+            } else {
+                resolve_actual_class_to_roll(builder, blueprint, class_name)?
+            }
+        };
+        (map_data, class)
+    };
 
     let uid = builder.randomizer.uid();
+    {
+        // Create the entity frame and subscribe to potential child entities
+        create_entity_frame(tx, parent_uid, &uid, &class)?;
 
-    // Create the entity frame and subscribe to potential child entities
-    create_entity_frame(tx, parent_uid, &uid, class)?;
+        // Create and initialize the entity
+        let entity = tx.create(&uid)?;
+        entity["uid"] = serde_json::Value::from(uid.as_str());
+        // TODO: remove legacy `uuid` references
+        entity["uuid"] = serde_json::Value::from(uid.as_str());
+        entity["parent_uid"] = serde_json::Value::from(parent_uid);
 
-    // Create and initialize the entity
-    let entity = tx.create(&uid)?;
-    entity["uid"] = serde_json::Value::from(uid.as_str());
-    // TODO: remove legacy `uuid` references
-    entity["uuid"] = serde_json::Value::from(uid.as_str());
-    entity["parent_uid"] = serde_json::Value::from(parent_uid);
-    entity["class"] = serde_json::Value::from(class.name.as_str());
-
-    // Run the entity commands for injectors and attributes
-    if let Some(prependers) = injectors {
-        for injector in prependers.prependers.as_slice() {
-            injector.inject(builder, tx, &uid, parent_uid)?;
+        entity["class"] = serde_json::Value::from(class.name.as_str());
+        if let Some((_, map_json)) = map_data {
+            entity["map_data"] = Value::String(map_json.to_string());
         }
-    }
 
-    for (_, attr) in class.attrs.as_slice() {
-        attr.cmd.apply(&mut Context::Rolling, builder, tx, &uid)?;
-    }
-
-    if let Some(appenders) = injectors {
-        for injector in appenders.appenders.as_slice() {
-            injector.inject(builder, tx, &uid, parent_uid)?;
+        // Run the entity commands for injectors and attributes
+        if let Some(prependers) = injectors {
+            for injector in prependers.prependers.as_slice() {
+                injector.inject(builder, tx, &uid, parent_uid)?;
+            }
         }
+
+        for (_, attr) in class.attrs.as_slice() {
+            attr.cmd.apply(
+                &mut Context::Rolling,
+                builder,
+                blueprint,
+                tx,
+                &uid,
+            )?;
+        }
+
+        if let Some(appenders) = injectors {
+            for injector in appenders.appenders.as_slice() {
+                injector.inject(builder, tx, &uid, parent_uid)?;
+            }
+        }
+
+        // Save and return the uid
+        tx.save(&uid)?;
     }
 
-    // Save and return the uid
-    tx.save(&uid)?;
+    collect(builder, blueprint, tx, &uid, uid.as_str(), &class.name)?;
+
     Ok(uid)
 }
 
@@ -117,11 +142,14 @@ pub fn roll(
 ///
 pub fn unroll(
     builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     uid: &str,
     injectors: Option<&Injectors>,
 ) -> Result<String> {
-    let entity = tx.load(uid)?;
+    let Ok(entity) = tx.load(uid) else {
+        return Ok(String::new());
+    };
     let parent_spec = entity["$parent"].clone();
     let class_name = entity["class"].as_str().unwrap().to_string();
     let users = entity["$users"]
@@ -130,17 +158,26 @@ pub fn unroll(
         .unwrap_or_else(Vec::new);
 
     // Remove entity references from all frames
-    withdraw(builder, tx, uid, &class_name)?;
+    withdraw(builder, blueprint, tx, uid, &class_name)?;
 
     // Undo injectors and attributes
-    let class = builder.sandbox.classes.get(&class_name).unwrap();
+    let class = builder
+        .sandbox
+        .resolve_class(blueprint, &class_name)
+        .unwrap();
     if let Some(injs) = injectors {
         for injector in injs.appenders.as_slice() {
             injector.eject(builder, tx, uid, "")?;
         }
     }
     for (_, attr) in class.attrs.as_slice() {
-        attr.cmd.revert(&mut Context::Unrolling, builder, tx, uid)?;
+        attr.cmd.revert(
+            &mut Context::Unrolling,
+            builder,
+            blueprint,
+            tx,
+            uid,
+        )?;
     }
     if let Some(boots) = injectors {
         for injector in boots.prependers.as_slice() {
@@ -177,20 +214,23 @@ pub fn unroll(
         if let Ok(user) = tx.load(user_uid) {
             let user_class = builder
                 .sandbox
-                .classes
-                .get(user["class"].as_str().unwrap())
+                .resolve_class(blueprint, user["class"].as_str().unwrap())
                 .unwrap();
             match user[user_attr] {
                 serde_json::Value::Object(_) => {
                     user_class.attrs[user_attr].cmd.revert(
                         &mut Context::Restoring,
                         builder,
+                        blueprint,
                         tx,
                         user_uid,
                     )?;
                 }
                 serde_json::Value::Array(_) => {
-                    user[user_attr].as_array_mut().unwrap().retain(|v| v != uid);
+                    user[user_attr]
+                        .as_array_mut()
+                        .unwrap()
+                        .retain(|v| v != uid);
                 }
                 _ => {}
             }
@@ -200,7 +240,7 @@ pub fn unroll(
             });
             user_class.attrs[user_attr]
                 .cmd
-                .apply(&mut ctx, builder, tx, user_uid)?;
+                .apply(&mut ctx, builder, blueprint, tx, user_uid)?;
             tx.save(user_uid)?;
         }
     }
@@ -237,6 +277,7 @@ pub fn unroll(
 /// uid does not exist.
 pub fn reroll(
     builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     uid: &str,
     class_override: Option<&str>,
@@ -253,8 +294,12 @@ pub fn reroll(
     };
 
     let parent_entity = tx.load(&parent_uid)?;
-    let parent_class_name = parent_entity["class"].as_str().unwrap().to_string();
-    let parent_class = &builder.sandbox.classes[&parent_class_name];
+    let parent_class_name =
+        parent_entity["class"].as_str().unwrap().to_string();
+    let parent_class = &builder
+        .sandbox
+        .resolve_class(blueprint, &parent_class_name)
+        .unwrap();
 
     let mut ctx = Context::Rerolling(RerollPayload {
         class_override,
@@ -262,11 +307,15 @@ pub fn reroll(
         new_uid: None,
     });
 
-    parent_class.attrs[&parent_attr]
-        .cmd
-        .apply(&mut ctx, builder, tx, &parent_uid)?;
+    parent_class.attrs[&parent_attr].cmd.apply(
+        &mut ctx,
+        builder,
+        blueprint,
+        tx,
+        &parent_uid,
+    )?;
 
-    unroll(builder, tx, uid, None)?;
+    unroll(builder, blueprint, tx, uid, None)?;
 
     if let Context::Rerolling(payload) = ctx {
         if let Some(new_uid) = payload.new_uid {
@@ -284,28 +333,30 @@ pub fn reroll(
 /// * `parent_uid` - String slice that specifies the unique identifier of the parent entity.
 /// * `attr_name` - String slice that specifies the attribute name within the parent entity.
 /// * `class_override` - Optional string slice for class override.
+/// * `count` - Number of entities to generate
 ///
 /// # Returns
-/// * `Result<String>` - On success, returns the unique identifier of the appended entity.
+/// * `Result<Vec<String>>` - On success, returns a list of appended entities uids.
 ///
 /// # Errors
 /// * Returns an error if the parent entity or its class/attribute is not found.
 /// * Returns an error if appending the entity fails, or if the UID was not set.
 pub fn append(
     builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     parent_uid: &str,
     attr_name: &str,
     class_override: Option<&str>,
-) -> Result<String> {
+    mut count: u32,
+) -> Result<Vec<String>> {
     let parent = tx.load(parent_uid)?;
-    let parent_class = parent["class"]
-        .as_str()
-        .ok_or_else(|| anyhow::anyhow!("class key not found or not a string"))?;
+    let parent_class = parent["class"].as_str().ok_or_else(|| {
+        anyhow::anyhow!("class key not found or not a string")
+    })?;
     let class = builder
         .sandbox
-        .classes
-        .get(parent_class)
+        .resolve_class(blueprint, parent_class)
         .ok_or_else(|| anyhow::anyhow!("class not found in instance"))?;
     let attr = class
         .attrs
@@ -315,60 +366,71 @@ pub fn append(
         class_override,
         appended_uid: None,
     });
-    attr.cmd.apply(&mut ctx, builder, tx, parent_uid)?;
-    if let Context::Appending(payload) = ctx {
-        if let Some(added_uid) = payload.appended_uid {
-            tx.save(parent_uid)?;
-            Ok(added_uid)
+    let mut ret = Vec::new();
+    while count > 0 {
+        count -= 1;
+        attr.cmd
+            .apply(&mut ctx, builder, blueprint, tx, parent_uid)?;
+        if let Context::Appending(payload) = &ctx {
+            if let Some(added_uid) = &payload.appended_uid {
+                tx.save(parent_uid)?;
+                ret.push(added_uid.to_string());
+            } else {
+                return Err(anyhow!(
+                    "Appending entity to {} in {} failed",
+                    attr_name,
+                    parent_uid
+                ));
+            }
         } else {
-            Err(anyhow!(
+            return Err(anyhow!(
                 "Appending entity to {} in {} failed",
                 attr_name,
                 parent_uid
-            ))
+            ));
         }
-    } else {
-        Err(anyhow!(
-            "Appending entity to {} in {} failed",
-            attr_name,
-            parent_uid
-        ))
     }
+    Ok(ret)
 }
 
 /// Resolve a concrete class to roll using the specified class in a scroll.
 /// The specified class could be a parent class, a variable pointing to a class List
 /// or already a concrete class.
-fn resolve_actual_class_to_roll<'a>(
-    builder: &'a SandboxBuilder,
+fn resolve_actual_class_to_roll(
+    builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
     class_name: &str,
-) -> Result<&'a Class> {
+) -> Result<Class> {
     let mut class_to_resolve = builder
         .sandbox
-        .classes
-        .get(class_name)
+        .resolve_class(blueprint, class_name)
         .ok_or(anyhow!("class {} not found", class_name))?;
 
     while class_to_resolve.subclasses != SubclassesSpecifier::Empty() {
         class_to_resolve = match &class_to_resolve.subclasses {
             SubclassesSpecifier::Var(variable_symbol) => {
-                let variable_name = &variable_symbol[1..]; // removing the $ sign
-                let class_list = builder.sandbox.globals[variable_name]
-                    .as_array()
-                    .ok_or(anyhow!("Unable to find {}", variable_symbol))?;
-                let rolled_class_name = builder.randomizer.choose(class_list).as_str().unwrap();
+                let rolled_class_name = {
+                    let variable_name = &variable_symbol[1..]; // removing the $ sign
+                    let class_list = blueprint.globals[variable_name]
+                        .as_array()
+                        .ok_or(anyhow!("Unable to find {}", variable_symbol))?;
+                    builder
+                        .randomizer
+                        .choose(class_list)
+                        .as_str()
+                        .unwrap()
+                        .to_string()
+                };
                 builder
                     .sandbox
-                    .classes
-                    .get(rolled_class_name.trim())
+                    .resolve_class(blueprint, rolled_class_name.trim())
                     .ok_or(anyhow!("class {} not found", rolled_class_name))?
             }
             SubclassesSpecifier::List(class_list) => {
                 let rolled_class_name = builder.randomizer.choose(class_list);
                 builder
                     .sandbox
-                    .classes
-                    .get(rolled_class_name)
+                    .resolve_class(blueprint, rolled_class_name)
                     .ok_or(anyhow!("class {} not found", rolled_class_name))?
             }
             SubclassesSpecifier::Empty() => class_to_resolve,

@@ -93,7 +93,7 @@ RandomRing {
     *(x10) Ring of Delusion
     *(x3) Ring of Djinni Summoning
     *(x10) Ring of Fire Resistance
-    *(x10) Ring of Invisibility
+    *(x1) Ring of Invisibility
     *(x5) Ring of Protection +1, 5’ radius
     *(x15) Ring of Protection +1
     *(x2) Ring of Regeneration
@@ -276,3 +276,474 @@ RandomMagicItemsOnBody {
   Description! = "{{Item}}"
 }
 
+LegendaryItem {
+  HexLink = :Hex.uuid
+  HexRegion = :Hex.Region
+  Item @ [
+    *(x1) Cloak of invisibility
+    *(x1) Holy Avenger
+    *(x1) Armour +3, Shield +3
+    *(x1) Armour +3
+    *(x1) Shield +3
+    *(x1) Girdle of Giant Strength
+    *(x1) Deck of Many Things
+    *(x1) Efreeti Bottle
+    *(x1) War Hammer +3, Dwarven Thrower
+    *(x1) Ring of Invisibility
+    *(x1) Horn of Blasting
+  ]
+  Description! = "{{Item}}"
+  Link! ~ <%
+    {% if exists("HexRegion") %}
+    <li>
+   {{begin_spoiler()}}
+    The <strong>{{Item}}</strong> is somewhere
+    </strong> in <a href="{{sandbox()}}/hex/{{HexLink}}"><strong>{{HexRegion}} </a> </strong>
+   {{end_spoiler()}}
+    </li>
+    {% endif %}
+  %>
+}
+
+RandomScroll {
+  ^ [
+    *(x3) SpellScroll1stLevel
+    *(x4) SpellScroll2ndLevel
+    *(x5) SpellScroll3rdLevel
+    *(x3) SpellScroll4thLevel
+    *(x2) SpellScroll5thLevel
+    *(x1) SpellScroll6thLevel
+  ]
+}
+
+SpellScroll1stLevel {
+  Spell @ [
+    * Charm Person <small>(Magic-User)</small>
+    * Cure/Inflict Light Wounds <small>(Cleric)</small>
+    * Detect Evil <small>(Cleric)</small>
+    * Detect Magic <small>(Cleric, Magic-User)</small>
+    * Floating Disc <small>(Magic-User)</small>
+    * Hold Portal <small>(Magic-User)</small>
+    * Light/Darkness <small>(Cleric, Magic-User)</small>
+    * Magic Missile <small>(Magic-User)</small>
+    * Protection from Evil <small>(Cleric, Magic-User)</small>
+    * Purify Food and Water <small>(Cleric)</small>
+    * Read Languages <small>(Magic-User)</small>
+    * Read Magic <small>(Magic-User)</small>
+    * Remove/Cause Fear <small>(Cleric)</small>
+    * Resist Cold <small>(Cleric)</small>
+    * Shield <small>(Magic-User)</small>
+    * Sleep <small>(Magic-User)</small>
+    * Ventriloquism <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>1st</sup> of {{Spell}}"
+}
+
+SpellScroll2ndLevel {
+  Spell @ [
+    * Bless/Blight <small>(Cleric)</small>
+    * Continual Light/Darkness <small>(Magic-User)</small>
+    * Detect Evil <small>(Magic-User)</small>
+    * Detect Invisible <small>(Magic-User)</small>
+    * ESP <small>(Magic-User)</small>
+    * Find Traps <small>(Cleric)</small>
+    * Hold Person <small>(Cleric)</small>
+    * Invisibility <small>(Magic-User)</small>
+    * Know Alignment <small>(Cleric)</small>
+    * Knock <small>(Magic-User)</small>
+    * Levitate <small>(Magic-User)</small>
+    * Locate Object <small>(Magic-User)</small>
+    * Mirror Image <small>(Magic-User)</small>
+    * Phantasmal Force <small>(Magic-User)</small>
+    * Resist Fire <small>(Cleric)</small>
+    * Silence 15' Radius <small>(Cleric)</small>
+    * Snake Charm <small>(Cleric)</small>
+    * Speak with Animals <small>(Cleric)</small>
+    * Web <small>(Magic-User)</small>
+    * Wizard Lock <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>2nd</sup> of {{Spell}}"
+}
+
+SpellScroll3rdLevel {
+  Spell @ [
+    * Clairvoyance <small>(Magic-User)</small>
+    * Continual Light/Darkness <small>(Cleric)</small>
+    * Cure/Cause Disease <small>(Cleric)</small>
+    * Dispel Magic <small>(Magic-User)</small>
+    * Fireball <small>(Magic-User)</small>
+    * Fly <small>(Magic-User)</small>
+    * Growth of Animal <small>(Cleric)</small>
+    * Haste <small>(Magic-User)</small>
+    * Hold Person <small>(Magic-User)</small>
+    * Infravision <small>(Magic-User)</small>
+    * Invisibility 10' Radius <small>(Magic-User)</small>
+    * Lightning Bolt <small>(Magic-User)</small>
+    * Locate Object <small>(Cleric)</small>
+    * Protection from Evil 10' Radius <small>(Magic-User)</small>
+    * Protection from Normal Missiles <small>(Magic-User)</small>
+    * Remove/Cause Curse <small>(Cleric)</small>
+    * Striking <small>(Cleric)</small>
+    * Water Breathing <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>3rd</sup> of {{Spell}}"
+}
+
+SpellScroll4thLevel {
+  Spell @ [
+    * Charm Monster <small>(Magic-User)</small>
+    * Confusion <small>(Magic-User)</small>
+    * Create Water <small>(Cleric)</small>
+    * Cure/Inflict Serious Wounds <small>(Cleric)</small>
+    * Dimension Door <small>(Magic-User)</small>
+    * Growth of Plants <small>(Magic-User)</small>
+    * Hallucinatory Terrain <small>(Magic-User)</small>
+    * Massmorph <small>(Magic-User)</small>
+    * Neutralize Poison <small>(Cleric)</small>
+    * Polymorph Others <small>(Magic-User)</small>
+    * Polymorph Self <small>(Magic-User)</small>
+    * Protection from Evil 10' Radius <small>(Cleric)</small>
+    * Remove/Cause Curse <small>(Magic-User)</small>
+    * Speak with Plants <small>(Cleric)</small>
+    * Sticks to Snakes <small>(Cleric)</small>
+    * Wall of Fire <small>(Magic-User)</small>
+    * Wall of Ice <small>(Magic-User)</small>
+    * Wizard Eye <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>4th</sup> of {{Spell}}"
+}
+
+SpellScroll5thLevel {
+  Spell @ [
+    * Animate Dead <small>(Magic-User)</small>
+    * Cloudkill <small>(Magic-User)</small>
+    * Commune <small>(Cleric)</small>
+    * Conjure Elemental <small>(Magic-User)</small>
+    * Contact Higher Plane <small>(Magic-User)</small>
+    * Create Food <small>(Cleric)</small>
+    * Dispel Evil <small>(Cleric)</small>
+    * Feeblemind <small>(Magic-User)</small>
+    * Hold Monster <small>(Magic-User)</small>
+    * Insect Plague <small>(Cleric)</small>
+    * Magic Jar <small>(Magic-User)</small>
+    * Pass-Wall <small>(Magic-User)</small>
+    * Quest/Remove Quest <small>(Cleric)</small>
+    * Raise Dead/Finger of Death <small>(Cleric)</small>
+    * Telekinesis <small>(Magic-User)</small>
+    * Teleport <small>(Magic-User)</small>
+    * Transmute Rock to Mud/Mud to Rock <small>(Magic-User)</small>
+    * Wall of Stone <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>5th</sup> of {{Spell}}"
+}
+
+SpellScroll6thLevel {
+  Spell @ [
+    * Anti-Magic Shell <small>(Magic-User)</small>
+    * Control Weather <small>(Magic-User)</small>
+    * Death Spell <small>(Magic-User)</small>
+    * Disintegrate <small>(Magic-User)</small>
+    * Geas/Remove Geas <small>(Magic-User)</small>
+    * Invisible Stalker <small>(Magic-User)</small>
+    * Lower Water <small>(Magic-User)</small>
+    * Move Earth <small>(Magic-User)</small>
+    * Part Water <small>(Magic-User)</small>
+    * Projected Image <small>(Magic-User)</small>
+    * Reincarnation <small>(Magic-User)</small>
+    * Stone to Flesh/Flesh to Stone <small>(Magic-User)</small>
+  ]
+  Description! ~ "Scroll<sup>6th</sup> of {{Spell}}"
+}
+
+SentientSwordExtraLanguageGroupA {
+    Language! @ [
+      * Elvish
+      * Dragon
+    ]
+}
+
+SentientSwordExtraLanguageGroupB {
+    Language! @ [
+      * Dwarvish
+      * Gnoll
+    ]
+}
+
+SentientSwordExtraLanguageGroupC {
+    Language! @ [
+      * Gnomish
+      * Goblin
+    ]
+}
+
+SentientSwordExtraLanguageGroupD {
+    Language! @ [
+      * Pixie
+      * Human
+    ]
+}
+
+SentientSwordExtraLanguageGroupE {
+    Language! @ [
+      * Lizardman
+      * Hobgoblin
+      ]
+}
+
+SentientSwordLanguagePlus1 {
+   Extra1 @@ [
+     * SentientSwordExtraLanguageGroupA
+     * SentientSwordExtraLanguageGroupB
+     * SentientSwordExtraLanguageGroupC
+     * SentientSwordExtraLanguageGroupD
+     * SentientSwordExtraLanguageGroupE
+   ]
+   Text! ~  " and {{Extra1.Language}}"
+
+}
+
+SentientSwordLanguagePlus2 {
+   Extra1 @ SentientSwordExtraLanguageGroupA
+   Extra2 @ SentientSwordExtraLanguageGroupB
+   Text! ~ <%
+    , {{Extra1.Language}}, and {{Extra2.Language}}
+   %>
+}
+
+SentientSwordLanguagePlus3 {
+   Extra1 @ SentientSwordExtraLanguageGroupA
+   Extra2 @ SentientSwordExtraLanguageGroupB
+   Extra3 @ SentientSwordExtraLanguageGroupC
+   Text! ~ <%
+    , {{Extra1.Language}}, {{Extra2.Language}}, and {{Extra3.Language}}
+   %>
+}
+
+SentientSwordLanguagePlus4 {
+   Extra1 @ SentientSwordExtraLanguageGroupA
+   Extra2 @ SentientSwordExtraLanguageGroupB
+   Extra3 @ SentientSwordExtraLanguageGroupC
+   Extra4 @ SentientSwordExtraLanguageGroupD
+   Text! ~ <%, {{Extra1.Language}}, {{Extra2.Language}}, {{Extra3.Language}}, and {{Extra4.Language}}
+   %>
+}
+
+SentientSwordLanguagePlus5 {
+   Extra1 @ SentientSwordExtraLanguageGroupA
+   Extra2 @ SentientSwordExtraLanguageGroupB
+   Extra3 @ SentientSwordExtraLanguageGroupC
+   Extra4 @ SentientSwordExtraLanguageGroupD
+   Extra5 @ SentientSwordExtraLanguageGroupE
+   Text! ~ <%, {{Extra1.Language}}, {{Extra2.Language}}, {{Extra3.Language}}, {{Extra4.Language}}, and {{Extra5.Language}}
+   %>
+}
+
+SentientSwordLanguage {
+    ^ [
+      * SentientSwordLanguagePlus1
+      * SentientSwordLanguagePlus2
+      * SentientSwordLanguagePlus3
+      * SentientSwordLanguagePlus4
+      * SentientSwordLanguagePlus5
+    ]
+}
+
+SentientSwordInt7 {
+    Int! = 7
+    Reading! = incapable of reading
+    Purpose! = false
+    Communication! = can only communicate empathically
+    Powers! @ [
+      * Detect evil
+      * Detect magic
+      * Detect traps
+      * Locate secret door
+      * See invisible objects
+      * Detect shifting architecture
+      * Detect gems
+    ]
+     Extraordinary! = false
+}
+
+SentientSwordInt8 {
+    Int! = 8
+    Reading! = incapable of reading
+    Purpose! = false
+    Communication! = can only communicate empathically
+      Powers! @ [
+      * Detect evil and Detect gems
+      * Detect evil and Detect magic
+      * Detect slopes and Detect metals
+      * Locate secret doors and See invisible objects
+      * Locate secret doors and Detect traps
+    ]
+      Extraordinary! = false
+
+}
+
+SentientSwordInt9 {
+    Int! = 9
+    Reading! = incapable of reading
+    Purpose! = false
+    Communication! = can only communicate empathically
+      Powers! @ [
+      * Detect evil, Detect gems, and Detect metals
+      * Detect magic, Detect metals, and Detect slopes
+      * Locate secret doors, See invisible objects, and Detect evil
+      * Detect magic, Detect gems, and See invisible objects
+    ]
+      Extraordinary! = false
+}
+
+SentientSwordInt10 {
+    Int! = 10
+    Reading! = incapable of reading
+    Language! @ SentientSwordLanguage
+    Purpose! = false
+    Communication! = can communicate in speech
+     Powers! @ [
+      * Detect evil, Detect gems, and Detect metals
+      * Detect magic, Detect metals, and Detect slopes
+      * Locate secret doors, See invisible objects, and Detect evil
+      * Detect magic, Detect gems, and See invisible objects
+    ]
+      Extraordinary! = false
+}
+
+SentientSwordInt11 {
+    Int! = 11
+    Reading! = capable of reading
+    Language! @ SentientSwordLanguage
+    Purpose! = false
+    Communication! = can communicate in speech
+    Powers! @ [
+      * Detect evil, Detect gems, and Detect metals
+      * Detect magic, Detect metals, and Detect slopes
+      * Locate secret doors, See invisible objects, and Detect evil
+      * Detect magic, Detect gems, and See invisible objects
+    ]
+    Extraordinary! = false
+}
+
+SentientSwordInt12 {
+    Int! = 12
+    Reading! = capable of reading
+    Language! @ SentientSwordLanguage
+    Purpose! @ SentientSwordSpecialPurpose
+    Communication! = can communicate in speech
+    Powers! @ [
+      * Detect evil, Detect gems, and Detect metals
+      * Detect magic, Detect metals, and Detect slopes
+      * Locate secret doors, see invisible objects, and Detect evil
+      * Detect magic, Detect gems, and See invisible objects
+    ]
+    Extraordinary! @ [
+      *(x10) Imbued with <strong>Clairaudience</strong>, allowing it to hear through the ears of another creature.
+      *(x10) Imbued with <strong>Clairvoyance</strong>, allowing it to see through the eyes of another creature.
+      *(x10) Imbued with <strong>ESP</strong>, allowing it to read the thoughts of another creature.
+      *(x5)  Imbued with <strong>Extra damage</strong>, allowing the wielder to increase its strength for 1d10 rounds, quadrupling its damage.
+      *(x5)  Imbued with <strong>Healing</strong>, allowing the wielder to heal themselves for 6 hit points once per day.
+      *(x10) Imbued with <strong>Illusion</strong>, allowing the wielder to manifest an illusion of their choice.
+      *(x5)  Imbued with <strong>Levitation</strong>, allowing the wielder to choose to move up and down through the air for up to 3 turns.
+      *(x10) Imbued with <strong>Telekinesis</strong>, allowing the wielder to move objects or creatures within 120' by the power of thought.
+      *(x10) Imbued with <strong>Teleportation</strong>, allowing the wielder to use the teleport spell at will.
+      *(x10) Imbued with <strong>X-ray vision</strong>, allowing the wielder to see through solid objects.
+    ]
+}
+
+
+SentientSwordInt {
+   ^ [
+     * SentientSwordInt7
+     * SentientSwordInt8
+     * SentientSwordInt9
+     * SentientSwordInt10
+     * SentientSwordInt11
+     * SentientSwordInt12
+   ]
+}
+
+SentientSwordSpecialPurpose {
+  ^ [
+       *(x3) SentientSwordHasSpecialPurpose
+       *(x7) SentientSwordNoSpecialPurpose
+  ]
+}
+
+SentientSwordHasSpecialPurpose {
+    Ego! = 12
+    Text! ~ "The sword has a special purpose, Requiring the wielder to <strong>slay "
+    Roll! @ [
+        * lawful creatures</strong>.
+        * chaotic creatures</strong>.
+        * arcane spell casters</strong>.
+        * divine spell casters</strong>.
+        * warriors</strong>.
+        * monsters</strong>.
+    ]
+}
+
+SentientSwordNoSpecialPurpose {
+    Ego! @ 1d12
+    Roll! @ [
+    *
+    ]
+    Text! = ""
+}
+
+SentientSword {
+
+   Ego! @ 1d12
+
+   Alignment! @ [
+        *(x13) Lawful
+        *(x5) Neutral
+        *(x2) Chaotic
+    ]
+
+    Prefix! @ [
+        * Ale
+        * Mon
+        * Elli
+        * Dia
+        * Mur
+        * Bes
+        * Ara
+        * Sen
+        * Es
+        * Kor
+        * Rot
+      ]
+
+    Suffix! @ [
+        * gar
+        * tam
+        * sin
+        * mar
+        * mor
+        * fin
+        * quit
+        * den
+        * for
+      ]
+
+    Intelligence @ SentientSwordInt
+    Language @ SentientSwordLanguage
+
+    Description! ~ <%
+      a Sentient Sword named <strong>{{Prefix}}{{Suffix}}</strong>.
+      <hr/>
+      <strong>Alignment:</strong> {{Alignment}}
+      <strong>INT:</strong> {{Intelligence.Int}}
+      <strong>Ego:</strong> {% if Intelligence.Purpose %}{{Intelligence.Purpose.Ego}}{%else%}{{Ego}}{%endif%}
+      {{Intelligence.Reading}} and
+      {{Intelligence.Communication}}
+      <strong>Languages:</strong> {{Alignment}}{{Language.Text}}
+      <strong>Powers:</strong> {{Intelligence.Powers}}
+      {% if Intelligence.Extraordinary %} {{Intelligence.Extraordinary}} {% endif %}
+      {% if Intelligence.Purpose %}
+      {{Intelligence.Purpose.Text}}{{Intelligence.Purpose.Roll}}
+      {% endif %}
+      <hr/>
+    %>
+}

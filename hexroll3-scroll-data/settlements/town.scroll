@@ -109,6 +109,7 @@ Town(Settlement) {
 
 TownShops {
   ^ [
+    * Occult
     * Bakery
     * GeneralGoods
     * Bookstore

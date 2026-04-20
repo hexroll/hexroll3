@@ -116,7 +116,7 @@ TreasureQuest(Quest) {
 
   Location ? QuestTreasureHiding {
     QuestFolk = *QuestgiverName
-    QuestLink = &QuestgiverLink
+    QuestLink = *QuestgiverLink
     QuestTreasureContainer = &TreasureContainer
     QuestArtifact = *Artifact
     QuestSettlementName = &QuestSettlementName

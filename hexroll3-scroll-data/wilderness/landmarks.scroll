@@ -84,7 +84,7 @@ Encounter {
   %>
   EncounterProbability! ~ <%
     <p>
-    There’s a <strong>2-in-6</strong> chance of encountering
+    There’s a {{dice_roller("1d6","2-in-6")}} chance of encountering
     {%if Monster.NumberAppearingLair==1%}it{%if Monster.Activity and Monster.Activity%},  {{Monster.Activity.Wilderness}}{%endif%}.
     {%else%}at least some of them outside{%if Monster.Activity and Monster.Activity%},  {{Monster.Activity.Wilderness}}{%endif%}
     (the rest will be in their lair inside {{Lair}}).{%endif%}
@@ -103,7 +103,7 @@ Encounter {
     <hr/>
     {%if not Monster.TreasureType.Empty and (trim(Monster.TreasureType.Details))!=""%}
     <ul><li>
-    <strong>Lair</strong> hoard (<strong>1-in-6</strong> base chance of finding if an encounter occured):
+    <strong>Lair</strong> hoard ({{dice_roller("1d6","1-in-6")}} base chance of finding if an encounter occured):
     <ul>
     {{Monster.TreasureType.Details}}
     </ul>
@@ -173,7 +173,7 @@ Portal {
     The portal is a large slab of dark rock that has a seemingly hollow
     arch-shaped stone gate on top.  There’s a strange {{Glow}} glow surrounding
     it. Anyone or anything passing through the gate will get teleported into a
-    different hex (preselected by the referee), but there’s a 1-in-6 chance
+    different hex (preselected by the referee), but there’s a {{dice_roller("1d6","1-in-6")}} chance
     that the portal {{UndesiredEffect}}.%>
   HexRegion = :Hex.Region
   HexUUID = :Hex.uuid
@@ -340,14 +340,14 @@ Artifact(Feature) {
   Name! = Ancient Artifact
   Description! @ [
     * When exploring this area, a <strong>huge disc-shaped artifact</strong> made
-      of polished iron, with wierd geometrical engravings, can be found wedged
+      of polished iron, with weird geometrical engravings, can be found wedged
     * When exploring this area, a <strong>giant triangular artifact</strong> made
       of polished iron, with large pointy spears attached, can be found wedged
   ]
 
   Supplemental! ~ <%
     <p>
-    There's a <strong>1-in-6</strong> chance to find a secret a door leading
+    There's a {{dice_roller("1d6","1-in-6")}} chance to find a secret door leading
     inside the artifact and a successful <strong>INT</strong> check will allow
     using a contraption inside it.
     </p>
@@ -470,8 +470,8 @@ Graveyard (Feature){
   ]
 
   Supplemental! ~ <%
-    There'a a <strong>1-in-6</strong> chance that {{reroller(Monster, "", False)}}<strong>{{plural_with_count(Monster.NumberAppearingLair,Monster.Title)}}</strong> will
-    rise up from the graves if staying here overnight, or <strong>3-in-6</strong> chance if digging up the graves:
+    There's a {{dice_roller("1d6","1-in-6")}} chance that {{reroller(Monster, "", False)}}<strong>{{plural_with_count(Monster.NumberAppearingLair,Monster.Title)}}</strong> will
+    rise up from the graves if staying here overnight, or a {{dice_roller("1d6","3-in-6")}} chance if digging up the graves:
 
     <p>
     <strong>{{Monster.Title}}</strong> {{note_button(uuid)}}

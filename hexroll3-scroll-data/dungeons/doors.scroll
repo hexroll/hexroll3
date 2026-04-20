@@ -391,7 +391,7 @@ DungeonSecretDoorLever {
   }
 
   Details! ~ <%
-    <ul><li> {{reroller(Lever, "", False)}} {{begin_spoiler()}}The lever is in <a href="{{sandbox()}}/location/{{Lever.AreaUUID}}"><strong>area {{Lever.AreaNumber}}</strong></a>{{end_spoiler()}}</li> </ul>
+    {{reroller(Lever, "", False)}} {{begin_spoiler()}}The lever is in <a href="{{sandbox()}}/location/{{Lever.AreaUUID}}"><strong>area {{Lever.AreaNumber}}</strong></a>{{end_spoiler()}}
   %>
 
 }

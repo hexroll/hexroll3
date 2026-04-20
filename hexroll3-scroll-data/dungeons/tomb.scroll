@@ -61,6 +61,8 @@ TombFeatureTier4 {
     ]
 }
 
+DungeonMap {}
+
 Tomb(Dungeon) {
   Name! @ TombName
   HexLink! = :Hex.uuid
@@ -76,8 +78,7 @@ Tomb(Dungeon) {
   DungeonFeatureTier3 = TombFeatureTier3
   DungeonFeatureTier4 = TombFeatureTier4
 
-  # TODO: add a dungeon map
-  # map @ DungeonMap
+  map @ DungeonMap
 
   WanderingMonsters @ DungeonWanderingMonsters
 }

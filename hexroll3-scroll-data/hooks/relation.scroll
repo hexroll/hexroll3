@@ -24,8 +24,8 @@
 #
 
 Relation(Quest) {
-  Related % Character 
- 
+  Related % Character
+
   OwnerUUID = :Character.uuid
   OwnerName = :Character.Name
   OwnerGender = :Character.Gender
@@ -66,6 +66,8 @@ Relation(Quest) {
     {%endif%}
     <a href="{{sandbox()}}{{Related.URLExt}}">
     <strong>{{Related.Name.Full}}</strong></a>.
+    {%else%}
+    {{OwnerName.First}} {{OwnerGender.BeVerb}} thinking about how {{OwnerGender.PronounSubject}} should get to know more people.
     {%endif%}
     {%endif%}
   %>

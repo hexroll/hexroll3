@@ -120,7 +120,7 @@ DungeonContainers {
     {%if Trap.Description%}The {{Type.Name}}{% if Quantity=="single"%} is{%else%}s are{%endif%} trapped.
     {{Trap.Description}}
     </li><li>{%endif%}{%if (trim(Treasure.Details))==""%}The treasure here, if any, was <strong>already looted</strong>.
-    {%else%}There’s a 2-in-6 chance the {{Type.Name}}{%if Quantity=="single"%}s{%endif%} contain{%if Quantity=="single"%}s{%endif%}:
+    {%else%}There’s a {{dice_roller("1d6","2-in-6")}} chance the {{Type.Name}}{%if Quantity!="single"%}s{%endif%} contain{%if Quantity=="single"%}s{%endif%}:
     <ul>
     {{Treasure.Details}}
     </ul>

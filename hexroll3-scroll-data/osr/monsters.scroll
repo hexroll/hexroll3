@@ -22,6 +22,7 @@
 # license. Please contact ithai at pendicepaper.com
 # for more information about commercial licensing terms.
 #
+
 # This document contains Open Game Content, subject to the Open Game License,
 # released un the Open Game License, Version 1.0a (enclosed in the LICENSE
 # file), as described in Section 1(d) of the License.
@@ -51,6 +52,89 @@ OsrMonster (Monster) {
   %>
   | Monster
 }
+
+MonsterEvilBoss (OsrMonster) {
+  BossName! @ EvilBossName
+  DungeonName! = :Dungeon.Name
+  DungeonUUID! = :Dungeon.uuid
+  AreaUUID! = :AreaDescription.uuid
+  | OsrMonster
+}
+
+EvilBossName {
+  Prefix @ [
+    * Ba
+    * Be
+    * Za
+    * Ze
+    * Ka
+    * Ke
+    * Go
+    * Ga
+    * Ge
+  ]
+
+  Infix @ [
+    * zu
+    * za
+    * la
+    * ku
+    * ke
+  ]
+
+  Suffix @ [
+    * zar
+    * dor
+    * ris
+    * ath
+    * kor
+    * far
+    * ith
+  ]
+
+  Full! @ [
+    * {{Prefix}}'{{Infix}}{{Suffix}}
+    * {{Prefix}}{{Infix}}{{Suffix}}
+  ]
+
+}
+
+OsrMonsterEvilDragonBoss (MonsterEvilBoss) {
+  BackgroundStory! @ [
+    * Tormented by the violent death of a beloved
+    * Filled with raging wrath for an eternal rival
+    * Greedy beyond the grasp of mortal satisfaction
+    * Vengeful and bitter for a long-forgotten betrayal
+    * Consumed by an everlasting hunger for gold
+    * Bound to a cursed artifact, thirsting for release
+    * Searching for a pure soul to pay for its dark sins
+    * Searching for a way to unbind from its even more sinister master
+  ]
+  | MonsterEvilBoss
+}
+
+OsrMonsterEvilUndeadBoss (MonsterEvilBoss) {
+  BackgroundStory! @ [
+    * Tormented by the violent death of a beloved
+    * Filled with raging wrath for an eternal rival
+    * Greedy beyond the grasp of mortal satisfaction
+    * Vengeful and bitter for a long-forgotten betrayal
+    * Consumed by an everlasting hunger for forbidden knowledge
+    * Eternally cursed to roam the depths of darkness
+    * Hunting innocent mortal souls for ancient evil rituals
+    * Obsessed with reclaiming a long forgotten throne
+    * Relentlessly pursuing boundless immortal power
+    * Haunted by the echoes of its own dark secrets
+    * Feeding on mortal fear and pain
+    * Searching for helpless souls to feed its evil desires
+    * Yearning for reunion with its long-lost spirits of despair
+    * Bound to a cursed artifact, thirsting for release
+    * Searching for a pure soul to pay for its dark sins
+    * Searching for a way to unbind from its even more sinister master
+  ]
+  | MonsterEvilBoss
+}
+
 Acolyte (OsrMonster) {
   Title! ~ "Acolyte"
   Intelligent! = True
@@ -59,8 +143,8 @@ Acolyte (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × mace (1d6)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6","mace (1d6)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D11 W12 P14 B16 S15 (C1)"
   Morale! = "7"
@@ -88,12 +172,13 @@ ApeWhite (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × claw(1d4) or 1 × thrown rock (1d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw(1d4)")}} or 1 × {{dice_roller("1d6","thrown rock (1d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14B15 S16 (2)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "grunting noise"
   XP! = "75"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d4
@@ -113,8 +198,8 @@ Bandit (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D13 W14 P13 B16 S15 (T1)"
   Morale! = "8"
@@ -138,12 +223,13 @@ Basilisk (OsrMonster) {
   ExHitDice! = 6+1
   HitDiceRoll! = "6d8+1"
   HitDice! = 6
-  Attacks! ~ "Att 1 × bite (1d10 + petrification), 1 × gaze (petrification)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <Att 1 × {{dice_roller("1d10 + ","bite (1d10 + petrification)")}}, 1 × gaze (petrification)>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "950"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d6
@@ -163,12 +249,13 @@ GiantBat (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite(1d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d4","bite(1d4)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "30’ (10’) /180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P14 B15S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "screeching sound"
   XP! = "20"
   NumberAppearingRoaming! @ 1d10
   NumberAppearingLair! @ 1d10
@@ -188,12 +275,13 @@ GiantVampireBat (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d4 + unconsciousness)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d4 + ","bite (1d4 + unconsciousness)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "30’ (10’) / 180’ (60’) flying"
   SavingThrows! ~ "D12W13 P14 B15 S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "screeching sound"
   XP! = "20"
   NumberAppearingRoaming! @ 1d10
   NumberAppearingLair! @ 1d10
@@ -213,12 +301,13 @@ NormalBat (OsrMonster) {
   ExHitDice! = 1hp
   HitDiceRoll! = "1d1"
   HitDice! = 1
-  Attacks! ~ "1 × swarm (confusion)"
-  THAC0! ~ "20 [–1]"
+  Attacks! ~ <1 × swarm (confusion)>
+  THAC0! ~ <20 {{dice_roller("1d20-1","[-1]")}}>
   Movement! ~ "9’ (3’) / 120’ (40’) flying"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "screeching sound"
   XP! = "5"
   NumberAppearingRoaming! @ 1d100
   NumberAppearingLair! @ 1d100
@@ -238,8 +327,8 @@ BlackBear (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × claw(1d3), 1 × bite(1d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw(1d3)")}}, 1 × {{dice_roller("1d6","bite(1d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16(2)"
   Morale! = "7"
@@ -263,8 +352,8 @@ DarkHag (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "2 × talon(1d8 + 3), 1 × bite(1d8 + 3)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("1d8 + 3","talon(1d8 + 3)")}}, 1 × {{dice_roller("1d8 + 3","bite(1d8 + 3)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12(8)"
   Morale! = "10"
@@ -288,8 +377,8 @@ CaveBear (OsrMonster) {
   ExHitDice! = 7
   HitDiceRoll! = "7d8"
   HitDice! = 7
-  Attacks! ~ "2 × claw(1d8), 1 × bite(2d6)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <2 × {{dice_roller("1d8","claw(1d8)")}}, 1 × {{dice_roller("2d6","bite(2d6)")}}>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16(3)"
   Morale! = "9"
@@ -313,8 +402,8 @@ GrizzlyBear (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "2 × claw(1d4), 1 × bite(1d8)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw(1d4)")}}, 1 × {{dice_roller("1d8","bite(1d8)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15S16 (2)"
   Morale! = "8"
@@ -337,8 +426,8 @@ PolarBear (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × claw(1d6), 1 × bite(1d10)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("1d6","claw(1d6)")}}, 1 × {{dice_roller("1d10","bite(1d10)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15S16 (3)"
   Morale! = "8"
@@ -361,12 +450,13 @@ FireBeetle (OsrMonster) {
   ExHitDice! = 1+2
   HitDiceRoll! = "1d8+2"
   HitDice! = 1
-  Attacks! ~ "1 × bite(2d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("2d4","bite(2d4)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of wings"
   XP! = "15"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 2d6
@@ -386,12 +476,13 @@ OilBeetle (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d6)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14B15 S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of wings"
   XP! = "25"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 2d6
@@ -411,12 +502,13 @@ TigerBeetle (OsrMonster) {
   ExHitDice! = 3+1
   HitDiceRoll! = "3d8+1"
   HitDice! = 3
-  Attacks! ~ "1 × bite (2d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of wings"
   XP! = "50"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d4
@@ -436,8 +528,8 @@ Berserker (OsrMonster) {
   ExHitDice! = 1+1
   HitDiceRoll! = "1d8+1"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
@@ -461,12 +553,13 @@ BlackPudding (OsrMonster) {
   ExHitDice! = 10
   HitDiceRoll! = "10d8"
   HitDice! = 10
-  Attacks! ~ "1 × touch (3d8)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("3d8","touch (3d8)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "slimy squelching noise"
   XP! = "1,600"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -485,8 +578,8 @@ BlinkDog (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (1d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "6"
@@ -510,12 +603,13 @@ Boar (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × tusk(2d4)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("2d4","tusk(2d4)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "grunting snort"
   XP! = "35"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d6
@@ -535,8 +629,8 @@ Brigand (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
@@ -559,8 +653,8 @@ Buccaneer (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 ×weapon (1d6 or by weapon)"
-  THAC0! ~ "19[0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19{{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15S16 (1)"
   Morale! = "6"
@@ -583,12 +677,13 @@ Bugbear (OsrMonster) {
   ExHitDice! = 3+1
   HitDiceRoll! = "3d8+1"
   HitDice! = 3
-  Attacks! ~ "1 × weapon (2d4 or by weapon +1)"
-  THAC0! ~ "16[+3]"
+  Attacks! ~ <1 × {{dice_roller("2d4 ","weapon (2d4 or by weapon +1)")}}>
+  THAC0! ~ <16{{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15S16 (3)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "low snarl"
   XP! = "50"
   NumberAppearingRoaming! @ 2d4
   NumberAppearingLair! @ 5d4
@@ -608,8 +703,8 @@ Caecilia (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "9"
@@ -633,12 +728,13 @@ Camel (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1), 1 × hoof (1d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × bite (1), 1 × {{dice_roller("1d4","hoof (1d4)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "150’(50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "chewing sound"
   XP! = "20"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d4
@@ -658,12 +754,13 @@ CarcassCrawler (OsrMonster) {
   ExHitDice! = 3+1
   HitDiceRoll! = "3d8+1"
   HitDice! = 3
-  Attacks! ~ "8 × tentacle (paralysis)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <8 × tentacle (paralysis)>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "75"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -687,12 +784,13 @@ Lion (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "2 × claw (1d4+1), 1 × bite (1d10)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <2 × {{dice_roller("1d4+1","claw (1d4+1)")}}, 1 × {{dice_roller("1d10","bite (1d10)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16(3)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "roar"
   XP! = "175"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d8
@@ -712,12 +810,13 @@ MountainLion (OsrMonster) {
   ExHitDice! = 3+2
   HitDiceRoll! = "3d8+2"
   HitDice! = 3
-  Attacks! ~ "2 × claw (1d3), 1 × bite (1d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw (1d3)")}}, 1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "roar"
   XP! = "50"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -737,12 +836,13 @@ Panther (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × claw (1d4), 1 × bite (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "210’ (70’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft growl"
   XP! = "75"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d6
@@ -762,12 +862,13 @@ SabreToothedTiger (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "2 × claw (1d8), 1 × bite (2d8)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × {{dice_roller("2d8","bite (2d8)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep growl"
   XP! = "650"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -787,12 +888,13 @@ Tiger (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × claw (1d6), 1 × bite (2d6)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("1d6","claw (1d6)")}}, 1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep growl"
   XP! = "275"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! @ 1d3
@@ -811,12 +913,13 @@ CaveLocust (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d2) or 1 × jump (1d4) or 1 × spit (stench)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d2","bite (1d2)")}} or 1 × {{dice_roller("1d4","jump (1d4)")}} or 1 × spit (stench)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "60’ (20’) / 180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "5"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of wings"
   XP! = "20"
   NumberAppearingRoaming! @ 2d10
   NumberAppearingLair! @ 1d10
@@ -836,12 +939,13 @@ Centaur (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × hoof (1d6), 1 × weapon (1d6 or by weapon),"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d6","hoof (1d6)")}}, 1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}},>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep neighing"
   XP! = "75"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d10
@@ -860,12 +964,13 @@ CentipedeGiant (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × bite (poison)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × bite (poison)>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "clicking of legs"
   XP! = "6"
   NumberAppearingRoaming! @ 2d4
   NumberAppearingLair! @ 1d8
@@ -885,12 +990,13 @@ Chimera (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "2 × claw (1d3), goat = 1 × gore (2d4), lion = 1 × bite (2d4), dragon = 1 × bite (3d4) or 1 × breath (3d6)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw (1d3)")}}, goat = 1 × {{dice_roller("2d4","gore (2d4)")}}, lion = 1 × {{dice_roller("2d4","bite (2d4)")}}, dragon = 1 × {{dice_roller("3d4","bite (3d4)")}} or 1 × {{dice_roller("3d6","breath (3d6)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’) / 180’ (60’) flying"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (9)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep roar"
   XP! = "2,300"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -910,12 +1016,13 @@ Cockatrice (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × beak (1d6 + petrification)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","beak (1d6 + petrification)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "90’ (30’) / 180’ (60’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "sharp screech"
   XP! = "425"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d8
@@ -935,12 +1042,13 @@ CrabGiant (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "2 × pincer (2d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("2d6","pincer (2d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft clicking noise"
   XP! = "35"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d6
@@ -960,8 +1068,8 @@ GiantCrocodile (OsrMonster) {
   ExHitDice! = 15
   HitDiceRoll! = "15d8"
   HitDice! = 15
-  Attacks! ~ "1 × bite (3d8)"
-  THAC0! ~ "9 [+10]"
+  Attacks! ~ <1 × {{dice_roller("3d8","bite (3d8)")}}>
+  THAC0! ~ <9 {{dice_roller("1d20+10","[+10]")}}>
   Movement! ~ "90’ (30’) / 90’ (30’) swimming"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "9"
@@ -984,8 +1092,8 @@ LargeCrocodile (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × bite (2d8)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("2d8","bite (2d8)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "90’ (30’) / 90’ (30’) swimming"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
@@ -1008,8 +1116,8 @@ NormalCrocodile (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’) / 90’ (30’) swimming"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
@@ -1032,8 +1140,8 @@ Cyclops (OsrMonster) {
   ExHitDice! = 13
   HitDiceRoll! = "13d8"
   HitDice! = 13
-  Attacks! ~ "1 × club (3d10) or 1 × rock (3d6)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <1 × {{dice_roller("3d10","club (3d10)")}} or 1 × {{dice_roller("3d6","rock (3d6)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (13)"
   Morale! = "9"
@@ -1056,8 +1164,8 @@ Dervish (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "10"
@@ -1080,12 +1188,13 @@ DjinniLesser (OsrMonster) {
   ExHitDice! = 7+1
   HitDiceRoll! = "7d8+1"
   HitDice! = 7
-  Attacks! ~ "1 × fists (2d8), magic"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d8","fists (2d8)")}}, magic>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (14)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "whirl of wind"
   XP! = "850"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1104,8 +1213,8 @@ Doppelganger (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (1d12)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d12","bite (1d12)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
   Morale! = "10"
@@ -1129,8 +1238,8 @@ BlackDragon (OsrMonster) {
   ExHitDice! = 7
   HitDiceRoll! = "7d8"
   HitDice! = 7
-  Attacks! ~ "[2 × claw (1d4 + 1), 1 × bite (2d10)] or breath"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <[2 × {{dice_roller("1d4 + 1","claw (1d4 + 1)")}}, 1 × {{dice_roller("2d10","bite (2d10)")}}] or breath>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (7)"
   Morale! = "8"
@@ -1153,8 +1262,8 @@ BlueDragon (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "[2 × claw (1d6 + 1), 1 × bite (3d10)] or breath"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <[2 × {{dice_roller("1d6 + 1","claw (1d6 + 1)")}}, 1 × {{dice_roller("3d10","bite (3d10)")}}] or breath>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (9)"
   Morale! = "9"
@@ -1177,8 +1286,8 @@ GoldDragon (OsrMonster) {
   ExHitDice! = 11
   HitDiceRoll! = "11d8"
   HitDice! = 11
-  Attacks! ~ "[2 × claw (2d4), 1 × bite (6d6)] or breath"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <[2 × {{dice_roller("2d4","claw (2d4)")}}, 1 × {{dice_roller("6d6","bite (6d6)")}}] or breath>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (11)"
   Morale! = "10"
@@ -1201,8 +1310,8 @@ GreenDragon (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "[2 × claw (1d6), 1 × bite (3d8)] or breath"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <[2 × {{dice_roller("1d6","claw (1d6)")}}, 1 × {{dice_roller("3d8","bite (3d8)")}}] or breath>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "9"
@@ -1226,8 +1335,8 @@ RedDragon (OsrMonster) {
   ExHitDice! = 10
   HitDiceRoll! = "10d8"
   HitDice! = 10
-  Attacks! ~ "[2 × claw (1d8), 1 × bite (4d8)] or breath"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <[2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × {{dice_roller("4d8","bite (4d8)")}}] or breath>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
   Morale! = "10"
@@ -1235,11 +1344,59 @@ RedDragon (OsrMonster) {
   XP! = "2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! @ 1d4
+  TreasureType! @ TreasureTypeX {
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+    }
+  | OsrMonsterEvilDragonBoss
+}
+
+BlackDragonAsBoss (OsrMonsterEvilDragonBoss) {
+  Title! ~ "Black Dragon"
+  Intelligent! = True
+  ArmourClass! ~ "1 [18]"
+  HitDiceText ~ "8 (36hp)"
+  ExHitDice! = 8
+  HitDiceRoll! = "8d8"
+  HitDice! = 8
+  Attacks! ~ <[2 × {{dice_roller("1d4 + 2","claw (1d4 + 2)")}}, 1 × {{dice_roller("2d10","bite (2d10)")}}] or breath>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
+  Movement! ~ "90’ (30’) / 240’ (80’) flying"
+  SavingThrows! ~ "D8 W9 P10 B10 S12 (7)"
+  Morale! = "9"
+  Alignment! ~ "Chaotic"
+  XP! = "2,150"
+  NumberAppearingRoaming! = 1
+  NumberAppearingLair! = 0
   TreasureType! @ TreasureTypeH {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
     }
-  | OsrMonster
+  | OsrMonsterEvilDragonBoss
+}
+
+RedDragonAsBoss (OsrMonsterEvilDragonBoss) {
+  Title! ~ "Red Dragon"
+  Intelligent! = True
+  ArmourClass! ~ "–1 [20]"
+  HitDiceText ~ "10** (45hp)"
+  ExHitDice! = 10
+  HitDiceRoll! = "10d8"
+  HitDice! = 10
+  Attacks! ~ <[2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × {{dice_roller("4d8","bite (4d8)")}}] or breath>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
+  Movement! ~ "90’ (30’) / 240’ (80’) flying"
+  SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
+  Morale! = "10"
+  Alignment! ~ "Chaotic"
+  XP! = "2,900"
+  NumberAppearingRoaming! = 1
+  NumberAppearingLair! @ 1d4
+  TreasureType! @ TreasureTypeX {
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+    }
+  | OsrMonsterEvilDragonBoss
 }
 
 SeaDragon (OsrMonster) {
@@ -1250,8 +1407,8 @@ SeaDragon (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × bite (3d8) or breath"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("3d8","bite (3d8)")}} or breath>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "180’ (60’) swimming / 180’ (60’) gliding"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "9"
@@ -1274,8 +1431,8 @@ WhiteDragon (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "[2 × claw (1d4), 1 × bite (2d8)] or breath"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <[2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("2d8","bite (2d8)")}}] or breath>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "8"
@@ -1299,8 +1456,8 @@ DragonTurtle (OsrMonster) {
   ExHitDice! = 30
   HitDiceRoll! = "30d8"
   HitDice! = 30
-  Attacks! ~ "2 × claw (1d8), 1 × bite (1d6 × 10) or breath"
-  THAC0! ~ "5 [+14]"
+  Attacks! ~ <2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × bite (1d6 × 10) or breath>
+  THAC0! ~ <5 {{dice_roller("1d20+14","[+14]")}}>
   Movement! ~ "30’ (10’) / 90’ (30’) swimming"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (15)"
   Morale! = "10"
@@ -1323,12 +1480,13 @@ DriverAnt (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (2d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7 (12 in melee)"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "125"
   NumberAppearingRoaming! @ 2d4
   NumberAppearingLair! @ 4d6
@@ -1352,8 +1510,8 @@ Dryad (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × magic (charm)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × magic (charm)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "6"
@@ -1376,8 +1534,8 @@ DwarfMonster (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D8 W9 P10 B13 S12 (D1)"
   Morale! = "8 (10 with leader)"
@@ -1401,12 +1559,13 @@ EfreetiLesser (OsrMonster) {
   ExHitDice! = 10
   HitDiceRoll! = "10d8"
   HitDice! = 10
-  Attacks! ~ "1 × fists (2d8), magic"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("2d8","fists (2d8)")}}, magic>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (15)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "fiery crackle"
   XP! = "1,600"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1425,12 +1584,13 @@ AirElemental (OsrMonster) {
   ExHitDice! = "8/12/16"
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × blow (1d8/2d8/3d8)"
-  THAC0! ~ "12 [+7] / 10 [+9] / 8 [+11]"
+  Attacks! ~ <1 × blow ({{dice_roller("1d8","1d8")}}/{{dice_roller("2d8","2d8")}}/{{dice_roller("3d8","3d8")}})>
+  THAC0! ~ <12 [+7] / 10 [+9] / 8 {{dice_roller("1d20+11","[+11]")}}>
   Movement! ~ "360’ (120’) flying"
   SavingThrows! ~ "See main entry (8/12/16)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "whirling gust"
   XP! = "1,200/1,900/2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1449,12 +1609,13 @@ EarthElemental (OsrMonster) {
   ExHitDice! = "8/12/16"
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × blow (1d8/2d8/3d8)"
-  THAC0! ~ "12 [+7] / 10 [+9] / 8 [+11]"
+  Attacks! ~ <1 × blow ({{dice_roller("1d8","1d8")}}/{{dice_roller("2d8","2d8")}}/{{dice_roller("3d8","3d8")}})>
+  THAC0! ~ <12 [+7] / 10 [+9] / 8 {{dice_roller("1d20+11","[+11]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "See main entry (8/12/16)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "cracking of stones"
   XP! = "1,200/1,900/2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1473,12 +1634,13 @@ FireElemental (OsrMonster) {
   ExHitDice! = "8/12/16"
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × blow (1d8/2d8/3d8)"
-  THAC0! ~ "12 [+7] / 10 [+9] / 8 [+11]"
+  Attacks! ~ <1 × blow ({{dice_roller("1d8","1d8")}}/{{dice_roller("2d8","2d8")}}/{{dice_roller("3d8","3d8")}})>
+  THAC0! ~ <12 [+7] / 10 [+9] / 8 {{dice_roller("1d20+11","[+11]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "See main entry (8/12/16)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "fiery crackle"
   XP! = "1,200/1,900/2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1497,12 +1659,13 @@ WaterElemental (OsrMonster) {
   ExHitDice! = 8/12/16
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × blow (1d8/2d8/3d8)"
-  THAC0! ~ "12 [+7] / 10 [+9] / 8 [+11]"
+  Attacks! ~ <1 × blow ({{dice_roller("1d8","1d8")}}/{{dice_roller("2d8","2d8")}}/{{dice_roller("3d8","3d8")}})>
+  THAC0! ~ <12 [+7] / 10 [+9] / 8 {{dice_roller("1d20+11","[+11]")}}>
   Movement! ~ "60’ (20’) / 180’ (60’) swimming"
   SavingThrows! ~ "See main entry (8/12/16)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "rushing surge of water"
   XP! = "1,200/1,900/2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -1521,12 +1684,13 @@ Elephant (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "2 × tusk (2d4) or 1 × trample (4d8)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("2d4","tusk (2d4)")}} or 1 × {{dice_roller("4d8","trample (4d8)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "trumpeting call"
   XP! = "900"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d20
@@ -1545,8 +1709,8 @@ ElfMonster (OsrMonster) {
   ExHitDice! = 1+1
   HitDiceRoll! = "1d8+1"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P13 B15 S15 (E1)"
   Morale! = "8 (10 with leader)"
@@ -1570,12 +1734,13 @@ FerretGiant (OsrMonster) {
   ExHitDice! = 1+1
   HitDiceRoll! = "1d8+1"
   HitDice! = 1
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "squeak"
   XP! = "15"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 1d12
@@ -1595,12 +1760,13 @@ FlailSnail (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "4 to 6 × club tentacle (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <4 to 6 × {{dice_roller("1d8","club tentacle (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "30’ (10’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "10 (7)"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "125"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -1620,12 +1786,13 @@ GelatinousCube (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × touch (2d4 + paralysis)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d4 + ","touch (2d4 + paralysis)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "125"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -1645,8 +1812,8 @@ GiantBass (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d6)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
@@ -1669,8 +1836,8 @@ GiantCatfish (OsrMonster) {
   ExHitDice! = 8+3
   HitDiceRoll! = "8d8+3"
   HitDice! = 8
-  Attacks! ~ "Att 1 × bite (2d8), 4 × feeler (1d4)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <Att 1 × {{dice_roller("2d8","bite (2d8)")}}, 4 × {{dice_roller("1d4","feeler (1d4)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "8"
@@ -1693,8 +1860,8 @@ GiantPiranha (OsrMonster) {
   ExHitDice! = 3+3
   HitDiceRoll! = "3d8+3"
   HitDice! = 3
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
@@ -1717,8 +1884,8 @@ GiantRockfish (OsrMonster) {
   ExHitDice! = 5+5
   HitDiceRoll! = "5d8+5"
   HitDice! = 5
-  Attacks! ~ "4 × spine (1d4 + poison)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <4 × {{dice_roller("1d4 + ","spine (1d4 + poison)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
@@ -1741,8 +1908,8 @@ GiantSturgeon (OsrMonster) {
   ExHitDice! = 10+2
   HitDiceRoll! = "10d8+2"
   HitDice! = 10
-  Attacks! ~ "1 × bite (2d10)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("2d10","bite (2d10)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "9"
@@ -1764,8 +1931,8 @@ Gargoyle (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × claw (1d3), 1 × bite (1d6), 1 × horn (1d4)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw (1d3)")}}, 1 × {{dice_roller("1d6","bite (1d6)")}}, 1 × {{dice_roller("1d4","horn (1d4)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "90’ (30’) / 150’ (50’) flying"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "11"
@@ -1789,12 +1956,13 @@ GelatinousCube (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × touch (2d4 + paralysis)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d4 + ","touch (2d4 + paralysis)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "125"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -1813,12 +1981,13 @@ Ghoul (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "2 × claw (1d3 + paralysis), 1 × bite (1d3 + paralysis)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw (1d3 + paralysis)")}}, 1 × {{dice_roller("1d3","bite (1d3 + paralysis)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "guttural growl"
   XP! = "25"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d8
@@ -1838,12 +2007,13 @@ CloudGiant (OsrMonster) {
   ExHitDice! = 12+3
   HitDiceRoll! = "12d8+3"
   HitDice! = 12
-  Attacks! ~ "1 × weapon (6d6) or 1 × boulder (3d6)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <1 × {{dice_roller("6d6","weapon (6d6)")}} or 1 × {{dice_roller("3d6","boulder (3d6)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (12)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "booming laughter"
   XP! = "1,100"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d3
@@ -1863,12 +2033,13 @@ FireGiant (OsrMonster) {
   ExHitDice! = 11+2
   HitDiceRoll! = "11d8+2"
   HitDice! = 11
-  Attacks! ~ "1 × weapon (5d6) or 1 × boulder (3d6)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <1 × {{dice_roller("5d6","weapon (5d6)")}} or 1 × {{dice_roller("3d6","boulder (3d6)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (11)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "booming laughter"
   XP! = "1,100"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d3
@@ -1888,12 +2059,13 @@ FrostGiant (OsrMonster) {
   ExHitDice! = 10+1
   HitDiceRoll! = "10d8+1"
   HitDice! = 10
-  Attacks! ~ "1 × weapon (4d6) or 1 × boulder (3d6)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("4d6","weapon (4d6)")}} or 1 × {{dice_roller("3d6","boulder (3d6)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "booming laughter"
   XP! = "900"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -1913,12 +2085,13 @@ HillGiant (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × weapon (2d8)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d8","weapon (2d8)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "booming laughter"
   XP! = "650"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 2d4
@@ -1938,12 +2111,13 @@ StoneGiant (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "1 × weapon (3d6) or 1 × boulder (3d6)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("3d6","weapon (3d6)")}} or 1 × {{dice_roller("3d6","boulder (3d6)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (9)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "booming laughter"
   XP! = "900"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d6
@@ -1963,12 +2137,13 @@ StormGiant (OsrMonster) {
   ExHitDice! = 15
   HitDiceRoll! = "15d8"
   HitDice! = 15
-  Attacks! ~ "1 × weapon (8d6), 1 × lightning bolt"
-  THAC0! ~ "9 [+10]"
+  Attacks! ~ <1 × {{dice_roller("8d6","weapon (8d6)")}}, 1 × lightning bolt>
+  THAC0! ~ <9 {{dice_roller("1d20+10","[+10]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (15)"
   Morale! = "10"
   Alignment! ~ "Lawful"
+  Sound! ~ "booming laughter"
   XP! = "1,350"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! @ 1d3
@@ -1987,12 +2162,13 @@ GibberingMouther (OsrMonster) {
   ExHitDice! = 4+3
   HitDiceRoll! = "4d8+3"
   HitDice! = 4
-  Attacks! ~ "6 × bite (1hp + attach + slip)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <6 × bite (1hp + attach + slip)>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "30’ (10’)"
   SavingThrows! ~ "D12 W13 P13 B15 S15 (2)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "gurgling noise"
   XP! = "350"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -2012,12 +2188,13 @@ Gnoll (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × weapon (2d4 or by weapon + 1)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("2d4 ","weapon (2d4 or by weapon + 1)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "harsh snarl"
   XP! = "20 (leader = 35)"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 3d6
@@ -2041,8 +2218,8 @@ Gnome (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D8 W9 P10 B13 S12 (D1)"
   Morale! = "8 (10 in sight of leader or chieftain)"
@@ -2066,8 +2243,8 @@ Goblin (OsrMonster) {
   ExHitDice! = 1–1
   HitDiceRoll! = "1d8-1"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "7 (9 with king)"
@@ -2095,12 +2272,13 @@ AmberGolem (OsrMonster) {
   ExHitDice! = 10
   HitDiceRoll! = "10d8"
   HitDice! = 10
-  Attacks! ~ "2 × claw (2d6), 1 × bite (2d10)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <2 × {{dice_roller("2d6","claw (2d6)")}}, 1 × {{dice_roller("2d10","bite (2d10)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "grinding of gems"
   XP! = "2,300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -2119,13 +2297,39 @@ BoneGolem (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "2 or 4 × weapon (1d6 or by weapon)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 or 4 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "rattling of bones"
   XP! = "650"
+  NumberAppearingRoaming! = 1
+  NumberAppearingLair! = 1
+  TreasureType! @ TreasureTypeNone {
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+  }
+  | OsrMonster
+}
+
+FleshGolem (OsrMonster) {
+  Title! ~ "Flesh Golem"
+  Intelligent! = False
+  ArmourClass! ~ "8 [11]"
+  HitDiceText ~ "9 (40hp)"
+  ExHitDice! = 9
+  HitDiceRoll! = "9d8"
+  HitDice! = 9
+  Attacks! ~ <2 × {{dice_roller("2d8 ","fist (2d8)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
+  Movement! ~ "90’ (30’)"
+  SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
+  Morale! = "12"
+  Alignment! ~ "Neutral"
+  Sound! ~ "wet squelching noise"
+  XP! = "900"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
   TreasureType! @ TreasureTypeNone {
@@ -2143,12 +2347,13 @@ BronzeGolem (OsrMonster) {
   ExHitDice! = 20
   HitDiceRoll! = "20d8"
   HitDice! = 20
-  Attacks! ~ "1 × fist (3d10 + 1d10 heat)"
-  THAC0! ~ "6 [+13]"
+  Attacks! ~ <1 × {{dice_roller("3d10 + 1","fist (3d10 + 1d10 heat)")}}>
+  THAC0! ~ <6 {{dice_roller("1d20+13","[+13]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "grinding of metal"
   XP! = "4"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -2167,12 +2372,13 @@ WoodGolem (OsrMonster) {
   ExHitDice! = 2+2
   HitDiceRoll! = "2d8+2"
   HitDice! = 2
-  Attacks! ~ "1 × fist (1d8)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d8","fist (1d8)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "creaking of wood"
   XP! = "25"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -2191,12 +2397,13 @@ Gorgon (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × gore (2d6) or 1 × breath (petrify)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d6","gore (2d6)")}} or 1 × breath (petrify)>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "clanging of metal"
   XP! = "1,200"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -2216,12 +2423,13 @@ GreenSlime (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × touch (consume flesh)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × touch (consume flesh)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "3’ (1’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "25"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -2240,12 +2448,13 @@ GreyOoze (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × touch (2d8)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("2d8","touch (2d8)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "10’ (3’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "50"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 1
@@ -2264,12 +2473,13 @@ Griffon (OsrMonster) {
   ExHitDice! = 7
   HitDiceRoll! = "7d8"
   HitDice! = 7
-  Attacks! ~ "2 × claw (1d4), 1 × bite (2d8)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("2d8","bite (2d8)")}}>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "120’ (40’) / 360’ (120’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "450"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d8
@@ -2288,8 +2498,8 @@ HalflingMonster (OsrMonster) {
   ExHitDice! = 1–1
   HitDiceRoll! = "1d8-1"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D8 W9 P10 B13 S12 (H1)"
   Morale! = "7"
@@ -2313,12 +2523,13 @@ Harpy (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "2 × claw (1d4), 1 × weapon (1d6 or by weapon), 1 × song (charm)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}, 1 × song (charm)>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "60’ (20’) / 150’ (50’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
   Alignment! ~ "Chaotic"
+  Sound! ~ "haunting song"
   XP! = "50"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d4
@@ -2338,12 +2549,13 @@ GiantHawk (OsrMonster) {
   ExHitDice! = 3+3
   HitDiceRoll! = "3d8+3"
   HitDice! = 3
-  Attacks! ~ "1 × talons or beak (1d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6","talons or beak (1d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "450’ (150’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "50"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d3
@@ -2362,12 +2574,13 @@ NormalHawk (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × talons or beak (1d2)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d2","talons or beak (1d2)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "480’ (160’) flying"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "screech"
   XP! = "5"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d6
@@ -2386,12 +2599,13 @@ Hellhound (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × bite (1d6) or 1 × breath (1d6 per HD)"
-  THAC0! ~ "By HD (17 [+2] to 13 [+6])"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}} or 1 × {{dice_roller("1d6 ","breath (1d6 per HD)")}}>
+  THAC0! ~ <By HD (17 [+2] to 13 [+6])>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "By HD"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "sharp snarl"
   XP! = "50/125/300/500/850"
   NumberAppearingRoaming! @ 2d4
   NumberAppearingLair! @ 2d4
@@ -2411,8 +2625,8 @@ LargeHerdAnimal (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × butt (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d8","butt (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "5"
@@ -2435,8 +2649,8 @@ MediumHerdAnimal (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × butt (1d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d6","butt (1d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "5"
@@ -2459,8 +2673,8 @@ SmallHerdAnimal (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × butt (1d4)"
-  THAC0! ~ "19 [0]/18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d4","butt (1d4)")}}>
+  THAC0! ~ <19 [0]/18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "5"
@@ -2483,12 +2697,13 @@ Hippogriff (OsrMonster) {
   ExHitDice! = 3+1
   HitDiceRoll! = "3d8+1"
   HitDice! = 3
-  Attacks! ~ "2 × claw (1d6), 1 × bite (1d10)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d6","claw (1d6)")}}, 1 × {{dice_roller("1d10","bite (1d10)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’) / 360’ (120’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "50"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d8
@@ -2507,8 +2722,8 @@ Hobgoblin (OsrMonster) {
   ExHitDice! = 1+1
   HitDiceRoll! = "1d8+1"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8 (10 with king)"
@@ -2537,12 +2752,13 @@ DraftHorse (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "None"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <None>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of steady hoofbeats"
   XP! = "35"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! = 0
@@ -2562,12 +2778,13 @@ RidingHorse (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "2 × hoof (1d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <2 × {{dice_roller("1d4","hoof (1d4)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of soft hoofbeats"
   XP! = "20"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! = 0
@@ -2587,12 +2804,13 @@ WarHorse (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "2 × hoof (1d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("1d6","hoof (1d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of heavy hoofbeats"
   XP! = "35"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! = 0
@@ -2612,12 +2830,13 @@ WildHorse (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "2 × hoof (1d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <2 × {{dice_roller("1d4","hoof (1d4)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of hoofbeats"
   XP! = "20"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d10x10
@@ -2636,8 +2855,8 @@ Hydra (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "5 to 12 × bite (1d10)"
-  THAC0! ~ "By HD (15 [+4] to 10 [+9])"
+  Attacks! ~ <5 to 12 × {{dice_roller("1d10","bite (1d10)")}}>
+  THAC0! ~ <By HD (15 [+4] to 10 [+9])>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "By HD"
   Morale! = "9"
@@ -2660,12 +2879,13 @@ InsectSwarm (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × swarm (2 or 4hp)"
-  THAC0! ~ "18 [+1]/17 [+2]/16 [+3]"
+  Attacks! ~ <1 × swarm (2 or 4hp)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}/17 {{dice_roller("1d20+2","[+2]")}}/16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "30’ (10’) / 60’ (20’) flying"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "11"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of countless wings"
   XP! = "20/35/75"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! @ 1d3
@@ -2684,8 +2904,8 @@ InvisibleStalkerMonster (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × blow (4d4)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("4d4","blow (4d4)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "12"
@@ -2708,12 +2928,13 @@ KillerBee (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × sting (1d3 + poison + lodged stinger)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d3","sting (1d3 + poison + lodged stinger)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "150’ (50’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing noise"
   XP! = "6 (guard = 13"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 5d6
@@ -2733,8 +2954,8 @@ Kobold (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d4 or by weapon – 1)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d4","weapon (1d4 or by weapon – 1)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "6 (8 with chieftain)"
@@ -2762,8 +2983,8 @@ LeechGiant (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × bite (1d6 + blood drain)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","bite (1d6 + blood drain)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "10"
@@ -2778,7 +2999,7 @@ LeechGiant (OsrMonster) {
   | OsrMonster
 }
 
-Lich (OsrMonster) {
+Lich (OsrMonsterEvilUndeadBoss) {
   Title! ~ "Lich"
   Intelligent! = True
   ArmourClass! ~ "0 [19+]"
@@ -2786,8 +3007,8 @@ Lich (OsrMonster) {
   ExHitDice! = 12
   HitDiceRoll! = "10d8+2"
   HitDice! = 10
-  Attacks! ~ "1 × touch, weapon or spell"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × touch, weapon or spell>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D8 W9 P8 B11 S8"
   Morale! = "8"
@@ -2795,12 +3016,63 @@ Lich (OsrMonster) {
   XP! = "1,490"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
-  TreasureType! @ TreasureTypeG {
+  TreasureType! @ TreasureTypeX {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
   }
+  | OsrMonsterEvilUndeadBoss
+}
+
+DreadKnight (OsrMonsterEvilUndeadBoss) {
+  Title! ~ "Dread Knight"
+  Intelligent! = True
+  ArmourClass! ~ "0 [19+]"
+  HitDiceText ~ "10*"
+  ExHitDice! = 10
+  HitDiceRoll! = "10d8+2"
+  HitDice! = 10
+  Attacks! ~ <1 × magic sword ({{dice_roller("1d8+6","1d8+6")}}) or 1 × spell>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
+  Movement! ~ "120’ (40’)"
+  SavingThrows! ~ "D6 W7 P8 B8 S10"
+  Morale! = "10"
+  Alignment! ~ "Chaotic"
+  XP! = "3,000"
+  NumberAppearingRoaming! = 1
+  NumberAppearingLair! = 0
+  TreasureType! @ TreasureTypeX {
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+  }
+  | OsrMonsterEvilUndeadBoss
+}
+
+
+Ghost (OsrMonster) {
+  Title! ~ "Ghost"
+  Intelligent! = True
+  ArmourClass! ~ "0 [19]"
+  HitDiceText ~ "10 (45hp)"
+  ExHitDice! = 10
+  HitDiceRoll! = "10d8"
+  HitDice! = 10
+  Attacks! ~ <1 × touch (life drain) or possession>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
+  Movement! ~ "90’ (30’)"
+  SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
+  Morale! = "10"
+  Alignment! ~ "Chaotic"
+  Sound! ~ "ghastly wail"
+  XP! = "3,000"
+  NumberAppearingRoaming! = 1
+  NumberAppearingLair! = 0
+  TreasureType! @ TreasureTypeX {
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+    }
   | OsrMonster
 }
+
 
 CrystalLivingStatue (OsrMonster) {
   Title! ~ "Crystal Living Statue"
@@ -2810,12 +3082,13 @@ CrystalLivingStatue (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "2 × blow (1d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("1d6","blow (1d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "11"
   Alignment! ~ "Lawful"
+  Sound! ~ "grinding of crystals"
   XP! = "35"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d6
@@ -2835,12 +3108,13 @@ IronLivingStatue (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × blow (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d8","blow (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "30’ (10’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "11"
   Alignment! ~ "Neutral"
+  Sound! ~ "grinding of metal"
   XP! = "75"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -2860,12 +3134,13 @@ RockLivingStatue (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "2 × magma jet (2d6)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <2 × {{dice_roller("2d6","magma jet (2d6)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "11"
   Alignment! ~ "Chaotic"
+  Sound! ~ "grinding of rocks"
   XP! = "425"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -2885,8 +3160,8 @@ Draco (OsrMonster) {
   ExHitDice! = 4+2
   HitDiceRoll! = "4d8+2"
   HitDice! = 4
-  Attacks! ~ "1 × bite (1d10)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("1d10","bite (1d10)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "120’ (40’) / 210’ (70’) gliding"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
@@ -2910,12 +3185,13 @@ Gecko (OsrMonster) {
   ExHitDice! = 3+1
   HitDiceRoll! = "3d8+1"
   HitDice! = 3
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft hissing noise"
   XP! = "50"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d10
@@ -2935,12 +3211,13 @@ HornedChameleon (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × tongue/bite (2d4), 1 × horn (1d6), 1 × tail (knock down"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("2d4","tongue/bite (2d4)")}}, 1 × {{dice_roller("1d6","horn (1d6)")}}, 1 × tail (knock down>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "300"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d6
@@ -2960,12 +3237,13 @@ Tuatara (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × claw (1d4)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw (1d4)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "hissing noise"
   XP! = "275"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -2985,8 +3263,8 @@ LizardMan (OsrMonster) {
   ExHitDice! = 2+1
   HitDiceRoll! = "2d8+1"
   HitDice! = 2
-  Attacks! ~ "1 × weapon (1d6+1 or by weapon + 1)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d6+1","weapon (1d6+1 or by weapon + 1)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "60’ (20’) / 120’ (40’) in water"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
@@ -3010,8 +3288,8 @@ DevilSwine (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "1 × gore (2d6) or 1 × weapon (1d6 or by weapon) or 1 × magic (charm)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d6","gore (2d6)")}} or 1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}} or 1 × magic (charm)>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "180’ (60’) / 120’ (40’) in human form"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (9)"
   Morale! = "10"
@@ -3035,12 +3313,13 @@ Werebear (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × claw (2d4), 1 × bite (2d8)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("2d4","claw (2d4)")}}, 1 × {{dice_roller("2d8","bite (2d8)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep growl"
   XP! = "500"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -3060,12 +3339,13 @@ Wereboar (OsrMonster) {
   ExHitDice! = 4+1
   HitDiceRoll! = "4d8+1"
   HitDice! = 4
-  Attacks! ~ "1 × tusk/bite (2d6)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("2d6","tusk/bite (2d6)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "guttural snort"
   XP! = "200"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 2d4
@@ -3085,12 +3365,13 @@ Wererat (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × bite (1d4) or 1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d4","bite (1d4)")}} or 1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep shriek"
   XP! = "50"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 2d8
@@ -3110,12 +3391,13 @@ Weretiger (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "2 × claw (1d6), 1 × bite (2d6)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <2 × {{dice_roller("1d6","claw (1d6)")}}, 1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep growl"
   XP! = "300"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -3135,12 +3417,13 @@ Werewolf (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (2d4)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d4","bite (2d4)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "piercing howl"
   XP! = "125 (leader = 300)"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d6
@@ -3160,12 +3443,13 @@ Manticore (OsrMonster) {
   ExHitDice! = 6+1
   HitDiceRoll! = "6d8+1"
   HitDice! = 6
-  Attacks! ~ "[2 × claw (1d4), 1 × bite (2d4)] or 6 × tail spike (1d6)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <[2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("2d4","bite (2d4)")}}] or 6 × {{dice_roller("1d6","tail spike (1d6)")}}>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "120’ (40’) / 180’ (60’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep roar"
   XP! = "350"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -3185,12 +3469,13 @@ Mastodon (OsrMonster) {
   ExHitDice! = 15
   HitDiceRoll! = "15d8"
   HitDice! = 15
-  Attacks! ~ "2 × tusk (2d6) or 1 × trample (4d8)"
-  THAC0! ~ "9 [+10]"
+  Attacks! ~ <2 × {{dice_roller("2d6","tusk (2d6)")}} or 1 × {{dice_roller("4d8","trample (4d8)")}}>
+  THAC0! ~ <9 {{dice_roller("1d20+10","[+10]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "trumpeting call"
   XP! = "1,350"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d8
@@ -3209,8 +3494,8 @@ Medium (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × dagger (1d4) or 1 × spell"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d4","dagger (1d4)")}} or 1 × spell>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D13 W14 P13 B16 S15 (MU1)"
   Morale! = "7"
@@ -3238,12 +3523,13 @@ Medusa (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × snakebites (1d6 + poison)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","snakebites (1d6 + poison)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "8"
   Alignment! ~ "Chaotic"
+  Sound! ~ "slithering sound"
   XP! = "175"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d4
@@ -3263,8 +3549,8 @@ Merchant (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "Varies"
@@ -3287,8 +3573,8 @@ Merman (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
@@ -3311,8 +3597,8 @@ Mimic (OsrMonster) {
   ExHitDice! = 9
   HitDiceRoll! = "9d8"
   HitDice! = 9
-  Attacks! ~ "[1 × pseudopod (3d4)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <[1 × {{dice_roller("3d4","pseudopod (3d4)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "30’ (10’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "9"
@@ -3340,12 +3626,13 @@ Minotaur (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "[1 × gore (1d6), 1 × bite] or 1 × weapon (1d6 + 2 or by weapon + 2)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <[1 × {{dice_roller("1d6","gore (1d6)")}}, 1 × bite] or 1 × {{dice_roller("1d6 + 2","weapon (1d6 + 2 or by weapon + 2)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep roar"
   XP! = "275"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d8
@@ -3370,12 +3657,13 @@ Mule (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × kick (1d4) or 1 × bite (1d3)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d4","kick (1d4)")}} or 1 × {{dice_roller("1d3","bite (1d3)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of soft hoofbeats"
   XP! = "20"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 2d6
@@ -3396,8 +3684,8 @@ Mummy (OsrMonster) {
   ExHitDice! = 5+1
   HitDiceRoll! = "5d8+1"
   HitDice! = 5
-  Attacks! ~ "1 × touch (1d12 + disease)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("1d12 + ","touch (1d12 + disease)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (5)"
   Morale! = "12"
@@ -3421,8 +3709,8 @@ NeanderthalCaveman (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × weapon (2d4 or by weapon + 1)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("2d4 ","weapon (2d4 or by weapon + 1)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
@@ -3446,8 +3734,8 @@ Nixie (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d4) or 1 × group spell (charm)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d4","weapon (1d4)")}} or 1 × group spell (charm)>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P13 B15 S15 (E1)"
   Morale! = "6"
@@ -3470,8 +3758,8 @@ Noble (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
@@ -3495,8 +3783,8 @@ Nomad (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
@@ -3519,8 +3807,8 @@ NormalHuman (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "20 [–1]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <20 {{dice_roller("1d20-1","[-1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "6"
@@ -3544,12 +3832,13 @@ OchreJelly (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × touch (2d6)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("2d6","touch (2d6)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "30’ (10’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "slimy squelching noise"
   XP! = "300"
   NumberAppearingRoaming! = 1
   NumberAppearingLair! = 0
@@ -3568,12 +3857,13 @@ OctopusGiant (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "8 × tentacle (1d3 + constriction), 1 × bite (1d6)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <8 × {{dice_roller("1d3","tentacle (1d3 + constriction)")}}, 1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "wet squelching noise"
   XP! = "650"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d2
@@ -3592,12 +3882,13 @@ Ogre (OsrMonster) {
   ExHitDice! = 4+1
   HitDiceRoll! = "4d8+1"
   HitDice! = 4
-  Attacks! ~ "1 × club (1d10)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("1d10","club (1d10)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "10"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep grunt"
   XP! = "125"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d6
@@ -3621,8 +3912,8 @@ Orc (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "6 (8 with leader)"
@@ -3650,12 +3941,13 @@ OwlBear (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "2 × claw (1d8), 1 × bite (1d8)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "guttural roar"
   XP! = "175"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -3675,12 +3967,13 @@ Pegasus (OsrMonster) {
   ExHitDice! = 2+2
   HitDiceRoll! = "2d8+2"
   HitDice! = 2
-  Attacks! ~ "2 × hoof (1d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("1d6","hoof (1d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "240’ (80’) / 480’ (160’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Lawful"
+  Sound! ~ "sound of soft hoofbeats"
   XP! = "25"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d12
@@ -3699,12 +3992,13 @@ Piercer (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × drop (1d6 per HD)"
-  THAC0! ~ "By HD = 19 [0] to 16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","drop (1d6 per HD)")}}>
+  THAC0! ~ <By HD = 19 [0] to 16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "10’ (3’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1 to 2)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "clicking of mandibles"
   XP! = "10/20/35/75"
   NumberAppearingRoaming! @ 3d6
   NumberAppearingLair! @ 1d4
@@ -3723,8 +4017,8 @@ Pirate (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
@@ -3747,8 +4041,8 @@ Pixie (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × dagger (1d4)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d4","dagger (1d4)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "90’ (30’) / 180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P13 B15 S15 (E1)"
   Morale! = "7"
@@ -3772,12 +4066,13 @@ Pteranodon (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × bite (1d12)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("1d12","bite (1d12)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "240’ (80’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "175"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d4
@@ -3796,12 +4091,13 @@ Pterodactyl (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × bite (1d3)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d3","bite (1d3)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "10"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 2d4
@@ -3820,12 +4116,13 @@ PurpleWorm (OsrMonster) {
   ExHitDice! = 15
   HitDiceRoll! = "15d8"
   HitDice! = 15
-  Attacks! ~ "1 × bite (2d8), 1 × sting (1d8 + poison)"
-  THAC0! ~ "9 [+10]"
+  Attacks! ~ <1 × {{dice_roller("2d8","bite (2d8)")}}, 1 × {{dice_roller("1d8 + ","sting (1d8 + poison)")}}>
+  THAC0! ~ <9 {{dice_roller("1d20+10","[+10]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "deep rumbling"
   XP! = "2,300"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d4
@@ -3845,12 +4142,13 @@ GiantRat (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × bite (1d3 + disease)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d3","bite (1d3 + disease)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’) / 60’ (20’) swimming"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "loud shriek"
   XP! = "5"
   NumberAppearingRoaming! @ 3d6
   NumberAppearingLair! @ 3d10
@@ -3859,7 +4157,6 @@ GiantRat (OsrMonster) {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
     }
-  Sound! = shriek
   Activity! @ VerminActivity {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
@@ -3875,12 +4172,13 @@ NormalRat (OsrMonster) {
   ExHitDice! = 1hp
   HitDiceRoll! = "1d1"
   HitDice! = 1
-  Attacks! ~ "1 × bite per pack (1d6 + disease)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","bite per pack (1d6 + disease)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’) / 30’ (10’) swimming"
   SavingThrows! ~ "D14 W15 P16 B17 S18 (NH)"
   Morale! = "5"
   Alignment! ~ "Neutral"
+  Sound! ~ "shriek"
   XP! = "5"
   NumberAppearingRoaming! @ 5d10
   NumberAppearingLair! @ 2d10
@@ -3889,7 +4187,6 @@ NormalRat (OsrMonster) {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
     }
-  Sound! = shriek
   Activity! @ VerminActivity {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
@@ -3905,12 +4202,13 @@ Rhagodessa (OsrMonster) {
   ExHitDice! = 4+2
   HitDiceRoll! = "4d8+2"
   HitDice! = 4
-  Attacks! ~ "1 × sucker (grab), 1 × bite (2d8)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × sucker (grab), 1 × {{dice_roller("2d8","bite (2d8)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "125"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d6
@@ -3930,12 +4228,13 @@ NormalRhinoceros (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × horn (2d4) or 1 × trample (2d8)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("2d4","horn (2d4)")}} or 1 × {{dice_roller("2d8","trample (2d8)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "breathy snort"
   XP! = "275"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d12
@@ -3954,12 +4253,13 @@ WoollyRhinoceros (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × horn (2d6) or 1 × trample (2d12)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d6","horn (2d6)")}} or 1 × {{dice_roller("2d12","trample (2d12)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "breathy snort"
   XP! = "650"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d8
@@ -3978,12 +4278,13 @@ RobberFly (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d8)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’) / 180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "buzzing of wings"
   XP! = "20"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 2d6
@@ -4003,12 +4304,13 @@ GiantRoc (OsrMonster) {
   ExHitDice! = 36
   HitDiceRoll! = "36d8"
   HitDice! = 36
-  Attacks! ~ "2 × claw (3d6), 1 × bite (8d6)"
-  THAC0! ~ "5 [+14]"
+  Attacks! ~ <2 × {{dice_roller("3d6","claw (3d6)")}}, 1 × {{dice_roller("8d6","bite (8d6)")}}>
+  THAC0! ~ <5 {{dice_roller("1d20+14","[+14]")}}>
   Movement! ~ "60’ (20’) / 480’ (160’) flying"
   SavingThrows! ~ "D2 W3 P4 B3 S6 (18)"
   Morale! = "10 (12 in lair)"
   Alignment! ~ "Lawful"
+  Sound! ~ "powerful beating of wings"
   XP! = "6,250"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! = 1
@@ -4027,12 +4329,13 @@ LargeRoc (OsrMonster) {
   ExHitDice! = 12
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "2 × claw (1d8), 1 × bite (2d10)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <2 × {{dice_roller("1d8","claw (1d8)")}}, 1 × {{dice_roller("2d10","bite (2d10)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "60’ (20’) / 480’ (160’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "9 (12 in lair)"
   Alignment! ~ "Lawful"
+  Sound! ~ "loud beating of wings"
   XP! = "1,100"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d8
@@ -4051,12 +4354,13 @@ SmallRoc (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × claw (1d4+1), 1 × bite (2d6)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("1d4+1","claw (1d4+1)")}}, 1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "60’ (20’) / 480’ (160’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8 (12 in lair)"
   Alignment! ~ "Lawful"
+  Sound! ~ "beating of wings"
   XP! = "275"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d12
@@ -4075,12 +4379,13 @@ RockBaboon (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × club (1d6), 1 × bite (1d3)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d6","club (1d6)")}}, 1 × {{dice_roller("1d3","bite (1d3)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "grunting noise"
   XP! = "20"
   NumberAppearingRoaming! @ 2d6
   NumberAppearingLair! @ 5d6
@@ -4100,12 +4405,13 @@ RustMonster (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × feeler (rusting)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × feeler (rusting)>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "clanking of metal"
   XP! = "175"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -4125,12 +4431,13 @@ FlameSalamander (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "2 × claw (1d4), 1 × bite (1d8), 1 × heat aura (1d8)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("1d4","claw (1d4)")}}, 1 × {{dice_roller("1d8","bite (1d8)")}}, 1 × {{dice_roller("1d8","heat aura (1d8)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "crackling flame"
   XP! = "1,200"
   NumberAppearingRoaming! @ 1d4+1
   NumberAppearingLair! @ 2d4
@@ -4150,12 +4457,13 @@ FrostSalamander (OsrMonster) {
   ExHitDice! = 12
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "4 × claw (1d6), 1 × bite (2d6), 1 × cold aura (1d8)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <4 × {{dice_roller("1d6","claw (1d6)")}}, 1 × {{dice_roller("2d6","bite (2d6)")}}, 1 × {{dice_roller("1d8","cold aura (1d8)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (12)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "cracking of ice"
   XP! = "1,900"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -4175,12 +4483,13 @@ ScorpionGiant (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × claw (1d10), 1 × sting (1d4 + poison)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d10","claw (1d10)")}}, 1 × {{dice_roller("1d4 + ","sting (1d4 + poison)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "11"
   Alignment! ~ "Chaotic"
+  Sound! ~ "rustling of legs"
   XP! = "125"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d6
@@ -4200,8 +4509,8 @@ SeaSerpentLesser (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × bite (2d6) or 1 × squeeze (1d10 hull damage)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("2d6","bite (2d6)")}} or 1 × {{dice_roller("1d10 ","squeeze (1d10 hull damage)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
@@ -4224,8 +4533,8 @@ Shadow (OsrMonster) {
   ExHitDice! = 2+2
   HitDiceRoll! = "2d8+2"
   HitDice! = 2
-  Attacks! ~ "1 × touch (1d4 + strength drain)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d4 + ","touch (1d4 + strength drain)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
@@ -4249,8 +4558,8 @@ BullShark (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (2d4) or 1 × ram (stun)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("2d4","bite (2d4)")}} or 1 × ram (stun)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
@@ -4273,8 +4582,8 @@ GreatWhiteShark (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "1 × bite (2d10)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("2d10","bite (2d10)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "7"
@@ -4297,8 +4606,8 @@ MakoShark (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (2d6)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("2d6","bite (2d6)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
@@ -4321,12 +4630,13 @@ ShrewGiant (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "2 × bite (1d6)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <2 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "shriek"
   XP! = "10"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d8
@@ -4346,12 +4656,13 @@ Shrieker (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "None"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <None>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "9’ (3’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing screech"
   XP! = "35"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! = 0
@@ -4371,12 +4682,13 @@ Skeleton (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "rattling of bones"
   XP! = "10"
   NumberAppearingRoaming! @ 3d4
   NumberAppearingLair! @ 3d10
@@ -4396,12 +4708,13 @@ GiantRattler (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × bite (1d4 + poison)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d4 + ","bite (1d4 + poison)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "loud rattling"
   XP! = "125"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -4421,12 +4734,13 @@ PitViper (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d4 + poison)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d4 + ","bite (1d4 + poison)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "25"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 1d8
@@ -4446,12 +4760,13 @@ RockPython (OsrMonster) {
   ExHitDice! = 5
   HitDiceRoll! = "5d8"
   HitDice! = 5
-  Attacks! ~ "1 × bite (1d4 + constriction)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("1d4 + ","bite (1d4 + constriction)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "300"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -4471,12 +4786,13 @@ SeaSnake (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × bite (1hp + poison)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × bite (1hp + poison)>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "50"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 1d8
@@ -4496,12 +4812,13 @@ SpittingCobra (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × spit (blindness) or 1 × bite (1d3 + poison)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × spit (blindness) or 1 × {{dice_roller("1d3","bite (1d3 + poison)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "low hissing noise"
   XP! = "13"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d6
@@ -4521,12 +4838,13 @@ Spectre (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × touch (1d8 + energy drain)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("1d8 + ","touch (1d8 + energy drain)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "150’ (50’) / 300’ (100’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "11"
   Alignment! ~ "Chaotic"
+  Sound! ~ "ghastly wail"
   XP! = "725"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d8
@@ -4546,12 +4864,13 @@ BlackWidow (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × bite (2d6 + poison)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("2d6 + ","bite (2d6 + poison)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "60’ (20’) / 120’ (40’) in webs"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "50"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -4571,12 +4890,13 @@ CrabSpider (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d8 + poison)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8 + ","bite (1d8 + poison)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "25"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -4596,12 +4916,13 @@ Tarantella (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (1d8 + poison)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d8 + ","bite (1d8 + poison)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "125"
   NumberAppearingRoaming! @ 1d3
   NumberAppearingLair! @ 1d3
@@ -4621,12 +4942,13 @@ Sprite (OsrMonster) {
   ExHitDice! = ½
   HitDiceRoll! = "1d4"
   HitDice! = 1
-  Attacks! ~ "1 × spell (curse)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × spell (curse)>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’) / 180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P13 B15 S15 (E1)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft fluttering of wings"
   XP! = "6"
   NumberAppearingRoaming! @ 3d6
   NumberAppearingLair! @ 5d8
@@ -4646,8 +4968,8 @@ SquidGiant (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "8 × small tentacle (1d4 + constriction), 2 × large tentacle (1d4 + constriction or 1d10 hull damage), 1 × beak (1d10 or 2 hull damage)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <8 × {{dice_roller("1d4 + ","small tentacle (1d4 + constriction)")}}, 2 × {{dice_roller("1d4 + ","large tentacle (1d4 + constriction or 1d10 hull damage)")}}, 1 × {{dice_roller("1d10 ","beak (1d10 or 2 hull damage)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "7"
@@ -4670,12 +4992,13 @@ Stegosaurus (OsrMonster) {
   ExHitDice! = 11
   HitDiceRoll! = "11d8"
   HitDice! = 11
-  Attacks! ~ "1 × tail (2d8) or 1 × trample (2d8)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("2d8","tail (2d8)")}} or 1 × {{dice_roller("2d8","trample (2d8)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of powerful hoofbeats"
   XP! = "1,100"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d4
@@ -4694,12 +5017,13 @@ Stirge (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × beak (1d3 + blood sucking)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d3","beak (1d3 + blood sucking)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "30’ (10’) / 180’ (60’) flying"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
   Alignment! ~ "Neutral"
+  Sound! ~ "screech"
   XP! = "13"
   NumberAppearingRoaming! @ 1d10
   NumberAppearingLair! @ 3d12
@@ -4708,7 +5032,6 @@ Stirge (OsrMonster) {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
     }
-  Sound! = screech
   | OsrMonster
 }
 
@@ -4720,8 +5043,8 @@ Thoul (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "2 × claw (1d3 + paralysis) or 1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <2 × {{dice_roller("1d3","claw (1d3 + paralysis)")}} or 1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "10"
@@ -4745,12 +5068,13 @@ Titanothere (OsrMonster) {
   ExHitDice! = 12
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × butt (2d6) or 1 × trample (3d8)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <1 × {{dice_roller("2d6","butt (2d6)")}} or 1 × {{dice_roller("3d8","trample (3d8)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "7"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of powerful hoofbeats"
   XP! = "1,100"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d6
@@ -4769,12 +5093,13 @@ ToadGiant (OsrMonster) {
   ExHitDice! = 2+2
   HitDiceRoll! = "2d8+2"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d4+1)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d4+1","bite (1d4+1)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "6"
   Alignment! ~ "Neutral"
+  Sound! ~ "loud trill"
   XP! = "25"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -4794,8 +5119,8 @@ Trader (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d6 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d6 ","weapon (1d6 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "7"
@@ -4819,12 +5144,13 @@ Treant (OsrMonster) {
   ExHitDice! = 8
   HitDiceRoll! = "8d8"
   HitDice! = 8
-  Attacks! ~ "2 × fist (2d6)"
-  THAC0! ~ "12 [+7]"
+  Attacks! ~ <2 × {{dice_roller("2d6","fist (2d6)")}}>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "9"
   Alignment! ~ "Lawful"
+  Sound! ~ "creaking of wood"
   XP! = "650"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d8
@@ -4843,12 +5169,13 @@ Triceratops (OsrMonster) {
   ExHitDice! = 11
   HitDiceRoll! = "11d8"
   HitDice! = 11
-  Attacks! ~ "1 × gore (3d6) or 1 × trample (3d6)"
-  THAC0! ~ "11 [+8]"
+  Attacks! ~ <1 × {{dice_roller("3d6","gore (3d6)")}} or 1 × {{dice_roller("3d6","trample (3d6)")}}>
+  THAC0! ~ <11 {{dice_roller("1d20+8","[+8]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "sound of thunderous hoofbeats"
   XP! = "1,100"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d4
@@ -4867,8 +5194,8 @@ Troglodyte (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "Att 2 x claw (1d4), 1 x bite (1d4)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <Att 2 x claw (1d4), 1 x bite (1d4)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "9"
@@ -4892,12 +5219,13 @@ Troll (OsrMonster) {
   ExHitDice! = 6+3
   HitDiceRoll! = "6d8+3"
   HitDice! = 6
-  Attacks! ~ "2 × talon (1d6), 1 × bite (1d10)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <2 × {{dice_roller("1d6","talon (1d6)")}}, 1 × {{dice_roller("1d10","bite (1d10)")}}>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "10 (8 fear of fire)"
   Alignment! ~ "Chaotic"
+  Sound! ~ "deep growl"
   XP! = "650"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 1d8
@@ -4917,12 +5245,13 @@ TyrannosaurusRex (OsrMonster) {
   ExHitDice! = 20
   HitDiceRoll! = "20d8"
   HitDice! = 20
-  Attacks! ~ "1 × bite (6d6)"
-  THAC0! ~ "6 [+13]"
+  Attacks! ~ <1 × {{dice_roller("6d6","bite (6d6)")}}>
+  THAC0! ~ <6 {{dice_roller("1d20+13","[+13]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (10)"
   Morale! = "11"
   Alignment! ~ "Neutral"
+  Sound! ~ "thunderous roar"
   XP! = "2,000"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! = 1
@@ -4941,12 +5270,13 @@ Unicorn (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "2 × hoof (1d8), 1 × horn (1d8)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <2 × {{dice_roller("1d8","hoof (1d8)")}}, 1 × {{dice_roller("1d8","horn (1d8)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (8)"
   Morale! = "7"
   Alignment! ~ "Lawful"
+  Sound! ~ "soft neigh"
   XP! = "125"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d8
@@ -4962,17 +5292,17 @@ Vampire (OsrMonster) {
   Title! ~ "Vampire"
   Intelligent! = True
   ArmourClass! ~ "2 [17]"
-  HitDiceText ~ "7 to 9** (31/36/40hp)"
+  HitDiceText ~ "7 (31)"
   ExHitDice! = 7
   HitDiceRoll! = "7d8"
   HitDice! = 7
-  Attacks! ~ "1 × touch (1d10 + energy drain) or 1 × gaze (charm)"
-  THAC0! ~ "13 [+6]/12 [+7]/12 [+7]"
+  Attacks! ~ <1 × {{dice_roller("1d10 + ","touch (1d10 + energy drain)")}} or 1 × gaze (charm)>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D8 W9 P10 B10 S12 (7 to 9)"
   Morale! = "11"
   Alignment! ~ "Chaotic"
-  XP! = "1,250/1,750/2,300"
+  XP! = "1,250"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d6
   TreasureType! @ TreasureTypeF {
@@ -4980,7 +5310,32 @@ Vampire (OsrMonster) {
         NumberAppearingRoaming = &NumberAppearingRoaming
         NumberAppearingLair = &NumberAppearingLair
     }
-  | OsrMonster
+  | OsrMonsterEvilUndeadBoss
+}
+
+VampireAsBoss (OsrMonsterEvilUndeadBoss) {
+  Title! ~ "Vampire Lord"
+  Intelligent! = True
+  ArmourClass! ~ "2 [17]"
+  HitDiceText ~ "9** (40hp)"
+  ExHitDice! = 9
+  HitDiceRoll! = "9d8"
+  HitDice! = 9
+  Attacks! ~ <1 × {{dice_roller("1d10 + ","touch (1d10 + energy drain)")}} or 1 × gaze (charm)>
+  THAC0! ~ <12 {{dice_roller("1d20+7","[+7]")}}>
+  Movement! ~ "120’ (40’)"
+  SavingThrows! ~ "D8 W9 P10 B10 S12 (7 to 9)"
+  Morale! = "11"
+  Alignment! ~ "Chaotic"
+  XP! = "2,300"
+  NumberAppearingRoaming! @ 1d1
+  NumberAppearingLair! @ 1d1
+  TreasureType! @ TreasureTypeX {
+        MaxNumberAppearingRoaming = 4
+        NumberAppearingRoaming = &NumberAppearingRoaming
+        NumberAppearingLair = &NumberAppearingLair
+    }
+  | OsrMonsterEvilUndeadBoss
 }
 
 Veteran (OsrMonster) {
@@ -4991,8 +5346,8 @@ Veteran (OsrMonster) {
   ExHitDice! = 1
   HitDiceRoll! = "1d8"
   HitDice! = 1
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "19 [0]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <19 {{dice_roller("1d20","[0]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (F1 to F3)"
   Morale! = "9"
@@ -5016,12 +5371,13 @@ WarpBeast (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "2 × tentacle (2d4)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <2 × {{dice_roller("2d4","tentacle (2d4)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (6)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft snarl"
   XP! = "500"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d4
@@ -5041,12 +5397,13 @@ FreshwaterTermite (OsrMonster) {
   ExHitDice! = 2+1
   HitDiceRoll! = "2d8+1"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d4) or 1 × spray (stun)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d4","bite (1d4)")}} or 1 × spray (stun)>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "25"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d3
@@ -5065,12 +5422,13 @@ SaltwaterTermite (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × bite (1d6) or 1 × spray (stun)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}} or 1 × spray (stun)>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "11"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "75"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d6+1
@@ -5089,12 +5447,13 @@ SwampTermite (OsrMonster) {
   ExHitDice! = 1+1
   HitDiceRoll! = "1d8+1"
   HitDice! = 1
-  Attacks! ~ "1 × bite (1d3) or 1 × spray (stun)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d3","bite (1d3)")}} or 1 × spray (stun)>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "10"
   Alignment! ~ "Neutral"
+  Sound! ~ "skittering of legs"
   XP! = "15"
   NumberAppearingRoaming! = 0
   NumberAppearingLair! @ 1d4
@@ -5113,12 +5472,13 @@ WeaselGiant (OsrMonster) {
   ExHitDice! = 4+4
   HitDiceRoll! = "4d8+4"
   HitDice! = 4
-  Attacks! ~ "1 × bite (2d4 + blood sucking)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("2d4 + ","bite (2d4 + blood sucking)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "soft shriek"
   XP! = "125"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d6
@@ -5138,8 +5498,8 @@ KillerWhale (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ "1 × bite (1d20)"
-  THAC0! ~ "14 [+5]"
+  Attacks! ~ <1 × {{dice_roller("1d20","bite (1d20)")}}>
+  THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "240’ (80’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "10"
@@ -5162,8 +5522,8 @@ Narwhal (OsrMonster) {
   ExHitDice! = 12
   HitDiceRoll! = "12d8"
   HitDice! = 12
-  Attacks! ~ "1 × bite (1d8), 1 × horn (2d6)"
-  THAC0! ~ "10 [+9]"
+  Attacks! ~ <1 × {{dice_roller("1d8","bite (1d8)")}}, 1 × {{dice_roller("2d6","horn (2d6)")}}>
+  THAC0! ~ <10 {{dice_roller("1d20+9","[+9]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D6 W7 P8 B8 S10 (12)"
   Morale! = "8"
@@ -5186,8 +5546,8 @@ SpermWhale (OsrMonster) {
   ExHitDice! = 36
   HitDiceRoll! = "36d8"
   HitDice! = 36
-  Attacks! ~ "1 × bite (3d20) or 1 × ram (6d6 hull damage)"
-  THAC0! ~ "5 [+14]"
+  Attacks! ~ <1 × {{dice_roller("3d20","bite (3d20)")}} or 1 × {{dice_roller("6d6 ","ram (6d6 hull damage)")}}>
+  THAC0! ~ <5 {{dice_roller("1d20+14","[+14]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D4 W5 P6 B5 S8 (15)"
   Morale! = "7"
@@ -5210,12 +5570,13 @@ Wight (OsrMonster) {
   ExHitDice! = 3
   HitDiceRoll! = "3d8"
   HitDice! = 3
-  Attacks! ~ "1 × touch (energy drain)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × touch (energy drain)>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "90’ (30’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "rasping breath"
   XP! = "50"
   NumberAppearingRoaming! @ 1d6
   NumberAppearingLair! @ 1d8
@@ -5235,12 +5596,13 @@ DireWolf (OsrMonster) {
   ExHitDice! = 4+1
   HitDiceRoll! = "4d8+1"
   HitDice! = 4
-  Attacks! ~ "1 × bite (2d4)"
-  THAC0! ~ "15 [+4]"
+  Attacks! ~ <1 × {{dice_roller("2d4","bite (2d4)")}}>
+  THAC0! ~ <15 {{dice_roller("1d20+4","[+4]")}}>
   Movement! ~ "150’ (50’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "8"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing howl"
   XP! = "125"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 2d4
@@ -5260,12 +5622,13 @@ NormalWolf (OsrMonster) {
   ExHitDice! = 2+2
   HitDiceRoll! = "2d8+2"
   HitDice! = 2
-  Attacks! ~ "1 × bite (1d6)"
-  THAC0! ~ "17 [+2]"
+  Attacks! ~ <1 × {{dice_roller("1d6","bite (1d6)")}}>
+  THAC0! ~ <17 {{dice_roller("1d20+2","[+2]")}}>
   Movement! ~ "180’ (60’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "6 (8 in larger packs)"
   Alignment! ~ "Neutral"
+  Sound! ~ "piercing howl"
   XP! = "25"
   NumberAppearingRoaming! @ 2d6
   NumberAppearingLair! @ 3d6
@@ -5285,12 +5648,13 @@ Wraith (OsrMonster) {
   ExHitDice! = 4
   HitDiceRoll! = "4d8"
   HitDice! = 4
-  Attacks! ~ "1 × touch (1d6 + energy drain)"
-  THAC0! ~ "16 [+3]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","touch (1d6 + energy drain)")}}>
+  THAC0! ~ <16 {{dice_roller("1d20+3","[+3]")}}>
   Movement! ~ "120’ (40’) / 240’ (80’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "ghastly wail"
   XP! = "175"
   NumberAppearingRoaming! @ 1d4
   NumberAppearingLair! @ 1d6
@@ -5310,12 +5674,13 @@ Wyvern (OsrMonster) {
   ExHitDice! = 7
   HitDiceRoll! = "7d8"
   HitDice! = 7
-  Attacks! ~ "1 × bite (2d8), 1 × sting (1d6 + poison)"
-  THAC0! ~ "13 [+6]"
+  Attacks! ~ <1 × {{dice_roller("2d8","bite (2d8)")}}, 1 × {{dice_roller("1d6 + ","sting (1d6 + poison)")}}>
+  THAC0! ~ <13 {{dice_roller("1d20+6","[+6]")}}>
   Movement! ~ "90’ (30’) / 240’ (80’) flying"
   SavingThrows! ~ "D10 W11 P12 B13 S14 (4)"
   Morale! = "9"
   Alignment! ~ "Chaotic"
+  Sound! ~ "guttural roar"
   XP! = "850"
   NumberAppearingRoaming! @ 1d2
   NumberAppearingLair! @ 1d6
@@ -5335,12 +5700,13 @@ YellowMould (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × spores (1d6 + choking)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d6 + ","spores (1d6 + choking)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "None"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (2)"
   Morale! = "12"
   Alignment! ~ "Neutral"
+  Sound! ~ "squelching noise"
   XP! = "25"
   NumberAppearingRoaming! @ 1d8
   NumberAppearingLair! @ 1d4
@@ -5360,12 +5726,13 @@ Zombie (OsrMonster) {
   ExHitDice! = 2
   HitDiceRoll! = "2d8"
   HitDice! = 2
-  Attacks! ~ "1 × weapon (1d8 or by weapon)"
-  THAC0! ~ "18 [+1]"
+  Attacks! ~ <1 × {{dice_roller("1d8 ","weapon (1d8 or by weapon)")}}>
+  THAC0! ~ <18 {{dice_roller("1d20+1","[+1]")}}>
   Movement! ~ "60’ (20’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (1)"
   Morale! = "12"
   Alignment! ~ "Chaotic"
+  Sound! ~ "groaning noise"
   XP! = "20"
   NumberAppearingRoaming! @ 2d4
   NumberAppearingLair! @ 4d6

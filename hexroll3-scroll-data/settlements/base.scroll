@@ -89,6 +89,8 @@ IndexedSettlementEntity(IndexedEntity) {
 Settlement(Populated) {
   ^ $settlement_classes
 
+  $on_roll = "roll_settlement_map"
+
   # TODO: NamePart! @ $EnforcedSettlementList
   NamePart! @ $TownName
   Name! =  "{{capitalize(class)}} of {{title(NamePart)}}"

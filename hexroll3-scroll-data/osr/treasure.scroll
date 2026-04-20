@@ -22,6 +22,7 @@
 # license. Please contact ithai at pendicepaper.com
 # for more information about commercial licensing terms.
 #
+
 # This document contains Open Game Content, subject to the Open Game License,
 # released un the Open Game License, Version 1.0a (enclosed in the LICENSE
 # file), as described in Section 1(d) of the License.
@@ -126,6 +127,7 @@ TreasureTypeIndividuals (TreasureType) {
 }
 
 RandomMagicItem { ^ [
+        *(x20) RandomScroll
         *(x10) RandomMagicArmor
         *(x5)  RandomMagicItem
         *(x20) RandomPotion
@@ -133,6 +135,7 @@ RandomMagicItem { ^ [
         *(x5)  RandomRodStaffWand
         *(x20) RandomMagicSword
         *(x5)  RandomMagicWeapon
+        *(x1)  SentientSword
     ]
 }
 
@@ -439,14 +442,55 @@ TreasureTypeG (TreasureType) {
         Odds = 35
         Amount = 4
     }
-    MagicItem1 @ RandomMagicItem
+    MagicItem1 @ LegendaryItem
     MagicItem2 @ RandomMagicItem
-        MagicItem3 @ RandomPotion
+    MagicItem3 @ RandomPotion
     MagicItem4 @ RandomPotion
     | TreasureType
 }
 
-
+TreasureTypeX (TreasureType) {
+    cp1000 @ TreasureInstance {
+        Odds = 25
+        Amount @ 3d8
+    }
+    sp1000 @ TreasureInstance {
+        Odds = 50
+        Amount @ 1d100
+    }
+    ep1000 @ TreasureInstance {
+        Odds = 50
+        Amount @ 4d10
+    }
+    gp1000 @ TreasureInstance {
+        Odds = 50
+        Amount @ 6d10
+    }
+    pp1000 @ TreasureInstance {
+        Odds = 25
+        Amount @ 5d4
+    }
+    Gems @ TreasureInstance {
+        Odds = 50
+        Amount @ 1d100
+    }
+    Jewellery @ TreasureInstance {
+        Odds = 50
+        Amount @ 10d4
+    }
+    MagicItems @ TreasureInstance {
+        Odds = 80
+        Amount = 4
+    }
+    MagicItem1 @@ [
+        *(x3) RandomMagicItem
+        *(x1) LegendaryItem
+    ]
+    MagicItem2 @ RandomMagicItem
+    MagicItem3 @ RandomPotion
+    MagicItem4 @ RandomPotion
+    | TreasureType
+}
 
 TreasureTypeH (TreasureType) {
     cp1000 @ TreasureInstance {
@@ -483,7 +527,7 @@ TreasureTypeH (TreasureType) {
     }
     MagicItem1 @ RandomMagicItem
     MagicItem2 @ RandomMagicItem
-        MagicItem3 @ RandomPotion
+    MagicItem3 @ RandomPotion
     MagicItem4 @ RandomPotion
     | TreasureType
 }
@@ -1056,7 +1100,10 @@ TreasureTypeBody (TreasureType) {
         Odds = 5
         Amount = 1
     }
-    MagicItem1 @ RandomMagicItemsOnBody
+    MagicItem1 @@ [
+        *(x19) RandomMagicItemsOnBody
+        *(x1) SentientSword
+    ]
     | TreasureType
 }
 

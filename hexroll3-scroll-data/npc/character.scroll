@@ -141,7 +141,7 @@ Character {
         * a double chin
         * stained clothes
         * crooked smile
-        * lip ring
+        * a lip ring
         * elegant posture
         * gap teeth
 
@@ -161,7 +161,7 @@ Character {
       <strong>{{Name.Full}}</strong>.
       {{DescriptionInscript}}
       {{capitalize(Gender.PronounSubject)}} {{Gender.Possession}} {{Appearance}}
-      <em>({{State}})</em>. {{InThePocket.Details}}
+      (<em>{{State}}</em>). {{InThePocket.Details}}
       {{DescriptionPostscript}}
     %>
 

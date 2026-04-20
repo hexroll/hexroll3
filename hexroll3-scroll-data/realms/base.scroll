@@ -23,8 +23,8 @@
 # for more information about commercial licensing terms.
 #
 
-minimum_number_of_regions = 6
-maximum_number_of_regions = 12
+minimum_number_of_regions = 0
+maximum_number_of_regions = 0
 
 mountains_probability= 3
 forest_probability= 5
@@ -71,6 +71,8 @@ Realm {
 
   Title! ` "The {{RealmType.Title}} of {{Name.Title}}"
 
+  MaxHD = $wandering_monsters_max_hd
+
   << Plant
   << Shard
 
@@ -87,38 +89,51 @@ Realm {
   << Hex
   << LostItemMagical
   << Castle
+
+  ItemsOfLegend << LegendaryItem
+  EvilBosses << MonsterEvilBoss
+
   toc! << TocEntry
 
-  [$minimum_number_of_regions..$maximum_number_of_regions regions] @ Region
+  [$minimum_number_of_regions..$maximum_number_of_regions regions?] @ Region
 
   HexLink = "Realm"
 
 
-    Breadcrumbs! ~ <%
+  Breadcrumbs! ~ <%
     <span class="breadcrumbs">
       {{sandbox_breadcrumb()}}
       {{toc_breadcrumb()}}
     </span>
-    %>
+  %>
 
 
-    <metadata%
-      <a class="map-coords" zoom="0.5"> </a>
-    %metadata>
+  $IndexRef @ IndexedEntity {
+    Link = &uuid
+    Render = "Title"
+    Details = <%A realm in the sandbox%>
+    Type = "hex"
+    Icon = "location-dot"
+  }
 
-    <header%
-      <div hidden id="doc-title">
-      {{Title}}
-      </div>
-      <h4 id="title">
-      <span id="editable-title" data-attr="Title" data-map-label="true">{{Title}}</span>
-      {{Breadcrumbs}}
-      </h4>
-    %header>
+  <metadata%
+    <a class="map-coords" zoom="0.5"> </a>
+    <span data-reroll="false"></span>
+  %metadata>
 
-    <body%
-      {{Extension.Prescript}}
-      {{Description}}
-      {{Extension.Postscript}}
-    %body>
+  <header%
+    <div hidden id="doc-title">
+    {{Title}}
+    </div>
+    <h4 id="title">
+    <span id="editable-title" data-attr="Title" data-map-label="true">{{Title}}</span>
+    {{Breadcrumbs}}
+    </h4>
+  %header>
+
+  <body%
+    {{Extension.Prescript}}
+    {{Description}}
+    {{Extension.Postscript}}
+  %body>
 }

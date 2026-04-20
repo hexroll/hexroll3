@@ -27,7 +27,7 @@ DungeonEncounterUndead(DungeonEncounter) {
   Monster! @@ [
     * MonsterUndeadTier1
     * MonsterUndeadTier2
-  ] 
+  ]
   | DungeonEncounter
   Foreshadow! ~ < It is impossible to hear anything inside >
 

@@ -187,9 +187,9 @@ InnRoomUpscaleBedRoom {
 
 Tavern(Populated) {
   Title! ` "{{Name.Full}}"
-  [2..6 drinks] @ TavernDrinks
-  [4..4 menus] @ TavernMenu
-  [0..3 lodging] @ InnRoom
+  [2..6 drinks?] @ TavernDrinks
+  [4..4 menus?] @ TavernMenu
+  [0..3 lodging?] @ InnRoom
 
   keeper? @ TavernStaff {
     HostingEntity := &uuid
@@ -210,9 +210,9 @@ Tavern(Populated) {
     SettlementName = &SettlementName
   }
 
-  FactionName = none
-  FactionUUID = none
-  Faction = none
+  FactionName? = none
+  FactionUUID? = none
+  Faction? = none
 
   [2..5 adverts?] ? Advert
   rumors? @ RumorsTable

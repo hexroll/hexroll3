@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 /*
 // Copyright (C) 2020-2025 Pen, Dice & Paper
 //
@@ -25,14 +26,16 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
-use crate::frame::*;
-use crate::generators::*;
-use crate::instance::*;
-use crate::renderer::render_entity;
-use crate::repository::*;
-use crate::semantics::*;
+use crate::{
+    frame::*,
+    generators::*,
+    instance::*,
+    renderer::{RendererContext, render_entity, render_indirections},
+    repository::*,
+    semantics::*,
+};
 
 /// A trait for creating commands that assign primitive values to
 /// an attribute
@@ -64,7 +67,10 @@ pub trait EntityAssigner {
 }
 
 pub trait RefInjectCommand {
-    fn make(name: String, path: Vec<String>) -> Arc<dyn InjectCommand + Send + Sync>;
+    fn make(
+        name: String,
+        path: Vec<String>,
+    ) -> Arc<dyn InjectCommand + Send + Sync>;
 }
 
 #[derive(Clone)]
@@ -105,11 +111,14 @@ impl AttrCommand for AttrCommandAssigner {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
         let entity = tx.load(euid)?;
-        if entity.as_object().unwrap().contains_key(&self.name) && self.value.is_boolean() {
+        if entity.as_object().unwrap().contains_key(&self.name)
+            && self.value.is_boolean()
+        {
             log::warn!(
                 "Entity class {} has an override with value {} for attribute {} already set to {}",
                 entity["class"],
@@ -126,6 +135,7 @@ impl AttrCommand for AttrCommandAssigner {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -135,6 +145,68 @@ impl AttrCommand for AttrCommandAssigner {
     }
     fn value(&self) -> Option<String> {
         Some(self.value.as_str().unwrap().to_string())
+    }
+}
+
+/// A trait for creating commands that assign global vars values to
+/// an attribute
+pub trait GlobalVarAssigner {
+    fn new(name: String, global_var: String) -> Self;
+}
+
+/// An attribute command used when assigning global vars values to attributes:
+///
+/// ```text
+/// Cat {
+///     age = $global_cat_age_for_some_reason
+/// }
+/// ```
+#[derive(Clone)]
+pub struct AttrCommandVarAssigner {
+    pub name: String,
+    pub global_var: String,
+}
+
+impl GlobalVarAssigner for AttrCommandVarAssigner {
+    fn new(name: String, global_var: String) -> Self {
+        AttrCommandVarAssigner { name, global_var }
+    }
+}
+
+impl AttrCommand for AttrCommandVarAssigner {
+    fn apply(
+        &self,
+        _ctx: &mut Context,
+        _builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
+        tx: &mut ReadWriteTransaction,
+        euid: &str,
+    ) -> Result<()> {
+        let entity = tx.load(euid)?;
+
+        entity[&self.name] = blueprint
+            .globals
+            .get(&self.global_var)
+            .ok_or(anyhow::anyhow!(
+                "Failed to find global value for {}",
+                self.global_var
+            ))?
+            .clone();
+
+        Ok(())
+    }
+
+    fn revert(
+        &self,
+        _ctx: &mut Context,
+        _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
+        tx: &mut ReadWriteTransaction,
+        euid: &str,
+    ) -> Result<()> {
+        let entity = tx.load(euid)?;
+        entity.clear(&self.name);
+        Ok(())
     }
 }
 
@@ -160,6 +232,7 @@ impl AttrCommand for AttrCommandWeakAssigner {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -172,6 +245,7 @@ impl AttrCommand for AttrCommandWeakAssigner {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -204,6 +278,7 @@ impl AttrCommand for AttrCommandDice {
         &self,
         _ctx: &mut Context,
         builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -221,6 +296,7 @@ impl AttrCommand for AttrCommandDice {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -248,11 +324,18 @@ impl AttrCommand for AttrCommandPrerenderedAssigner {
         &self,
         _ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
         let ro_entity = tx.retrieve(euid)?;
-        let rendered = render_entity(builder.sandbox, tx, &ro_entity.value, true)?;
+        let rendered = render_entity(
+            builder.sandbox,
+            blueprint,
+            tx,
+            &ro_entity.value,
+            true,
+        )?;
         let prerendered = builder
             .templating_env
             .render_str(self.value.as_str().unwrap(), &rendered)?;
@@ -265,6 +348,7 @@ impl AttrCommand for AttrCommandPrerenderedAssigner {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -320,83 +404,130 @@ impl AttrCommand for AttrCommandRollEntity {
         &self,
         ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
-        let (min, max) = match ctx {
-            Context::Appending(_) => (1, 1),
-            Context::Rerolling(_) => (1, 1),
+        let (min, max, class_override) = match ctx {
+            Context::Appending(payload) => (1, 1, payload.class_override),
+            Context::Rerolling(payload) => (1, 1, payload.class_override),
             Context::Rolling => (
-                resolve_value(builder, &self.min),
-                resolve_value(builder, &self.max),
+                resolve_value(blueprint, &self.min),
+                resolve_value(blueprint, &self.max),
+                None,
             ),
-            _ => return Err(anyhow!("Invalid context when applying roll: {:#?}", ctx)),
-        };
-        let class_names = match &self.class_names {
-            ClassNamesToRoll::List(v) => v.clone(),
-            ClassNamesToRoll::Indirect(s) => {
-                let entity = tx.load(euid)?;
-                vec![entity[s].as_str().unwrap().to_string()]
+            _ => {
+                return Err(anyhow!(
+                    "Invalid context when applying roll: {:#?}",
+                    ctx
+                ));
             }
-            ClassNamesToRoll::Unset() => unreachable!(),
+        };
+        let class_names = if let Some(class_name) = class_override {
+            vec![class_name.to_string()]
+        } else {
+            match &self.class_names {
+                ClassNamesToRoll::List(v) => v.clone(),
+                ClassNamesToRoll::Indirect(s) => {
+                    let entity = tx.load(euid)?;
+                    let mut rc = RendererContext {
+                        cache: HashMap::new(),
+                        env: builder.templating_env.clone(),
+                    };
+                    let entity_copy = entity.clone();
+                    match &entity[s] {
+                        serde_json::Value::String(v) => vec![v.to_string()],
+                        serde_json::Value::Object(_) => {
+                            vec![
+                                render_indirections(
+                                    &mut rc,
+                                    builder.sandbox,
+                                    blueprint,
+                                    tx,
+                                    &entity_copy,
+                                    s,
+                                )?
+                                .as_str()
+                                .unwrap()
+                                .to_string(),
+                            ]
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                ClassNamesToRoll::Unset() => unreachable!(),
+            }
         };
         let uid = {
             let entity = tx.load(euid)?;
             entity["uid"].as_str().unwrap().to_string()
         };
-        let seq =
-            if max == 0 && min == 0 {
-                serde_json::json!([])
+        let seq = if max == 0 && min == 0 {
+            serde_json::json!([])
+        } else {
+            let n = if max - min > 0 {
+                builder.randomizer.in_range(min, max)
             } else {
-                let n = if max - min > 0 {
-                    builder.randomizer.in_range(min, max)
-                } else {
-                    min
-                };
-                let mut ret: serde_json::Value = {
-                    let entity = tx.load(euid)?;
-                    match ctx {
-                        Context::Appending(_) => entity[&self.name].clone(),
-                        Context::Rerolling(_) => entity[&self.name].clone(),
-                        Context::Rolling => serde_json::json!([]),
-                        _ => return Err(anyhow!("Invalid context when applying roll: {:#?}", ctx)),
-                    }
-                };
-                for _ in 0..n {
-                    let actual_class_name = builder.randomizer.choose::<String>(&class_names);
-                    let generated_uid =
-                        roll(builder, tx, actual_class_name, &uid, Some(&self.injectors))?;
-                    {
-                        let entity = tx.load(&generated_uid)?;
-                        entity["$parent"] = serde_json::json!({
-                            "uid": &uid,
-                            "attr": self.name,
-                        });
-                        tx.save(&generated_uid)?;
-                    }
-
-                    if let Context::Rerolling(payload) = ctx {
-                        if let Some(index) = ret.as_array_mut().unwrap().iter().position(|value| {
-                            value.as_str().unwrap() == payload.existing_uid.as_str()
-                        }) {
-                            ret.as_array_mut().unwrap()[index] =
-                                serde_json::Value::from(generated_uid.clone());
-                            payload.new_uid = Some(generated_uid.clone());
-                        } else {
-                        }
-                    } else {
-                        ret.as_array_mut()
-                            .unwrap()
-                            .push(serde_json::Value::from(generated_uid.clone()));
-                    }
-
-                    if let Context::Appending(payload) = ctx {
-                        payload.appended_uid = Some(generated_uid.clone());
-                    }
-                    collect(builder, tx, &uid, generated_uid.as_str(), actual_class_name)?;
-                }
-                serde_json::json!(ret)
+                min
             };
+            let mut ret: serde_json::Value = {
+                let entity = tx.load(euid)?;
+                match ctx {
+                    Context::Appending(_) => entity[&self.name].clone(),
+                    Context::Rerolling(_) => entity[&self.name].clone(),
+                    Context::Rolling => serde_json::json!([]),
+                    _ => {
+                        return Err(anyhow!(
+                            "Invalid context when applying roll: {:#?}",
+                            ctx
+                        ));
+                    }
+                }
+            };
+            for _ in 0..n {
+                let actual_class_name =
+                    builder.randomizer.choose::<String>(&class_names);
+                let generated_uid = roll(
+                    builder,
+                    blueprint,
+                    tx,
+                    actual_class_name,
+                    &uid,
+                    Some(&self.injectors),
+                )?;
+                {
+                    let entity = tx.load(&generated_uid)?;
+                    entity["$parent"] = serde_json::json!({
+                        "uid": &uid,
+                        "attr": self.name,
+                    });
+                    tx.save(&generated_uid)?;
+                }
+
+                if let Context::Rerolling(payload) = ctx {
+                    if let Some(index) =
+                        ret.as_array_mut().unwrap().iter().position(|value| {
+                            value.as_str().unwrap()
+                                == payload.existing_uid.as_str()
+                        })
+                    {
+                        ret.as_array_mut().unwrap()[index] =
+                            serde_json::Value::from(generated_uid.clone());
+                        payload.new_uid = Some(generated_uid.clone());
+                    } else {
+                    }
+                } else {
+                    ret.as_array_mut()
+                        .unwrap()
+                        .push(serde_json::Value::from(generated_uid.clone()));
+                }
+
+                if let Context::Appending(payload) = ctx {
+                    payload.appended_uid = Some(generated_uid.clone());
+                }
+            }
+            serde_json::json!(ret)
+        };
         {
             let entity = tx.load(euid)?;
             entity[&self.name] = seq;
@@ -408,6 +539,7 @@ impl AttrCommand for AttrCommandRollEntity {
         &self,
         _ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -430,7 +562,13 @@ impl AttrCommand for AttrCommandRollEntity {
         // to revert it, and will find nothing.
         if let Some(arr) = entity[&self.name].as_array() {
             for euid in arr.clone() {
-                unroll(builder, tx, euid.as_str().unwrap(), Some(&self.injectors))?;
+                unroll(
+                    builder,
+                    blueprint,
+                    tx,
+                    euid.as_str().unwrap(),
+                    Some(&self.injectors),
+                )?;
             }
         }
         // entity.clear(&self.name);
@@ -461,6 +599,7 @@ impl AttrCommand for AttrCommandRollFromList {
         &self,
         _ctx: &mut Context,
         builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -473,6 +612,7 @@ impl AttrCommand for AttrCommandRollFromList {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -501,6 +641,7 @@ impl AttrCommand for AttrCommandContext {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -519,6 +660,7 @@ impl AttrCommand for AttrCommandContext {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -551,10 +693,11 @@ impl AttrCommand for AttrCommandRollFromVariable {
         &self,
         _ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
-        let value = builder.sandbox.globals[&self.var]
+        let value = blueprint.globals[&self.var]
             .as_array()
             .ok_or(anyhow!("Unable to find {}", self.var))?;
         let entity = tx.load(euid)?;
@@ -566,6 +709,7 @@ impl AttrCommand for AttrCommandRollFromVariable {
         &self,
         _ctx: &mut Context,
         _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -628,21 +772,28 @@ impl AttrCommand for AttrCommandUseEntity {
         &self,
         ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
         let entity = tx.load(euid)?;
         if entity.is_missing(&self.name) {
             entity[&self.name] =
-                serde_json::to_value(Vec::new() as Vec<serde_json::Value>).unwrap();
+                serde_json::to_value(Vec::new() as Vec<serde_json::Value>)
+                    .unwrap();
         }
         let (min, max) = match ctx {
             Context::Appending(_) => (1, 1),
             Context::Rolling => (
-                resolve_value(builder, &self.min),
-                resolve_value(builder, &self.max),
+                resolve_value(blueprint, &self.min),
+                resolve_value(blueprint, &self.max),
             ),
-            _ => return Err(anyhow!("Invalid context when applying use: {:#?}", ctx)),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid context when applying use: {:#?}",
+                    ctx
+                ));
+            }
         };
         let class_names = match &self.class_names {
             ClassNamesToRoll::List(l) => l,
@@ -650,7 +801,9 @@ impl AttrCommand for AttrCommandUseEntity {
         };
         for _ in 0..builder.randomizer.in_range(min, max) {
             let cls = builder.randomizer.choose::<String>(class_names);
-            if let Ok(Some(selected_uid)) = use_collected(builder, tx, euid, cls) {
+            if let Ok(Some(selected_uid)) =
+                use_collected(builder, tx, euid, cls)
+            {
                 for injector in self.injectors.appenders.as_slice() {
                     injector.inject(builder, tx, &selected_uid, euid)?;
                 }
@@ -670,6 +823,7 @@ impl AttrCommand for AttrCommandUseEntity {
         &self,
         ctx: &mut Context,
         builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -686,13 +840,17 @@ impl AttrCommand for AttrCommandUseEntity {
                 injector.eject(builder, tx, uid_in_use, euid)?;
             }
             if let Ok(entity_in_use) = tx.load(uid_in_use) {
-                let entity_in_use_class_name = entity_in_use["class"].as_str().unwrap().to_string();
-                entity_in_use["$users"]
-                    .as_array_mut()
-                    .unwrap()
-                    .retain(|user| !(user["uid"] == euid && user["attr"] == self.name));
+                entity_in_use["$users"].as_array_mut().unwrap().retain(
+                    |user| !(user["uid"] == euid && user["attr"] == self.name),
+                );
                 tx.save(uid_in_use)?;
-                recycle(tx, euid, uid_in_use, &entity_in_use_class_name)?;
+                let class_names = match &self.class_names {
+                    ClassNamesToRoll::List(l) => l,
+                    _ => unreachable!(),
+                };
+                for cls in class_names {
+                    recycle(tx, euid, uid_in_use, &cls)?;
+                }
             }
         }
         // entity.clear(&self.name); // This is likely redundant, but kept for clarity
@@ -754,21 +912,28 @@ impl AttrCommand for AttrCommandPickEntity {
         &self,
         ctx: &mut Context,
         builder: &SandboxBuilder,
+        blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
         let entity = tx.load(euid)?;
         if entity.is_missing(&self.name) {
             entity[&self.name] =
-                serde_json::to_value(Vec::new() as Vec<serde_json::Value>).unwrap();
+                serde_json::to_value(Vec::new() as Vec<serde_json::Value>)
+                    .unwrap();
         }
         let (min, max) = match ctx {
             Context::Appending(_) => (1, 1),
             Context::Rolling => (
-                resolve_value(builder, &self.min),
-                resolve_value(builder, &self.max),
+                resolve_value(blueprint, &self.min),
+                resolve_value(blueprint, &self.max),
             ),
-            _ => return Err(anyhow!("Invalid context when applying pick: {:#?}", ctx)),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid context when applying pick: {:#?}",
+                    ctx
+                ));
+            }
         };
 
         let class_names = match &self.class_names {
@@ -778,7 +943,9 @@ impl AttrCommand for AttrCommandPickEntity {
         let mut uniqueness_check_set: HashSet<String> = HashSet::new();
         for _ in 0..builder.randomizer.in_range(min, max) {
             let cls = builder.randomizer.choose::<String>(class_names);
-            if let Ok(Some(selected_uid)) = pick_collected(builder, tx, euid, cls) {
+            if let Ok(Some(selected_uid)) =
+                pick_collected(builder, tx, euid, cls)
+            {
                 if !uniqueness_check_set.insert(selected_uid.clone()) {
                     continue;
                 }
@@ -792,6 +959,10 @@ impl AttrCommand for AttrCommandPickEntity {
                 list.push(serde_json::to_value(selected_uid)?);
             }
         }
+        if (uniqueness_check_set.len() as i32) < min {
+            let cls = builder.randomizer.choose::<String>(class_names);
+            add_demand(tx, euid, cls)?;
+        }
         Ok(())
     }
 
@@ -799,6 +970,7 @@ impl AttrCommand for AttrCommandPickEntity {
         &self,
         ctx: &mut Context,
         builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
         tx: &mut ReadWriteTransaction,
         euid: &str,
     ) -> Result<()> {
@@ -815,10 +987,9 @@ impl AttrCommand for AttrCommandPickEntity {
                 injector.eject(builder, tx, uid_in_use, euid)?;
             }
             if let Ok(entity_in_use) = tx.load(uid_in_use) {
-                entity_in_use["$users"]
-                    .as_array_mut()
-                    .unwrap()
-                    .retain(|user| !(user["uid"] == euid && user["attr"] == self.name));
+                entity_in_use["$users"].as_array_mut().unwrap().retain(
+                    |user| !(user["uid"] == euid && user["attr"] == self.name),
+                );
                 tx.save(uid_in_use)?;
             }
         }
@@ -974,7 +1145,10 @@ pub struct InjectCommandCopyValue {
 }
 
 impl RefInjectCommand for InjectCommandCopyValue {
-    fn make(name: String, path: Vec<String>) -> Arc<dyn InjectCommand + Send + Sync> {
+    fn make(
+        name: String,
+        path: Vec<String>,
+    ) -> Arc<dyn InjectCommand + Send + Sync> {
         Arc::new(InjectCommandCopyValue { name, path })
     }
 }
@@ -988,7 +1162,9 @@ impl InjectCommand for InjectCommandCopyValue {
         caller: &str,
     ) -> Result<()> {
         let value = {
-            if let Some((pointer_uid, pointer_attr_name)) = walk_path(caller, &self.path, tx)? {
+            if let Some((pointer_uid, pointer_attr_name)) =
+                walk_path(caller, &self.path, tx)?
+            {
                 let src = tx.load(pointer_uid.as_str().unwrap())?;
                 src[pointer_attr_name.as_str().unwrap()].clone()
             } else {
@@ -1031,7 +1207,10 @@ pub struct InjectCommandPtr {
 }
 
 impl RefInjectCommand for InjectCommandPtr {
-    fn make(name: String, path: Vec<String>) -> Arc<dyn InjectCommand + Send + Sync> {
+    fn make(
+        name: String,
+        path: Vec<String>,
+    ) -> Arc<dyn InjectCommand + Send + Sync> {
         Arc::new(InjectCommandPtr { name, path })
     }
 }
@@ -1044,7 +1223,9 @@ impl InjectCommand for InjectCommandPtr {
         euid: &str,
         caller: &str,
     ) -> Result<()> {
-        if let Some((pointer_uid, pointer_attr_name)) = walk_path(caller, &self.path, tx)? {
+        if let Some((pointer_uid, pointer_attr_name)) =
+            walk_path(caller, &self.path, tx)?
+        {
             let value = serde_json::json!({
                 "type": "pointer",
                 "spec": {
@@ -1054,7 +1235,12 @@ impl InjectCommand for InjectCommandPtr {
             });
             let entity = tx.load(euid)?;
             entity[&self.name] = value;
-            add_user_to_entity(tx, pointer_uid.as_str().unwrap(), euid, &self.name)?;
+            add_user_to_entity(
+                tx,
+                pointer_uid.as_str().unwrap(),
+                euid,
+                &self.name,
+            )?;
             Ok(())
         } else {
             Err(anyhow!(
@@ -1146,12 +1332,12 @@ fn walk_path(
 /// Values can be set explicitly as integers, or indirectly from variables.
 /// When no cardinality is specified, then we assume a single entity
 /// is being generated.
-fn resolve_value(builder: &SandboxBuilder, cv: &CardinalityValue) -> i32 {
+fn resolve_value(blueprint: &SandboxBlueprint, cv: &CardinalityValue) -> i32 {
     match cv {
         CardinalityValue::Number(n) => *n,
         CardinalityValue::Variable(v) => {
             log::info!("{}", v);
-            builder.sandbox.globals.get(v).unwrap().as_i64().unwrap() as i32
+            blueprint.globals.get(v).unwrap().as_i64().unwrap() as i32
         }
         CardinalityValue::Undefined => 1,
     }

@@ -136,26 +136,28 @@ Dungeon { ^ $dungeon_classes
     {% endfor %}
   %>
 
+  MaxHD = :Realm.MaxHD
   WanderingMonstersTable? ~ <%
     {% if GeneratedMonsters %}
-    {% set monsters_count = 0 %}
+    {% set monsters_count = namespace(value=0) %}
     {%for m in unique(GeneratedMonsters, "Title") %}
-    {% if m.HitDice < global("wandering_monsters_max_hd", 4) %}
-    {% set monsters_count = monsters_count + 1 %}
+    {% if m.HitDice <= MaxHD %}
+    {% set monsters_count.value = monsters_count.value + 1 %}
     {% endif %}
     {%endfor%}
-    {% if monsters_count > 0 %}
-    {% if monsters_count > 10 %}
-    {% set monsters_count = 10 %}
+    {{ monster_count }}
+    {% if monsters_count.value > 0 %}
+    {% if monsters_count.value > 10 %}
+    {% set monsters_count.value = 10 %}
     {%endif%}
     <h5> Wandering Monsters </h5>
-    <p> There's a <strong>1-in-6</strong> chance of encountering one of: </p>
-    {%set counter.value=1%}
+    <p> There's a {{dice_roller("1d6","1 in 6")}} chance of encountering one of: </p>
+    {%set counter = namespace(value=1)%}
     <div class='condensed'></div>
     <table>
-    <tr> <th> 1d{{monsters_count}} </th> <th> Encounter </th> <th> Stats </th> </tr>
+    <tr> <th> 1d{{monsters_count.value}} </th> <th> Encounter </th> <th> Stats </th> </tr>
     {%for m in unique(GeneratedMonsters,"Title") %}
-    {% if m.HitDice < global("wandering_monsters_max_hd", 4) and counter.value <= monsters_count%}
+    {% if m.HitDice <= MaxHD and counter.value <= monsters_count%}
     <tr> <td> {{counter.value}} </td>
          <td> {{m.TitlePluralizedByLair}} </td>
          <td> {{m.Stats}} </td>
@@ -173,6 +175,13 @@ Dungeon { ^ $dungeon_classes
     {{Extension.Prescript}}
     <h5> Conspectus </h5>
     <ul>
+    {% set max_hd = namespace(value=0) %}
+    {% if GeneratedMonsters %}
+    {% for m in GeneratedMonsters %}
+    {% if m.HitDice > max_hd.value %} {% set max_hd.value = m.HitDice %} {% endif %}
+    {% endfor %}
+    <li> Hosts monsters up to <strong>{{max_hd.value}} HD</strong> </li>
+    {% endif %}
     {% if FactionLair and FactionLair.Faction %}
     <li>
     {{FactionLair.Faction}}
@@ -236,27 +245,28 @@ Dungeon { ^ $dungeon_classes
 DungeonWanderingMonsters {
   [10..10 monsters] % Monster
   Trap @ AreaTrap
+  MaxHD = :Realm.MaxHD
 
   RandomTable! ~ <%
     {% if Trap.Description %}
     <h5> Trap! </h5>
     {{Trap.Description}}
     {% endif %}
-    {% set monsters_count = 0 %}
+    {% set monsters_count = namespace(value=0) %}
     {%for m in unique(monsters, "Title") %}
-    {% if m.HitDice < 4 %}
-    {% set monsters_count = monsters_count + 1 %}
+    {% if m.HitDice <= MaxHD %}
+    {% set monsters_count.value = monsters_count.value + 1 %}
     {% endif %}
     {%endfor%}
-    {% if monsters_count > 0 %}
+    {% if monsters_count.value > 0 %}
     <h5> Wandering Monsters </h5>
-    <p> There's a <strong>1-in-6</strong> chance of encountering one of: </p>
-    {%set counter.value=1%}
+    <p> There's a {{dice_roller("1d6","1 in 6")}} chance of encountering one of: </p>
+    {%set counter = namespace(value=1)%}
     <div class='condensed'></div>
     <table>
-    <tr> <th> 1d{{monsters_count}} </th> <th> Encounter </th> <th> Stats </th> </tr>
+    <tr> <th> {{dice_roller("1d"+(monsters_count.value | string),"1d"+(monsters_count.value | string))}} </th> <th> Encounter </th> <th> Stats </th> </tr>
     {%for m in unique(monsters,"Title") %}
-    {% if m.HitDice < global("wandering_monsters_max_hd", 4) %}
+    {% if m.HitDice <= MaxHD %}
     <tr> <td> {{counter.value}} </td>
          <td> {{m.TitlePluralizedByLair}} </td>
          <td> {{m.Stats}} </td>
@@ -377,8 +387,10 @@ AreaDescription {
     %>
 }
 
+Dummy {}
+
 CorridorDescription {
-  doors = null-array
+  [0..0 doors] @ Dummy
   HexLink = :Hex.uuid
   Wandering @ DungeonWanderingMonsters
   Atmosphere @ [
@@ -617,6 +629,7 @@ DungeonMonsterRumor (RealmRumor) {
   DungeonUUID = :Dungeon.uuid
   AreaUUID = :AreaDescription.uuid
   DungeonMonster = none
+  | RealmRumor
   Details! ~ <%
     There’s <strong>{{articlize(DungeonMonster.Title)}}</strong> in the
     <a href="{{sandbox()}}/location/{{AreaUUID}}">
@@ -628,6 +641,7 @@ DungeonTreasureRumor (RealmRumor) {
   DungeonName = :Dungeon.Name
   DungeonUUID = :Dungeon.uuid
   AreaUUID = :AreaDescription.uuid
+  | RealmRumor
   Details! ~ <%
     There’s a <strong>huge treasure</strong> in the
     <a href="{{sandbox()}}/location/{{AreaUUID}}">
@@ -638,7 +652,11 @@ DungeonTreasureRumor (RealmRumor) {
 
 DungeonEncounter {
   Description! ~ <%
-    {%if Monster.NumberAppearingRoaming==1%}There’s {{articlize(Monster.Title)}}{%else%} There are {{Monster.NumberAppearingRoaming}} {{Monster.Title}}s {%endif%} inside{%if Monster.Activity and Monster.Activity%}, {{Monster.Activity.Dungeon}}{%endif%}.
+    {%if Monster.BossName %}
+    <strong>{{Monster.BossName.Full}} the {{Monster.Title}}</strong> is inside this area{% if Monster.Activity %}, {{Monster.Activity.Dungeon}}{%endif%}.
+    {%else%}
+    {%if Monster.NumberAppearingRoaming==1%}There’s {{articlize(Monster.Title)}}{%else%} There are {{Monster.NumberAppearingRoaming}} {{plural(Monster.NumberAppearingRoaming,Monster.Title)}} {%endif%} inside{%if Monster.Activity%}, {{Monster.Activity.Dungeon}}{%endif%}.
+    {%endif%}
     {%if Monster.Intelligent %}Roll or decide for reaction.
     {%else%}{%if Monster.NumberAppearingRoaming==1%}It {%else%} They {%endif%} will attack anyone stepping in. {%endif%}
     <p>
@@ -686,11 +704,11 @@ DungeonDeadEndFeature {
   Title ~ <%
     {% if Feature.class=="DungeonPortal" %}
     Dead End (Magical Portal)
-    {% else if Feature.class=="AreaTrap" and Feature.Description %}
+    {% elif Feature.class=="AreaTrap" and Feature.Description %}
     Dead End (Trap!)
-    {% else if Feature.class=="DungeonFountain" %}
+    {% elif Feature.class=="DungeonFountain" %}
     Dead End (Fountain)
-    {% else if Feature.class=="DungeonRemains" %}
+    {% elif Feature.class=="DungeonRemains" %}
     Dead End (Body)
     {% else %}
     Dead End

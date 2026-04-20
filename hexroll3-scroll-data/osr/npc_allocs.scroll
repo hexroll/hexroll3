@@ -90,14 +90,14 @@ WarexpertRuler {
     * FighterLevel13
     * ElfLevel10
     * DwarfLevel11
-    * HalflingLevel8 
+    * HalflingLevel8
   ]
 }
 
 NecromancerRuler {
   ^ [
    * MagicuserLevel12
-   * MagicuserLevel13 
+   * MagicuserLevel13
   ]
 }
 

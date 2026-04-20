@@ -22,8 +22,9 @@
 // license. Please contact ithai at pendicepaper.com
 // for more information about commercial licensing terms.
 */
-use anyhow::{anyhow, Result};
-use redb::{ReadableTable, Savepoint};
+use anyhow::{Result, anyhow};
+use json_value_merge::Merge;
+use redb::{ReadableDatabase, ReadableTable, Savepoint};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -31,6 +32,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+#[derive(Clone)]
 pub struct Repository {
     pub db: Option<Arc<Mutex<redb::Database>>>,
 }
@@ -61,7 +63,7 @@ impl Repository {
             .map_err(|_| anyhow!("Failed to begin read transaction"))?;
 
         const TABLE: redb::TableDefinition<String, JsonValue> =
-            redb::TableDefinition::new("my_data2");
+            redb::TableDefinition::new("sandbox");
 
         let table = tx
             .open_table(TABLE)
@@ -87,7 +89,7 @@ impl Repository {
             .begin_write()
             .map_err(|_| anyhow!("Failed to begin write transaction"))?;
         const TABLE: redb::TableDefinition<String, JsonValue> =
-            redb::TableDefinition::new("my_data2");
+            redb::TableDefinition::new("sandbox");
 
         let closure_result = {
             let table = tx.open_table(TABLE)?;
@@ -142,7 +144,7 @@ impl Repository {
             .begin_read()
             .map_err(|_| anyhow!("Failed to begin read transaction"))?;
         const TABLE: redb::TableDefinition<String, JsonValue> =
-            redb::TableDefinition::new("my_data2");
+            redb::TableDefinition::new("sandbox");
         let closure_result: R;
         {
             let table = tx.open_table(TABLE)?;
@@ -208,7 +210,11 @@ impl<'a> ReadWriteTransaction<'a> {
         }
         Ok(self.cache.get_mut(uid).unwrap())
     }
-    pub fn store(&mut self, uid: &str, value: &serde_json::Value) -> Result<()> {
+    pub fn store(
+        &mut self,
+        uid: &str,
+        value: &serde_json::Value,
+    ) -> Result<()> {
         self.table
             .insert(
                 uid.to_string(),
@@ -229,6 +235,32 @@ impl<'a> ReadWriteTransaction<'a> {
             Err(anyhow!("Entity not found in cache"))
         }
     }
+    pub fn patch(
+        &mut self,
+        uid: &str,
+        attrs: &serde_json::Value,
+    ) -> Result<()> {
+        let entry = self
+            .cache
+            .get(uid)
+            .ok_or_else(|| anyhow!("Entity not found in cache"))?;
+
+        let mut value = entry.clone();
+        value.merge(attrs);
+
+        self.table
+            .insert(
+                uid.to_string(),
+                &JsonValue {
+                    value: value.clone(),
+                },
+            )
+            .map_err(|e| anyhow!(e))?;
+
+        self.cache.insert(uid.to_string(), value);
+
+        Ok(())
+    }
     pub fn remove(&mut self, uid: &str) -> Result<()> {
         self.table.remove(uid.to_string())?;
         if self.cache.contains_key(uid) {
@@ -236,7 +268,11 @@ impl<'a> ReadWriteTransaction<'a> {
         }
         Ok(())
     }
-    pub fn emplace_and_save(&mut self, uid: &str, v: serde_json::Value) -> Result<()> {
+    pub fn emplace_and_save(
+        &mut self,
+        uid: &str,
+        v: serde_json::Value,
+    ) -> Result<()> {
         self.cache.insert(uid.to_string(), v);
         self.save(uid)
     }
@@ -332,11 +368,13 @@ pub struct JsonValue {
 }
 
 impl redb::Value for JsonValue {
-    type SelfType<'a> = JsonValue
-        where
+    type SelfType<'a>
+        = JsonValue
+    where
         Self: 'a;
-    type AsBytes<'a> = Vec<u8>
-        where
+    type AsBytes<'a>
+        = Vec<u8>
+    where
         Self: 'a;
 
     fn fixed_width() -> Option<usize> {

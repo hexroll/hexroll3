@@ -32,7 +32,7 @@ DungeonFungi {
 
   Quantity @ [
     * a few
-    * a few dozen of
+    * a few dozen
     * countless
     ]
 
@@ -46,13 +46,13 @@ DungeonFungi {
 
   Description! @ [
     * {{capitalize(Quantity)}} green and purple bioluminescent mushrooms are
-      growing from cracks in the ground. Anyone consuming them {{Effect}}
+      growing from cracks in the ground. Anyone consuming them {{Effect}}.
     * There are {{Quantity}} colourful bioluminescent mushrooms growing from
-      cracks in the ground. Anyone consuming these {{Effect}}
+      cracks in the ground. Anyone consuming these {{Effect}}.
     * {{capitalize(Quantity)}} blue, red and yellow bioluminescent mushrooms
-      are growing from cracks in the ground. Anyone consuming them {{Effect}}
+      are growing from cracks in the ground. Anyone consuming them {{Effect}}.
     * There are {{Quantity}} colourful bioluminescent mushrooms growing from
       cracks in the ground. Anyone consuming these will gain the same
-      effect as if they consumed {{articlize(PotionEffect.Description)}}
+      effect as if they consumed {{articlize(PotionEffect.Description)}}.
       ]
 }

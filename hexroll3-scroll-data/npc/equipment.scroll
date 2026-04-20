@@ -24,10 +24,10 @@
 #
 
 InThePocket {
-	^ [
+  ^ [
     *(x01) EmptyPocket
     *(x10) PocketContent
-	]
+  ]
 }
 EmptyPocket {
   Details! = ""
@@ -96,7 +96,7 @@ Gear(Equipment) { ^ [
 }
 
 Tools {
-	^ [
+  ^ [
     * StakesAndMallet
     * Crowbar
     * GrapplingHook
@@ -118,36 +118,36 @@ Tools {
     * Quill
     * EmptyScroll
     * Lens
-	]
+  ]
 }
 
 Lighting(Gear) {
-	^ [
+  ^ [
     * Lantern
     * Oil
     * TinderBox
     * SixTorches
     * Candles
-	]
+  ]
 }
 
 HolyItems(Gear) {
-	^ [
+  ^ [
     * HolySymbol
     * HolyWater
-	]
+  ]
 }
 
 Storage(Gear) {
-	^[
+  ^[
     * SmallSack
     * LargeSack
     * Backpack
-	]
+  ]
 }
 
 Food(Gear) {
-	^ [
+  ^ [
     * IronRations
     * Rations
     * Waterskin
@@ -170,11 +170,11 @@ Food(Gear) {
     * Lobster
     * FreshGame
     * DriedMeat
-	]
+  ]
 }
 
 Fish {
-	^ [
+  ^ [
     * IronRations
     * Rations
     * Salt
@@ -184,11 +184,11 @@ Fish {
     * SmallShellFish
     * Lobster
     * FishingRod
-	]
+  ]
 }
 
 MeatAndFish {
-	^ [
+  ^ [
     * IronRations
     * Rations
     * Salt
@@ -201,22 +201,22 @@ MeatAndFish {
     * FreshGame
     * FreshMeat
     * DriedMeat
-	]
+  ]
 }
 
 Drinks {
-	^ [
+  ^ [
     * CommonBeer
     * CraftBeer
     * Cider
     * CommonWine
     * CraftWine
     * RoyalWine
-	]
+  ]
 }
 
 Wearables(Gear) {
-	^ [
+  ^ [
     * Wolfsbane
     * ClothingCommonOutfit
     * ClothingFineOutfit
@@ -269,7 +269,7 @@ Wearables(Gear) {
     * ClothingVeil
     * ClothingCap
     * ClothingLeatherHat
-	]
+  ]
 }
 
 Hats(Gear) {
@@ -282,7 +282,7 @@ Hats(Gear) {
 }
 
 LeatherMade(Gear) {
-	^ [
+  ^ [
     * ClothingLeatherApron
     * ClothingLeatherCoat
     * ClothingLeatherLeggings
@@ -290,7 +290,7 @@ LeatherMade(Gear) {
     * ClothingLeatherGloves
     * ClothingLeatherHat
     * Storage
-	]
+  ]
 }
 
 ArmorWeapon {
@@ -320,4 +320,4 @@ ArmorWeapon {
     *(x1) ArmorPlatemail
     ]
 }
-    
+

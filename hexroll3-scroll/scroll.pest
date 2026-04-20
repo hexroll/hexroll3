@@ -67,7 +67,7 @@ attributes = _{ (roll | inheritance | context_assignment | assignment | weak_ass
 
 // Assignments
 prepend_assignment = { property ~ ":=" ~ (context | value) }
-assignment = { property ~ "=" ~ value }
+assignment = { property ~ "=" ~ (global | value) }
 weak_assignment = { property ~ "~" ~ value }
 prerendered_assignment = { property ~ "`" ~ value }
 context_assignment = { property ~ "=" ~ (context | context_ptr)}
@@ -82,9 +82,9 @@ roll_from_indirect = { property ~ "@" ~ indirect ~ injections? }
 indirect = ${"&" ~ identifier}
 roll_a_dice = { property ~ "@" ~ dice_value }
 roll_an_entity = { (array | property)  ~ "@" ~ entity_name ~ injections? }
-pop_an_entity = { (array | property)  ~ "%" ~ entity_name ~ injections? }
-pick_an_entity = { (array | property)  ~ "?" ~ entity_name ~ injections? }
-roll_one_of = { property ~ "@@" ~ entities_list ~ injections?}
+pick_an_entity = { (array | property)  ~ "%" ~ entity_name ~ injections? }
+pop_an_entity = { (array | property)  ~ "?" ~ entity_name ~ injections? }
+roll_one_of = { (array | property) ~ "@@" ~ entities_list ~ injections?}
 injections = { "~"? ~ "{" ~ ( prepend_ptr | append_ptr | prepend_copy_value | append_copy_value |  prepend_assignment | assignment | roll_from_list | roll_a_dice ) * ~"}"}
 prepend_copy_value = { property ~ ":=" ~ "&" ~  (attr_attr_spec | attr_spec) }
 append_copy_value = { property ~ "=" ~ "&" ~  (attr_attr_spec | attr_spec ) }

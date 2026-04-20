@@ -28,7 +28,7 @@ Jungle {
   Statue @ [
     * angry demon
     * giant sleeping monkey
-    * three robed priestesses 
+    * three robed priestesses
   ]
   Skeleton @ [
     * dragon, as if sleeping peacefully
@@ -61,13 +61,13 @@ Jungle {
       luminous colourful glow above the ground.
 
     * Dense ivy and vegetation cover an old skeleton of a {{Skeleton}}
-      in a clearing surrounded by the jungle trees. 
+      in a clearing surrounded by the jungle trees.
 
-    * Ropes tangle down the branches here. On some, straw-made figures 
+    * Ropes tangle down the branches here. On some, straw-made figures
       of humanoids are hanging down by their canvas covered heads.
 
     * Dozens of giant dead tree trunks are laying on the ground here, covered
-      with moss and undergrowth. Some of them seem to have a face, with a 
+      with moss and undergrowth. Some of them seem to have a face, with a
       frozen expression of agony.
 
     * An oversized statue of {{articlize(Statue)}} holding a sword

@@ -36,11 +36,11 @@ ContainerTrap { ^ [ * NoTrap
 NoTrap {
     Description! = none
 }
-  
+
 
 PoisonTrapDamage = [
-  * Save vs Poison or sustain 1d6 turns of uncontrolled spasms.
-  * Save vs Poison or die in 1d4 turns.
+  * Save vs Poison or sustain <strong>{{dice_roller("1d6","1d6")}}</strong> turns of uncontrolled spasms.
+  * Save vs Poison or die in <strong>{{dice_roller("1d4","1d4")}}</strong> turns.
 ]
 
 ContainerNeedleTrap {
@@ -48,8 +48,8 @@ ContainerNeedleTrap {
   Damage @ $PoisonTrapDamage
   Description! ~ <%
       There's a <strong>poisoned needle</strong> {{ContainerType.TrapLocation}}.  If undetected,
-      there's a <strong>2 in 6</strong> chance of getting pricked.  {{Damage}}
-      %> 
+      there's a {{dice_roller("1d6","2 in 6")}} chance of getting pricked.  {{Damage}}
+      %>
 }
 
 
@@ -64,7 +64,7 @@ ContainerVapourTrap {
   Damage @ $PoisonTrapDamage
   Description! ~ <%
       There's a small <strong>gas-filled</strong> {{Vessel}}
-      {{ContainerType.TrapLocation}}.  If undetected, there's a <strong>2 in 6</strong> chance of popping
+      {{ContainerType.TrapLocation}}.  If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of popping
       it.  {{Damage}}
       %>
 }
@@ -78,15 +78,15 @@ ContainerTouchTrap {
   ]
     Description! ~ <%
         {{capitalize(articlize(Agent))}} was applied on the {{ContainerType.PluralizedName}}.
-        If undetected, there's a <strong>2 in 6</strong> chance of touching it.
-        <strong>Save vs Petrification</strong> or sustain <strong>1d4 damage</strong>.
+        If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of touching it.
+        <strong>Save vs Petrification</strong> or sustain <strong>{{dice_roller("1d4","1d4")}} damage</strong>.
         %>
 }
 
 TrapObjectRubble {
       noun! = rubble
       aux! = is
-    
+
 }
 TrapObjectDebris {
       noun! = debris
@@ -94,7 +94,7 @@ TrapObjectDebris {
 }
 TrapObjectStones {
       noun! = stones
-      aux! = are    
+      aux! = are
 }
 
 ContainerRubbleTrap {
@@ -107,13 +107,13 @@ ContainerRubbleTrap {
   Description! ~ <%
       <strong>Loose</strong> {{Object.noun}} {{Object.aux}} locked above the {{ContainerType.PluralizedName}}, released when a
       <strong>switch</strong> {{ContainerType.TrapLocation}} is triggered.  If undetected, there's a
-      <strong>2 in 6</strong> chance for the {{Object.noun}} to drop down.  <strong>Save vs
-      Petrification</strong> or sustain <strong>1d8 damage</strong>.
+      {{dice_roller("1d6","2 in 6")}} chance for the {{Object.noun}} to drop down.  <strong>Save vs
+      Petrification</strong> or sustain <strong>{{dice_roller("1d8","1d8")}} damage</strong>.
       %>
 }
 
 
-AreaTrap { 
+AreaTrap {
   ^ [
         *(x10) NoTrap
         * PitTrap
@@ -124,7 +124,7 @@ AreaTrap {
     ]
 }
 
-DeadEndTrap { 
+DeadEndTrap {
   ^ [
         * PitTrap
         * SwingingBladeTrap
@@ -147,7 +147,7 @@ PitTrap {
 
   Description! @ [
     * <p>There's a <strong>deadly pit</strong> here, 6' deep, {{Cover}}.  If
-      undetected, there's a <strong>2 in 6</strong> chance of falling in when
+      undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of falling in when
       stepped on. </p><p> {%if
       Monster.NumberAppearingRoaming==1%}{{capitalize(articlize(Monster.Title))}}
       is {%else%}{{Monster.NumberAppearingRoaming}}
@@ -161,15 +161,15 @@ PitTrap {
 
       {%if Monster.NumberAppearingRoaming<10%}{%for m in
       range(Monster.NumberAppearingRoaming)%} <sub>{% for hp in
-      range(dice(Monster.HitDiceRoll)) %}❏{%endfor%}</sub><br/>
+      range(stable_dice(Monster.HitDiceRoll, Monster.uuid, m)) %}❏{%endfor%}</sub><br/>
       {%endfor%}{%endif%}
 
       <hr/>
       </p>
 
     * There's a <strong>deadly pit</strong> here, 6' deep, {{Cover}}.
-      If undetected, there's a <strong>2 in 6</strong> chance of falling in.
-      <strong>Save vs Death</strong> or sustain <strong>1d6 damage</strong> from long rusty spikes at the
+      If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of falling in.
+      <strong>Save vs Death</strong> or sustain <strong>{{dice_roller("1d6","1d6")}} damage</strong> from long rusty spikes at the
       bottom.
 
   ]
@@ -189,21 +189,21 @@ SwingingBladeTrap {
 
   Description! @ [
     * There's a razor-sharp 4' tall <Strong>swinging blade trap</strong> here, <Strong>hidden</strong>
-      inside a thin long <Strong>wall slit</strong>.  If undetected, there's a <Strong>2 in 6</strong>
+      inside a thin long <Strong>wall slit</strong>.  If undetected, there's a {{dice_roller("1d6","2 in 6")}}
       chance of triggering if {{Trigger}}.  <Strong>Save vs Breath</strong> or sustain <Strong>2d4
       damage</strong>.
 
     * There's a crushing <Strong>swinging boulder trap</strong> here, <Strong>hidden</strong> inside the
-      <Strong>wall</strong>.  If undetected, there's a <strong>2 in 6</strong> chance of triggering if
-      {{Trigger}}. <strong>Save vs Breath</strong> or sustain <strong>2d4 damage</strong>.
+      <Strong>wall</strong>.  If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering if
+      {{Trigger}}. <strong>Save vs Breath</strong> or sustain <strong>{{dice_roller("2d4","2d4")}} damage</strong>.
 
     * There's a razor-sharp 5' tall <strong>swinging blade trap</strong> here, going back
-      and forth <strong>periodically</strong>.  If undetected, there's a chance of <Strong>2 in
-      6</strong> of passing it at the wrong time.  <Strong>Save vs Breath</strong> or sustain <Strong>2d4
+      and forth <strong>periodically</strong>.  If undetected, there's a chance of {{dice_roller("1d6","2 in 6")}}
+      of passing it at the wrong time.  <Strong>Save vs Breath</strong> or sustain <Strong>2d4
       damage</strong>.
 
     * There's a crushing <strong>swinging boulder trap</strong> here, going back and forth
-      <strong>periodically</strong>.  If undetected, there's a chance of <strong>2 in 6</strong> of
+      <strong>periodically</strong>.  If undetected, there's a chance of {{dice_roller("1d6","2 in 6")}} of
       passing it at the wrong time.  <strong>Save vs Breath</strong> or sustain <strong>2d4
       damage</strong>.
   ]
@@ -217,8 +217,8 @@ SpringedDeviceTrap {
 
   Description! ~ <%
       There's a <strong>spring-loaded spears trap</strong> here, hidden inside <strong>shafts in
-      the floor</strong>.  If undetected, there's a <strong>2 in 6 chance</strong> of triggering it if
-      {{Trigger}}. <strong>Save vs Death</strong> or sustain <strong>1d6 damage</strong> from the
+      the floor</strong>.  If undetected, there's a {{dice_roller("1d6","2 in 6")}} of triggering it if
+      {{Trigger}}. <strong>Save vs Death</strong> or sustain <strong>{{dice_roller("1d6","1d6")}} damage</strong> from the
       violent thrust of the jumping spears.
       %>
 
@@ -232,13 +232,13 @@ ProjectilesTrap {
 
   Description! @ [
     * There's a <strong>poisonous darts trap</strong> here, hidden inside <strong>shafts in the
-      wall</strong>.  If undetected, there's a 2 in 6 chance of triggering it if 
+      wall</strong>.  If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering it if
       {{Trigger}}.
       {{Damage}}
 
     * There's a <strong>crossbow trap</strong> here, hidden inside a </strong>niche in the wall</strong>.
-      If undetected, there's a 2 in 6 chance of triggering it if {{Trigger}}.
-      <strong>Save vs Breath</strong> or sustain <strong>1d6 damage</strong> from the fast and sharp
+      If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering it if {{Trigger}}.
+      <strong>Save vs Breath</strong> or sustain <strong>{{dice_roller("1d6","1d6")}} damage</strong> from the fast and sharp
       arrow.
 
   ]
@@ -253,13 +253,13 @@ VapourTrap {
   Trigger @ $TrapTriggers
   PoisonDamage @ $PoisonTrapDamage
   Description! @ [
-    * There's a <strong>poisonous gas trap</strong> here. If undetected, there's a 2 in 6
+    * There's a <strong>poisonous gas trap</strong> here. If undetected, there's a {{dice_roller("1d6","2 in 6")}}
       chance of triggering if {{Trigger}}, causing the gas to come out of
       <strong>slits in the wall</strong>.
       {{PoisonDamage}}
-    * There's an <strong>acidic vapour trap</strong> here. If undetected, there's a 2 in 6
+    * There's an <strong>acidic vapour trap</strong> here. If undetected, there's a {{dice_roller("1d6","2 in 6")}}
       chance of triggering if {{Trigger}}, causing a spray of acid to come out
-      of a <strong>hole in the wall</strong>.  <strong>Save vs Death</strong> or sustain <strong>1d6 damage</strong>
+      of a <strong>hole in the wall</strong>.  <strong>Save vs Death</strong> or sustain <strong>{{dice_roller("1d6","1d6")}} damage</strong>
       by acid.
   ]
 
@@ -295,9 +295,9 @@ DoorBladeTrap {
 
   Description! ~ <%
       There's a giant blade locked inside a cavity above the door.
-      If undetected, there's a 2 in 6 chance of triggering it if
+      If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering it if
       {{Trigger}}.
-      <strong>Save vs Petrification</strong> or sustain <strong>1d8 damage</strong>.
+      <strong>Save vs Petrification</strong> or sustain <strong>{{dice_roller("1d8","1d8")}} damage</strong>.
       %>
 
 
@@ -314,20 +314,20 @@ DoorMagicalTrap {
   ]
     Description! ~ <%
       This doorway is magically trapped.
-      If undetected, there's a 2 in 6 chance of triggering it
+      If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering it
       when crossing.
       <strong>Save vs Spells</strong> or {{Damage}}.
     %>
 
 }
-  
+
 DoorPitTrap {
   | DoorTrap
   Trigger @ $DoorTrapHandlingTriggers
   Description! ~ <%
       There's a concealed 10 foot deep pit next to the door.
-      If undetected, there's a 2 in 6 chance of triggering it if
+      If undetected, there's a {{dice_roller("1d6","2 in 6")}} chance of triggering it if
       {{Trigger}}.
-      <strong>Save vs Petrification</strong> or sustain <strong>1d8 damage</strong>.
+      <strong>Save vs Petrification</strong> or sustain <strong>{{dice_roller("1d8","1d8")}} damage</strong>.
     %>
 }

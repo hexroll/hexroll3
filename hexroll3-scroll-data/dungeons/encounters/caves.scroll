@@ -47,3 +47,12 @@ DungeonEncounterCaveSpecificTier2 (DungeonEncounterCaveSpecific) {
   | DungeonEncounterCaveSpecific
 }
 
+DungeonEncounterCaveSpecificTier3 (DungeonEncounterCaveSpecific) {
+  Monster! @ MonsterCavernsTier3
+  | DungeonEncounterCaveSpecific
+}
+
+DungeonEncounterCaveSpecificTier4 (DungeonEncounterCaveSpecific) {
+  Monster! @ MonsterCavernsTier4
+  | DungeonEncounterCaveSpecific
+}

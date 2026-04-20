@@ -53,6 +53,14 @@ DungeonEncounterMagicalTier3(DungeonEncounterMagical) {
   }
 }
 
+DungeonEncounterMagicalTier4(DungeonEncounterMagical) {
+  Monster! @ MonstersMagicalTier4
+  | DungeonEncounterMagical
+  Rumor @ DungeonMonsterRumor {
+    DungeonMonster = &Monster
+  }
+}
+
 DungeonEncounterMimic(DungeonEncounter) {
   Monster! @ Mimic
   | DungeonEncounter

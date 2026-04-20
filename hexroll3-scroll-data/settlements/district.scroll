@@ -33,22 +33,15 @@ Guard {
 }
 
 DistrictTavern(Tavern) {
+  $on_reroll = "remap_in_settlement"
   x_coords = 0
   y_coords = 0
+
   Name! @@ [
     *(x1) InnName
     *(x2) TavernName
   ]
-  LinkedName! ~ <%
-    <a href="{{sandbox()}}/location/{{uuid}}">
-    <strong>{{Name.Type}}</strong> ({{Name.Full}})
-    </a>
-  %>
-  InvertedLinkedName! ~ <%
-    <a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Name.Full}}</strong></a>
-    ({{Name.Type}})
-  %>
-  [2..5 patrons] ? Folk {
+  [2..5 patrons?] ? Folk {
     TavernOfChoiceUUID = &uuid
     TavernOfChoice = *Title
   }
@@ -61,6 +54,15 @@ DistrictTavern(Tavern) {
 
   | Tavern
 
+  LinkedName! ~ <%
+    <a href="{{sandbox()}}/location/{{uuid}}">
+    <strong>{{Name.Type}}</strong> ({{Title}})
+    </a>
+  %>
+  InvertedLinkedName! ~ <%
+    <a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Title}}</strong></a>
+    ({{Name.Type}})
+  %>
   RealmUUID? = :Realm.uuid
   RealmType? = :Realm.RealmType
   RealmName? = :Realm.Name
@@ -105,12 +107,12 @@ District {
 
   Tavern! @ DistrictTavern
 
-  SettlementUUID = :Settlement.uuid
-  SettlementName = *Settlement.NamePart
-  SettlementClass = :Settlement.class
-  SettlementBreadcrumb = <% <a href="{{sandbox()}}/location/{{SettlementUUID}}">{{SettlementClass}} of {{SettlementName}}</a> %>
+  SettlementUUID? = :Settlement.uuid
+  SettlementName? = *Settlement.NamePart
+  SettlementClass? = :Settlement.class
+  SettlementBreadcrumb? = <% <a href="{{sandbox()}}/location/{{SettlementUUID}}">{{SettlementClass}} of {{SettlementName}}</a> %>
 
-  [0..0 Guards] @ Guard
+  [0..0 Guards?] @ Guard
 
 
   LinkedName! = <%
@@ -126,7 +128,7 @@ District {
    {{shops | map(attribute="InvertedName") | bulletize('9726')}}
   %>
 
-  Overview! ~ <%
+  Overview? ~ <%
     <h5> Shops & Services </h5>
 
     {{Index}}
@@ -150,12 +152,12 @@ District {
     <data-map-coordinates class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="3"> </data-map-coordinates>
   %>
 
-  RealmUUID = :Realm.uuid
-  RealmType = :Realm.RealmType
-  RealmName = :Realm.Name
-  Realm = *Realm.Title
+  RealmUUID? = :Realm.uuid
+  RealmType? = :Realm.RealmType
+  RealmName? = :Realm.Name
+  Realm? = *Realm.Title
 
-  Breadcrumbs! ~ <%
+  Breadcrumbs? ~ <%
     <span class="breadcrumbs">
       {{sandbox_breadcrumb()}}
       {{toc_breadcrumb()}}

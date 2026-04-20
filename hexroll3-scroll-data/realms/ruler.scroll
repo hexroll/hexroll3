@@ -56,7 +56,7 @@ Ruler { ^ [ * Noble
     URLExt = "/realm/{{HostingEntity}}/npc/{{uuid}}"
     Profession = "entourage cleric"
   }
-  
+
 
   EntourageSage! @ EntourageSage {
     HostingEntity := &RealmUUID
@@ -84,14 +84,7 @@ NoblePerson (Ruler){
     HasClergy! = true
     HasSage! = true
     HasConfidant! = true
-    Title! = <%
-        {%if NPC.Gender.class=="Male"%}
-        duke
-        {%elif NPC.Gender.class=="Female"%}
-        duchess
-        {%else%}
-        duches
-        {%endif%} %>
+    Title! ~ <%{%if NPC.Gender.class=="Male"%}duke{%elif NPC.Gender.class=="Female"%}duchess{%else%}duches{%endif%}%>
 }
 
 Bishop (Ruler){
@@ -111,7 +104,7 @@ Bishop (Ruler){
 
 RulerSword (ArmorWeapon) {
   Title! = Sword + 3
-  Damage = "1d8+3"
+  Damage! = "1d8+3"
 }
 
 RulerWarhammer (ArmorWeapon){
@@ -136,15 +129,7 @@ Monarch (Ruler){
   HasClergy! = true
   HasSage! = true
   HasConfidant! = true
-  Title! = <%
-    {%if NPC.Gender.class=="Male"%}
-    king
-    {%elif NPC.Gender.class=="Female"%}
-    queen
-    {%else%}
-    monarch
-    {%endif%}
-    %>
+  Title! ~ <%{%if NPC.Gender.class=="Male"%}king{%elif NPC.Gender.class=="Female"%}queen{%else%}monarch{%endif%}%>
 }
 
 Warexpert (Ruler){
@@ -159,14 +144,7 @@ Warexpert (Ruler){
   HasClergy! = true
   HasSage! = true
   HasConfidant! = true
-  Title! = <%
-    {%if NPC.Gender.class=="Male"%}
-    warlord
-    {%elif NPC.Gender.class=="Female"%}
-    warlady
-    {%else%}
-    Warexpert
-    {%endif%} %>
+  Title! ~ <%{%if NPC.Gender.class=="Male"%}warlord{%elif NPC.Gender.class=="Female"%}warlady{%else%}Warexpert{%endif%}%>
 }
 
 Necromancer (Ruler){

@@ -32,19 +32,20 @@ CityDistrict(District) {
     * HarborDistrict
     * MarketDistrict
   ]
+  $on_reroll = "remap_in_settlement"
   | District
   SettlementName = *Settlement.NamePart
   GAlignment @ [
     *(x5) Lawful
     *(x1) Neutral
   ]
-  [2..3 Guards!] @ Guard {
+  [2..3 Guards?] @ Guard {
      Alignment = &GAlignment
      HostingEntity := &uuid
      Profession = "guard"
      URLExt = "/location/{{HostingEntity}}/npc/{{uuid}}"
   }
-  Overview! ~ <%
+  Overview? ~ <%
     <h5> Shops & Services </h5>
 
     {{Index}}
@@ -78,7 +79,7 @@ City(Settlement) {
   [4..8 districts?] @ CityDistrict
 
   # Population? ~ <%{{round(sum(attribute_list(districts,"Population"))*PopulationMultiplier,0)}}%>
-  Population? ~ <%{{ (sum((districts | map(attribute="Population") * PopulationMultiplier)) | int) }}%>
+  Population? ~ <%{{ districts | map(attribute="Population") | map('int') | sum }}%>
 
   Castle @ Castle
 
@@ -162,7 +163,7 @@ City(Settlement) {
   ]
 
   ConnectorTerm1 @ [
-	    * stands
+    * stands
     * stands boldly,
     * stands majestically,
     * decorates the horizon,
@@ -176,9 +177,9 @@ City(Settlement) {
   places_of_interest? << SettlementLocation
 
   Overview? ~ <%
-	<p>
+    <p>
     Population: {{Population}} residents
-	</p>
+    </p>
 
     {{Castle.Desc}}
 
@@ -351,7 +352,7 @@ ResidentialDistrict(District) {
 
   << Advert
   << LocalRumor
-  [5..9 shops!] @ ResidentialDistrictShop
+  [5..9 shops] @ ResidentialDistrictShop
   | CityDistrict
 }
 
@@ -434,7 +435,7 @@ PalaceDistrict(District) {
 
   << Advert
   << LocalRumor
-  [2..5 shops!] @ PalaceDistrictShop
+  [2..5 shops] @ PalaceDistrictShop
   | CityDistrict
 }
 
@@ -495,7 +496,7 @@ TempleDistrict(District) {
 
   << Advert
   << LocalRumor
-  [7..9 shops!] @ TempleDistrictShop
+  [7..9 shops] @ TempleDistrictShop
   | CityDistrict
 }
 
@@ -677,7 +678,7 @@ CraftingDistrict(District) {
 
   << Advert
   << LocalRumor
-  [9..22 shops!] @ CraftingDistrictShop
+  [9..22 shops] @ CraftingDistrictShop
   | CityDistrict
 }
 
@@ -755,7 +756,7 @@ HarborDistrict(District) {
   CostFactor! = 0.9
   << Advert
   << LocalRumor
-  [8..18 shops!] @ HarborDistrictShop
+  [8..18 shops] @ HarborDistrictShop
   | CityDistrict
 }
 
@@ -878,7 +879,7 @@ MarketDistrict(District) {
   CostFactor! = 0.9
   << Advert
   << LocalRumor
-  [18..28 shops!] @ MarketDistrictShop
+  [18..28 shops] @ MarketDistrictShop
   | CityDistrict
 }
 
