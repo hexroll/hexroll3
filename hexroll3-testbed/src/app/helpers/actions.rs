@@ -32,7 +32,7 @@ use hexroll3_scroll::{
     renderer::{render_entity, render_entity_html},
 };
 
-use crate::app::{helpers::config::ConfigSandboxState, HexrollTestbedApp};
+use crate::app::{HexrollTestbedApp, helpers::config::ConfigSandboxState};
 
 impl HexrollTestbedApp {
     fn refresh_raw_json(&mut self) {
@@ -55,12 +55,15 @@ impl HexrollTestbedApp {
             self.current_entity.json_rendered = serde_json::Value::Null;
             self.refresh_raw_json();
             self.prepare_demidom();
-            self.config[self.instance.as_ref().unwrap().sid.as_ref().unwrap()] =
+            self.config
+                [self.instance.as_ref().unwrap().sid.as_ref().unwrap()] =
                 ConfigSandboxState {
                     last_uid: uid.to_owned(),
                 };
             self.save_settings()
-                .map_err(|e| log::warn!("Unable to save configuration. Error is {:#}", e))
+                .map_err(|e| {
+                    log::warn!("Unable to save configuration. Error is {:#}", e)
+                })
                 .ok();
             if push_to_history {
                 self.history.push_front(uid.to_owned());
@@ -74,7 +77,8 @@ impl HexrollTestbedApp {
 
     pub fn roll_new_sandbox_dialog(&mut self, _ui: &mut egui::Ui) {
         self.file.config_mut().labels.save_button = "ROLL".to_string();
-        self.file.config_mut().labels.title_save_file = "Roll a new sandbox".to_string();
+        self.file.config_mut().labels.title_save_file =
+            "Roll a new sandbox".to_string();
         self.file.save_file();
     }
 
@@ -142,7 +146,8 @@ impl HexrollTestbedApp {
         if let Some(instance) = &self.instance {
             match instance.repo.mutate(|tx| {
                 let builder = SandboxBuilder::from_instance(instance);
-                unroll(&builder, tx, uid, None)
+                let mut blueprint = builder.sandbox.blueprint.lock().unwrap();
+                unroll(&builder, &mut blueprint, tx, uid, None)
             }) {
                 Ok(_) => {
                     self.prepare_demidom();
@@ -159,7 +164,8 @@ impl HexrollTestbedApp {
         if let Some(instance) = &self.instance {
             match instance.repo.mutate(|tx| {
                 let builder = SandboxBuilder::from_instance(instance);
-                reroll(&builder, tx, uid, None)
+                let mut blueprint = builder.sandbox.blueprint.lock().unwrap();
+                reroll(&builder, &mut blueprint, tx, uid, None)
             }) {
                 Ok(_) => {
                     self.prepare_demidom();
@@ -177,7 +183,16 @@ impl HexrollTestbedApp {
             if let Ok(_savepoint) = instance.repo.savepoint() {}
             match instance.repo.mutate(|tx| {
                 let builder = SandboxBuilder::from_instance(instance);
-                append(&builder, tx, parent_uid, attr_name, None)?;
+                let mut blueprint = builder.sandbox.blueprint.lock().unwrap();
+                append(
+                    &builder,
+                    &mut blueprint,
+                    tx,
+                    parent_uid,
+                    attr_name,
+                    None,
+                    1,
+                )?;
                 Ok(())
             }) {
                 Ok(()) => {
@@ -194,9 +209,16 @@ impl HexrollTestbedApp {
     pub fn load_rendered_json(&mut self) {
         log::trace!("Loading rendered json for {}", self.current_entity.uid);
         if let Some(instance) = &self.instance {
+            let mut blueprint = instance.blueprint.lock().unwrap();
             if let Ok(result) = instance.repo.inspect(|tx| {
                 let e = tx.load(&self.current_entity.uid)?;
-                let rendered_json = render_entity(instance, tx, &e.value, true)?;
+                let rendered_json = render_entity(
+                    instance,
+                    &mut blueprint,
+                    tx,
+                    &e.value,
+                    true,
+                )?;
                 Ok(rendered_json)
             }) {
                 self.current_entity.json_rendered = result;
@@ -208,17 +230,24 @@ impl HexrollTestbedApp {
         if let Some(instance) = &self.instance {
             log::info!("Rendering HTML for {}", self.current_entity.uid);
             let result = instance.repo.inspect(|tx| {
+                let mut blueprint = instance.blueprint.lock().unwrap();
                 log::trace!("fetching entity {}", self.current_entity.uid);
                 let e = tx.load(&self.current_entity.uid)?;
                 log::trace!("generating HTML for {}", self.current_entity.uid);
-                let (header_html, body_html) = render_entity_html(instance, tx, &e.value)?;
-                log::trace!("generating HTML for {} is DONE", self.current_entity.uid);
+                let (header_html, body_html) =
+                    render_entity_html(instance, &mut blueprint, tx, &e.value)?;
+                log::trace!(
+                    "generating HTML for {} is DONE",
+                    self.current_entity.uid
+                );
                 Ok((body_html, header_html))
             });
             match result {
                 Ok((html_content, header_content)) => {
-                    let html_to_parse =
-                        format!("<html>{}\n{}</htmL>", header_content, html_content);
+                    let html_to_parse = format!(
+                        "<html>{}\n{}</htmL>",
+                        header_content, html_content
+                    );
                     log::trace!("parsing HTML for {}", self.current_entity.uid);
                     self.parse_entity_html(&html_to_parse);
                     log::trace!("parsing DONE for {}", self.current_entity.uid);

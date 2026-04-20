@@ -24,7 +24,7 @@
 */
 use egui::CursorIcon;
 use egui::Ui;
-use egui_json_tree::{render::DefaultRender, DefaultExpand, JsonTree};
+use egui_json_tree::{DefaultExpand, JsonTree, render::DefaultRender};
 
 use crate::app::HexrollTestbedApp;
 
@@ -32,8 +32,8 @@ impl HexrollTestbedApp {
     pub fn raw_json_panel(&mut self, ui: &mut Ui, value: serde_json::Value) {
         let tree = JsonTree::new("", &value);
         ui.style_mut().interaction.selectable_labels = false;
-        tree.on_render(
-            |ui, context| match serde_json::to_string_pretty(context.value()) {
+        tree.on_render(|ui, context| {
+            match serde_json::to_string_pretty(context.value()) {
                 Ok(pretty_str) if pretty_str.trim_matches('"').len() == 8 => {
                     let rendered_tree_item = context.render_default(ui);
                     if rendered_tree_item.hovered() {
@@ -41,20 +41,29 @@ impl HexrollTestbedApp {
                             .highlight()
                             .on_hover_cursor(CursorIcon::Default);
                         if rendered_tree_item.is_pointer_button_down_on() {
-                            rendered_tree_item.ctx.set_cursor_icon(CursorIcon::Wait);
+                            rendered_tree_item
+                                .ctx
+                                .set_cursor_icon(CursorIcon::Wait);
                         }
                         if rendered_tree_item.clicked() {
-                            rendered_tree_item.ctx.set_cursor_icon(CursorIcon::Wait);
-                            self.navigate(pretty_str.to_string().trim_matches('"'), true);
-                            rendered_tree_item.ctx.set_cursor_icon(CursorIcon::Default);
+                            rendered_tree_item
+                                .ctx
+                                .set_cursor_icon(CursorIcon::Wait);
+                            self.navigate(
+                                pretty_str.to_string().trim_matches('"'),
+                                true,
+                            );
+                            rendered_tree_item
+                                .ctx
+                                .set_cursor_icon(CursorIcon::Default);
                         }
                     }
                 }
                 _ => {
                     context.render_default(ui);
                 }
-            },
-        )
+            }
+        })
         .default_expand(DefaultExpand::All)
         .show(ui);
     }

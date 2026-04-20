@@ -58,10 +58,19 @@ impl LogStorage {
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     for msg in self.messages.lock().unwrap().iter().rev() {
-                        ui.style_mut().visuals.override_text_color = match msg.level.as_str() {
-                            "TRACE" => Some(ctx.theme().default_visuals().weak_text_color()),
-                            "ERROR" => Some(ctx.theme().default_visuals().error_fg_color),
-                            "WARN" => Some(ctx.theme().default_visuals().warn_fg_color),
+                        ui.style_mut().visuals.override_text_color = match msg
+                            .level
+                            .as_str()
+                        {
+                            "TRACE" => Some(
+                                ctx.theme().default_visuals().weak_text_color(),
+                            ),
+                            "ERROR" => Some(
+                                ctx.theme().default_visuals().error_fg_color,
+                            ),
+                            "WARN" => Some(
+                                ctx.theme().default_visuals().warn_fg_color,
+                            ),
                             _ => None,
                         };
                         ui.label(&msg.timestamp);

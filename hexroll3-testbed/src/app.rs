@@ -73,13 +73,16 @@ enum CenterViewMode {
     RenderedJson,
 }
 
-type RouteHandler = Box<dyn Fn(&mut HexrollTestbedApp, &HashMap<String, String>)>;
+type RouteHandler =
+    Box<dyn Fn(&mut HexrollTestbedApp, &HashMap<String, String>)>;
 
 impl Default for HexrollTestbedApp {
     fn default() -> Self {
-        let mut cconfig = load_settings().unwrap_or_else(|_| TestbedConfig::default());
+        let mut cconfig =
+            load_settings().unwrap_or_else(|_| TestbedConfig::default());
         if cconfig.main_scroll_filepath.is_empty() {
-            cconfig.main_scroll_filepath = "./hexroll3-scroll-data/main.scroll".to_owned();
+            cconfig.main_scroll_filepath =
+                "./hexroll3-scroll-data/main.scroll".to_owned();
         }
 
         let storage = LogStorage::new();
@@ -89,9 +92,10 @@ impl Default for HexrollTestbedApp {
             // Main app state
             instance: None,
             current_entity: EntityData::default(),
-            scroll_in_filepath_is_valid: HexrollTestbedApp::test_scroll_filepath(
-                &cconfig.main_scroll_filepath,
-            ),
+            scroll_in_filepath_is_valid:
+                HexrollTestbedApp::test_scroll_filepath(
+                    &cconfig.main_scroll_filepath,
+                ),
             // Views state
             uid_to_show: "root".to_string(),
             current_url: "".to_string(),
@@ -99,13 +103,15 @@ impl Default for HexrollTestbedApp {
             center_view_mode: CenterViewMode::Preview,
             file: egui_file_dialog::FileDialog::new()
                 .initial_directory(
-                    dirs::document_dir()
+                    dirs::data_dir()
                         .or_else(dirs::home_dir)
                         .unwrap_or_else(|| std::env::current_dir().unwrap()),
                 )
                 .add_file_filter(
-                    "H3",
-                    Arc::new(|path| path.extension().unwrap_or_default() == "h3"),
+                    "H3X",
+                    Arc::new(|path| {
+                        path.extension().unwrap_or_default() == "h3x"
+                    }),
                 )
                 .default_file_filter("H3"),
             history: VecDeque::new(),
@@ -139,7 +145,11 @@ impl eframe::App for HexrollTestbedApp {
 }
 
 impl HexrollTestbedApp {
-    pub fn trace_panel(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    pub fn trace_panel(
+        &mut self,
+        ctx: &egui::Context,
+        _frame: &mut eframe::Frame,
+    ) {
         egui::TopBottomPanel::bottom("bottom-panel")
             .min_height(100.0)
             .max_height(1000.0)
@@ -148,21 +158,35 @@ impl HexrollTestbedApp {
                 self.app_logs.show(ctx, ui);
             });
     }
-    pub fn instance_panels(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    pub fn instance_panels(
+        &mut self,
+        ctx: &egui::Context,
+        _frame: &mut eframe::Frame,
+    ) {
+        let mut navigate_to: Option<String> = None;
         egui::SidePanel::left("left-panel")
             .resizable(true)
             .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
             .show_animated(ctx, self.left_sidebar_expanded, |ui| {
                 ctx.style_mut(|s| s.interaction.tooltip_delay = 0.01);
-                collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
+                collapsible_sidebar_button_ui(
+                    ui,
+                    &mut self.left_sidebar_expanded,
+                );
                 ui.horizontal(|ui| {
-                    ui.text_edit_singleline(&mut self.uid_to_show);
+                    if ui.text_edit_singleline(&mut self.uid_to_show).changed()
+                    {
+                        navigate_to = Some(self.uid_to_show.clone());
+                    }
                 });
                 ui.separator();
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.set_width(ui.available_width());
-                    self.raw_json_panel(ui, self.current_entity.json_stored.clone());
+                    self.raw_json_panel(
+                        ui,
+                        self.current_entity.json_stored.clone(),
+                    );
                 });
             });
 
@@ -171,11 +195,16 @@ impl HexrollTestbedApp {
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
                     if !self.left_sidebar_expanded {
-                        collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
+                        collapsible_sidebar_button_ui(
+                            ui,
+                            &mut self.left_sidebar_expanded,
+                        );
                     }
                     self.center_panel_selectors(ui);
                     ui.separator();
-                    if ui.button("Back").clicked() && self.history.pop_front().is_some() {
+                    if ui.button("Back").clicked()
+                        && self.history.pop_front().is_some()
+                    {
                         if let Some(next_item) = self.history.front() {
                             self.navigate(&next_item.clone(), false);
                         }
@@ -194,11 +223,13 @@ impl HexrollTestbedApp {
                         ui.set_max_width(ui.available_width() * MARGIN_FACTOR);
                     }
                     ui.with_layout(
-                        egui::Layout::left_to_right(egui::Align::TOP).with_main_wrap(true),
+                        egui::Layout::left_to_right(egui::Align::TOP)
+                            .with_main_wrap(true),
                         |ui| match self.center_view_mode {
                             CenterViewMode::Preview => {
                                 ui.spacing_mut().item_spacing.x = 0.0;
-                                let row_height = ui.text_style_height(&egui::TextStyle::Body);
+                                let row_height = ui
+                                    .text_style_height(&egui::TextStyle::Body);
                                 ui.set_row_height(row_height);
                                 self.preview_panel(ctx, ui);
                             }
@@ -216,6 +247,9 @@ impl HexrollTestbedApp {
                 });
             });
         });
+        if let Some(uid) = navigate_to {
+            self.navigate(&uid, false);
+        }
     }
 }
 

@@ -47,7 +47,9 @@ impl HexrollTestbedApp {
         self.config.recently_opened.retain(|p| p != filepath);
         self.config.recently_opened.push(filepath.to_owned());
         self.save_settings()
-            .map_err(|e| log::warn!("Unable to save configuration. Error is {:#}", e))
+            .map_err(|e| {
+                log::warn!("Unable to save configuration. Error is {:#}", e)
+            })
             .ok();
     }
 }

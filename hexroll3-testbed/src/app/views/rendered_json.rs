@@ -32,9 +32,12 @@ impl HexrollTestbedApp {
         ui.set_width(ui.available_width());
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.set_width(ui.available_width());
-            JsonTree::new("rendered_json_panel", &self.current_entity.json_rendered)
-                .default_expand(DefaultExpand::All)
-                .show(ui);
+            JsonTree::new(
+                "rendered_json_panel",
+                &self.current_entity.json_rendered,
+            )
+            .default_expand(DefaultExpand::All)
+            .show(ui);
         });
     }
 }

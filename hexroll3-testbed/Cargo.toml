@@ -24,7 +24,7 @@
 #
 [package]
 name = "hexroll3-testbed"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Pen, Dice & Paper"]
 description = "HEXROLL3 Testbed - an egui testbed app for HEXROLL3"
 license-file = "../LICENSE"

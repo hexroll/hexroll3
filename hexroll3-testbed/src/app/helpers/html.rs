@@ -129,7 +129,9 @@ pub fn render_demidom(
                     };
                 ui.allocate_space(egui::vec2(ui.available_width(), 20.0));
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, header_font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, header_font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
@@ -137,7 +139,9 @@ pub fn render_demidom(
             }
             ElementType::Paragraph => {
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
@@ -145,7 +149,9 @@ pub fn render_demidom(
             }
             ElementType::TableRow => {
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
@@ -155,7 +161,12 @@ pub fn render_demidom(
                 ui.vertical(|ui| {
                     ui.horizontal_wrapped(|ui| {
                         for c in children_to_render {
-                            if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                            if let Some(v) = render_demidom(
+                                demidom.clone(),
+                                ui,
+                                font_size,
+                                c,
+                            ) {
                                 ret = Some(v);
                             }
                         }
@@ -191,7 +202,12 @@ pub fn render_demidom(
                     .spacing(Vec2::new(font_size, font_size / 4.0))
                     .show(ui, |ui| {
                         for c in children_to_render {
-                            if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                            if let Some(v) = render_demidom(
+                                demidom.clone(),
+                                ui,
+                                font_size,
+                                c,
+                            ) {
                                 ret = Some(v);
                             }
                         }
@@ -208,14 +224,18 @@ pub fn render_demidom(
             ElementType::ListItem => {
                 ui.end_row();
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
             }
             ElementType::Text(text) => {
                 let elements_borrowed = demidom.borrow();
-                let parent_element = elements_borrowed.get(&element_to_render.parent_id).unwrap();
+                let parent_element = elements_borrowed
+                    .get(&element_to_render.parent_id)
+                    .unwrap();
                 match &parent_element.element {
                     ElementType::Link(attributes) => {
                         let href = &attributes.href;
@@ -232,7 +252,8 @@ pub fn render_demidom(
                                 },
                             );
 
-                            ui.style_mut().interaction.selectable_labels = false;
+                            ui.style_mut().interaction.selectable_labels =
+                                false;
                             let res = ui.link(j).on_hover_text(href);
                             ui.style_mut().interaction.selectable_labels = true;
                             res
@@ -258,7 +279,9 @@ pub fn render_demidom(
                         }
                     }
                     ElementType::Strong => {
-                        let grandparent = elements_borrowed.get(&parent_element.parent_id).unwrap();
+                        let grandparent = elements_borrowed
+                            .get(&parent_element.parent_id)
+                            .unwrap();
                         match &grandparent.element {
                             ElementType::Link(attributes) => {
                                 let mut j = egui::text::LayoutJob::default();
@@ -266,13 +289,19 @@ pub fn render_demidom(
                                     text,
                                     0.0,
                                     egui::TextFormat {
-                                        font_id: FontId::proportional(font_size),
-                                        color: ui.style().visuals.hyperlink_color,
+                                        font_id: FontId::proportional(
+                                            font_size,
+                                        ),
+                                        color: ui
+                                            .style()
+                                            .visuals
+                                            .hyperlink_color,
                                         line_height: Some(font_size * 1.5),
                                         ..Default::default()
                                     },
                                 );
-                                let res = ui.link(j).on_hover_text(&attributes.href);
+                                let res =
+                                    ui.link(j).on_hover_text(&attributes.href);
                                 if res.clicked() {
                                     ret = Some(DemidomResponse {
                                         url: attributes.href.to_string(),
@@ -285,8 +314,13 @@ pub fn render_demidom(
                                     text,
                                     0.0,
                                     egui::TextFormat {
-                                        font_id: FontId::proportional(font_size),
-                                        color: ui.style().visuals.strong_text_color(),
+                                        font_id: FontId::proportional(
+                                            font_size,
+                                        ),
+                                        color: ui
+                                            .style()
+                                            .visuals
+                                            .strong_text_color(),
                                         line_height: Some(font_size * 1.5),
                                         ..Default::default()
                                     },
@@ -311,7 +345,9 @@ pub fn render_demidom(
                     }
                 }
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
@@ -325,9 +361,12 @@ pub fn render_demidom(
                 if let Some(id) = &attributes.class {
                     if id == "breadcrumbs" {
                         for c in children_to_render {
-                            if let Some(v) =
-                                render_demidom(demidom.clone(), ui, font_size * 0.55, c)
-                            {
+                            if let Some(v) = render_demidom(
+                                demidom.clone(),
+                                ui,
+                                font_size * 0.55,
+                                c,
+                            ) {
                                 ret = Some(v);
                             }
                         }
@@ -337,19 +376,26 @@ pub fn render_demidom(
                     }
                 }
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
                 if let Some(id) = &attributes.id {
                     if id == "editable-title" {
-                        ui.allocate_space(egui::vec2(ui.available_width(), 0.0));
+                        ui.allocate_space(egui::vec2(
+                            ui.available_width(),
+                            0.0,
+                        ));
                     }
                 }
             }
             _ => {
                 for c in children_to_render {
-                    if let Some(v) = render_demidom(demidom.clone(), ui, font_size, c) {
+                    if let Some(v) =
+                        render_demidom(demidom.clone(), ui, font_size, c)
+                    {
                         ret = Some(v);
                     }
                 }
@@ -375,7 +421,8 @@ impl Sink {
 
     fn is_following_a_line_break(&self, parent: &usize) -> bool {
         let elements = self.elements.as_ref().borrow();
-        let last_added_parent = &elements.get(&self.last_added.borrow()).unwrap().parent_id;
+        let last_added_parent =
+            &elements.get(&self.last_added.borrow()).unwrap().parent_id;
         last_added_parent != parent
             && matches!(
                 &elements.get(last_added_parent).unwrap().element,
@@ -426,7 +473,9 @@ impl Sink {
             let elements = self.elements.as_ref().borrow();
 
             match elements.get(_parent).unwrap().element {
-                ElementType::Table | ElementType::TableRow | ElementType::TableHeader => {}
+                ElementType::Table
+                | ElementType::TableRow
+                | ElementType::TableHeader => {}
                 _ => {
                     // If the text is not part of a table, we assume the whitespace might
                     // be needed.
@@ -435,7 +484,8 @@ impl Sink {
             };
 
             if *self.last_added.borrow() != 0 {
-                match &elements.get(&self.last_added.borrow()).unwrap().element {
+                match &elements.get(&self.last_added.borrow()).unwrap().element
+                {
                     ElementType::Text(t) => {
                         // No need in consecutive whitespaces
                         if t.ends_with(" ") {
@@ -488,7 +538,12 @@ impl TreeSink for Sink {
             .expanded()
     }
 
-    fn create_element(&self, name: QualName, attrs: Vec<Attribute>, _: ElementFlags) -> usize {
+    fn create_element(
+        &self,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        _: ElementFlags,
+    ) -> usize {
         let id = self.get_id();
         let v = (*name.local).to_string().clone();
         self.names
@@ -559,7 +614,12 @@ impl TreeSink for Sink {
         unimplemented!()
     }
 
-    fn append_before_sibling(&self, _sibling: &usize, _new_node: NodeOrText<usize>) {}
+    fn append_before_sibling(
+        &self,
+        _sibling: &usize,
+        _new_node: NodeOrText<usize>,
+    ) {
+    }
 
     fn append_based_on_parent_node(
         &self,
@@ -575,12 +635,16 @@ impl TreeSink for Sink {
         match child {
             NodeOrText::AppendNode(n) => {
                 let mut tasks: Vec<usize> = Vec::new();
-                if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
+                if let Some(e) =
+                    self.elements.as_ref().borrow_mut().get_mut(_parent)
+                {
                     e.children.push(n);
                     tasks.push(n);
                 }
                 for n in tasks {
-                    if let Some(e) = &mut self.elements.as_ref().borrow_mut().get_mut(&n) {
+                    if let Some(e) =
+                        &mut self.elements.as_ref().borrow_mut().get_mut(&n)
+                    {
                         e.parent_id = *_parent;
                     }
                 }
@@ -590,8 +654,12 @@ impl TreeSink for Sink {
                 if !text.is_empty() {
                     if *self.last_added.borrow() != 0 {
                         let mut elements = self.elements.as_ref().borrow_mut();
-                        let last_node = &mut elements.get_mut(&self.last_added.borrow()).unwrap();
-                        if let ElementType::Text(last_text) = &mut last_node.element {
+                        let last_node = &mut elements
+                            .get_mut(&self.last_added.borrow())
+                            .unwrap();
+                        if let ElementType::Text(last_text) =
+                            &mut last_node.element
+                        {
                             if last_node.parent_id == *_parent {
                                 if !last_text.ends_with(" ") {
                                     last_text.push(' ');
@@ -613,7 +681,9 @@ impl TreeSink for Sink {
                         },
                     );
                     self.last_added.replace(id);
-                    if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
+                    if let Some(e) =
+                        self.elements.as_ref().borrow_mut().get_mut(_parent)
+                    {
                         e.children.push(id);
                     }
                 }
@@ -621,7 +691,13 @@ impl TreeSink for Sink {
         }
     }
 
-    fn append_doctype_to_document(&self, _: StrTendril, _: StrTendril, _: StrTendril) {}
+    fn append_doctype_to_document(
+        &self,
+        _: StrTendril,
+        _: StrTendril,
+        _: StrTendril,
+    ) {
+    }
     fn add_attrs_if_missing(&self, _target: &usize, _attrs: Vec<Attribute>) {}
     fn remove_from_parent(&self, _target: &usize) {}
     fn reparent_children(&self, _node: &usize, _new_parent: &usize) {}
