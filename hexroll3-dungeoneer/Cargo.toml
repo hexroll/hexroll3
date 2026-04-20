@@ -1,0 +1,14 @@
+[package]
+name = "hexroll3-dungeoneer"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88.0"
+
+[dependencies]
+serde = {version="1.0.216",features = ["derive"]}
+serde_json.workspace = true
+rand.workspace = true
+
+[lib]
+name = "hexroll3_dungeoneer"
+path = "src/lib.rs"
