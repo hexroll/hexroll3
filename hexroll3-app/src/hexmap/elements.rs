@@ -91,6 +91,8 @@ pub struct PreparedHexTile {
     pub trail_tile: Option<Vec<(i32, Handle<Mesh>)>>,
     pub feature: HexFeature,
     pub metadata: HexMetadata,
+    pub generated: bool,
+    pub pool_id: i32,
 }
 
 impl PreparedHexTile {
@@ -170,6 +172,7 @@ pub struct HexMapData {
     pub realm_labels: Vec<LazySpawn<(String, Vec2, f32)>>,
     pub cursor: Option<Vec3>,
     pub selected: Option<Hex>,
+    pub generating: bool,
 }
 
 impl HexMapData {
@@ -279,7 +282,7 @@ pub struct RerollHex {
     pub class: String,
 }
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct AppendSandboxEntity {
     pub hex_coords: Option<Hex>,
     pub hex_uid: String,
@@ -305,7 +308,7 @@ pub struct SelectionEntity;
 #[derive(Component)]
 pub struct MapLabels;
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct FetchEntityFromStorage {
     pub uid: String,
     pub anchor: Option<String>,
@@ -350,7 +353,7 @@ pub fn y_inverted_hexmap_layout() -> HexLayout {
     layout
 }
 
-pub fn hexx_to_hexroll_coords(hex_coords: Hex) -> (i32, i32) {
+pub fn hexx_to_hexroll_coords(hex_coords: &Hex) -> (i32, i32) {
     let send_coords = hex_coords.to_doubled_coordinates(hexx::DoubledHexMode::DoubledHeight);
     let y = -send_coords[1];
     let x = (send_coords[0] - (send_coords[0].abs() % 2)) / 2;

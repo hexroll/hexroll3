@@ -66,7 +66,7 @@ use crate::{
 pub struct ExpensiveHex;
 
 #[inline]
-pub fn spawn_tile(
+pub fn spawn_tile<T>(
     commands: &mut Commands,
     layout: &HexLayout,
     hex: Hex,
@@ -75,7 +75,10 @@ pub fn spawn_tile(
     map_resources: &Res<HexMapResources>,
     map_data: &ResMut<HexMapData>,
     vtt_data: &ResMut<VttData>,
-) {
+    marker: T,
+) where
+    T: Bundle,
+{
     let tiles_z_offset = tiles.tiles_z_offset;
     let pos = layout.hex_to_world_pos(hex);
     let pos = pos.floor();
@@ -83,7 +86,7 @@ pub fn spawn_tile(
     base.insert(ChildOf(map_parent));
     let (overlayer, underlayer, is_dungeon) =
         get_tile_background_material(hex, map_data, tiles, map_resources);
-    let (xc, yc) = hexx_to_hexroll_coords(hex);
+    let (xc, yc) = hexx_to_hexroll_coords(&hex);
     let display_coords = hexroll_coords_to_string(xc, yc);
     base.insert((
         Name::new(format!("Hex {}", display_coords)),
@@ -97,8 +100,12 @@ pub fn spawn_tile(
             should_block_lower: false,
             is_hoverable: false,
         },
+        marker,
     ));
     if let Some(hex_data) = map_data.hexes.get(&hex) {
+        if !hex_data.generated {
+            base.insert(crate::hexmap::editor::TempHex);
+        }
         let terrain_material = if vtt_data.mode.is_player() {
             if vtt_data.revealed.get(&hex) == Some(&HexRevealState::Partial) {
                 hex_data.partial_hex_tile_material.clone()
@@ -108,7 +115,7 @@ pub fn spawn_tile(
         } else {
             hex_data.hex_tile_material.clone()
         };
-        let y_index = HEIGHT_OF_TOP_MOST_LAYERED_TILE + (pos.y / 200.0) + (pos.x / 1000.0);
+        let y_index = HEIGHT_OF_TOP_MOST_LAYERED_TILE + (pos.y / 2000.0) + (pos.x / 10000.0);
         if let Some(mat) = underlayer {
             if vtt_data.revealed.get(&hex) == Some(&HexRevealState::Full) && is_dungeon {
                 base.with_child((
@@ -240,6 +247,9 @@ pub fn spawn_tile(
     }
 }
 
+#[derive(Component)]
+pub struct AutoSpawnedHex;
+
 pub fn invalidate_hex(
     mut commands: Commands,
     hexes: Query<(Entity, &HexEntity), With<HexToInvalidateMarker>>,
@@ -262,6 +272,7 @@ pub fn invalidate_hex(
             &map_resources,
             &map_data,
             &vtt_data,
+            AutoSpawnedHex,
         );
     }
 }
@@ -423,6 +434,7 @@ pub fn spawn_tile_from_queue(
                 &map_resources,
                 &map_data,
                 &vtt_data,
+                AutoSpawnedHex,
             );
         });
     for hex in backlog {

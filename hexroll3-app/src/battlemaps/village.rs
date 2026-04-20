@@ -25,6 +25,7 @@
 
 // Village maps - based on Watabou's datasets
 use core::f32;
+use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 use rand::Rng;
@@ -41,6 +42,8 @@ use crate::{
 };
 
 use super::{BattlemapFeatureUtils, helpers::*, settlement::*};
+
+use hexroll3_cartographer::watabou::json::*;
 
 pub struct VillagePlugin;
 
@@ -209,7 +212,7 @@ impl VillageMapConstructs {
 
             base.detect_roads(f, 510.0, offset);
             base.detect_trees(f);
-            base.detect_fields(f);
+            base.detect_fields(f, 510.0, offset);
             base.detect_squares(f);
 
             if let Feature::MultiPolygon { id, coordinates } = f {
@@ -249,17 +252,28 @@ impl VillageMapConstructs {
                     }
                 }
                 if id == "buildings" {
-                    for c in coordinates.iter() {
+                    let proxy: BTreeMap<i32, String> = map
+                        .poi
+                        .iter()
+                        .filter_map(|v| {
+                            if let Some(ind) = v.building {
+                                Some((ind, v.uuid.clone()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    for (i, c) in coordinates.iter().enumerate() {
                         let v: Vec<[f64; 2]> = c.points.iter().map(|p| [p[0], p[1]]).collect();
                         let rect_in_space = get_width_height_rotation_from_rect_points(v);
-
+                        let uid = proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
                         buildings.push((
                             Rect::from_center_size(
                                 rect_in_space.center,
                                 rect_in_space.dimensions,
                             ),
                             rect_in_space.orientation,
-                            c.uid.clone(),
+                            uid,
                         ));
 
                         let polygon: Vec<lyon::math::Point> = c

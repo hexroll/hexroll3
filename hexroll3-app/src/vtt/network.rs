@@ -142,6 +142,15 @@ pub fn on_connect(
     mut next_state: ResMut<NextState<NetworkingConnection>>,
     socket: Option<ResMut<NetworkContext>>,
 ) {
+    let is_standalone_sandbox = user_settings.local.unwrap_or(false);
+    if is_standalone_sandbox {
+        commands.trigger(ShowTransientUserMessage {
+            text: "VTT for standalone sandboxes is coming soon..".to_string(),
+            special: None,
+            keep_alive: None,
+        });
+        return;
+    }
     if let Some(sandbox_uid) = &user_settings.sandbox {
         if *state == NetworkingConnection::Disconnected {
             let socket = bevy_matchbox::matchbox_socket::WebRtcSocketBuilder::new(&format!(

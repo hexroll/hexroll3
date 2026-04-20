@@ -1,1 +1,1 @@
-pub const APP_VERSION: &str = "2603012031";
+pub const APP_VERSION: &str = "2604181107";

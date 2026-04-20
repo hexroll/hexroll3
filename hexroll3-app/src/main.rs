@@ -58,9 +58,9 @@ use hexroll3_app::{
     audio::SoundtrackPlugin,
     battlemaps::BattlemapMaterial,
     clients::{
-        controller::ApiControllerPlugin,
-        http::{ApiClientPlugin, PostMapLoadedOp, RequestMapFromBackend},
-        model::SandboxMode,
+        controller::{ApiControllerPlugin, RequestSandboxFromBackend},
+        http::ApiClientPlugin,
+        standalone::StandaloneClientPlugin,
     },
     content::ContentPlugin,
     dialogs::{DialogsPlugin, OpenSandboxOptionsModal},
@@ -74,7 +74,6 @@ use hexroll3_app::{
         settings::{self, UserSettings},
         spawnq::SpawnQueuePlugin,
         tweens::SharedTweensPlugin,
-        vtt::LoadVttState,
         widgets::{list::ListPlugin, modal::ModalPlugin},
     },
     tokens::TokensPlugin,
@@ -166,6 +165,7 @@ fn main() {
         .add_plugins(OverlayPlugin)
         .add_plugins(ApiControllerPlugin)
         .add_plugins(ApiClientPlugin)
+        .add_plugins(StandaloneClientPlugin)
         .add_plugins(MeshPickingPlugin)
         .add_plugins((OutlinePlugin, AutoGenerateOutlineNormalsPlugin::default()))
         .add_plugins(VttPlugin)
@@ -214,10 +214,10 @@ fn main() {
 
 fn load_last_sandbox(mut commands: Commands, user_settings: Res<UserSettings>) {
     if user_settings.sandbox.is_some() {
-        commands.trigger(RequestMapFromBackend {
-            post_map_loaded_op: PostMapLoadedOp::Initialize(SandboxMode::Referee),
+        commands.trigger(RequestSandboxFromBackend {
+            sandbox_uid: user_settings.sandbox.clone().unwrap(),
+            pairing_key: user_settings.key.clone(),
         });
-        commands.trigger(LoadVttState);
     }
 }
 

@@ -39,9 +39,18 @@ pub enum DiscreteAppState {
     Modal,
 }
 
+#[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[source(DiscreteAppState = DiscreteAppState::Modal)]
+pub enum ModalState {
+    #[default]
+    Dialog,
+    Spinner,
+}
+
 impl Plugin for ModalPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_state(DiscreteAppState::default())
+        app.init_state::<DiscreteAppState>()
+            .add_sub_state::<ModalState>()
             .add_systems(OnEnter(DiscreteAppState::Modal), on_entering_modal_state)
             .add_systems(OnExit(DiscreteAppState::Modal), on_exiting_modal_state)
             .add_systems(
@@ -74,8 +83,14 @@ fn on_entering_modal_state(mut commands: Commands, dimmer: Query<Entity, With<Di
             ))
             .observe(
                 |_: On<Pointer<Click>>,
-                 mut next_state: ResMut<NextState<DiscreteAppState>>| {
-                    next_state.set(DiscreteAppState::Normal);
+                 mut next_state: ResMut<NextState<DiscreteAppState>>,
+                 sub_state: Res<State<ModalState>>| {
+                    match sub_state.get() {
+                        ModalState::Dialog => {
+                            next_state.set(DiscreteAppState::Normal);
+                        }
+                        ModalState::Spinner => {}
+                    }
                 },
             );
     }
@@ -104,8 +119,9 @@ fn on_exiting_modal_state(
 fn on_modal_keys(
     key: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<DiscreteAppState>>,
+    sub_state: Res<State<ModalState>>,
 ) {
-    if key.just_pressed(KeyCode::Escape) {
+    if key.just_pressed(KeyCode::Escape) && *sub_state == ModalState::Dialog {
         next_state.set(DiscreteAppState::Normal);
     }
 }

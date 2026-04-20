@@ -33,7 +33,7 @@
 //     |             |             |
 // [Startup]    [Map Loaded]   [Each Frame]
 //
-use bevy::prelude::*;
+use bevy::{platform::collections::HashSet, prelude::*};
 
 use bevy::platform::collections::hash_map::HashMap;
 
@@ -41,7 +41,7 @@ use hexx::{DoubledHexMode, Hex};
 
 use crate::{
     clients::{
-        http::{PostMapLoadedOp, PostMapLoadedOpPrefix},
+        controller::{PostMapLoadedOp, PostMapLoadedOpPrefix},
         model::{FetchEntityReason, SandboxMode},
     },
     hexmap::{curve_tiles::CurvedMeshTileSet, data::*, elements::*, tiles::*},
@@ -173,6 +173,8 @@ pub fn prepare_hex_map_data(
                 coords,
                 PreparedHexTile {
                     uid: h.uuid.clone(),
+                    generated: true,
+                    pool_id: 0,
                     hex_type: h.hex_type.clone(),
                     hex_tile_material,
                     partial_hex_tile_material,
@@ -260,7 +262,7 @@ pub fn prepare_hex_map_data(
     let realm_labels: Vec<LazySpawn<(String, Vec2, f32)>> = realms
         .iter()
         .map(|(k, v)| {
-            let polygon_points = make_polygon(&layout, v);
+            let polygon_points = make_polygon(&layout, &biggest_island(v, &hexes));
             let j: Vec<Vec<f64>> = polygon_points
                 .iter()
                 .rev()
@@ -286,6 +288,7 @@ pub fn prepare_hex_map_data(
         realm_labels,
         cursor: None,
         selected: None,
+        generating: false,
     }
 }
 
@@ -354,6 +357,10 @@ pub fn post_map_loaded_handler(
     match trigger.event() {
         PostMapLoadedOp::None => {}
         PostMapLoadedOp::Initialize(_) => {
+            visible_hexes
+                .iter()
+                .for_each(|e| commands.entity(e).despawn());
+            all_labels.iter().for_each(|e| commands.entity(e).despawn());
             for (mut ct, mut cp) in camera.iter_mut() {
                 map_data.center_camera_on_map(&mut ct, &mut cp);
             }
@@ -402,4 +409,44 @@ pub fn post_map_loaded_handler_prefix(
         }
         _ => {}
     }
+}
+
+pub fn group_by_islands(
+    hex_list: &Vec<Hex>,
+    hexes: &HashMap<Hex, PreparedHexTile>,
+) -> Vec<Vec<Hex>> {
+    let mut allocated_coords: HashSet<Hex> = HashSet::new();
+
+    let mut islands: Vec<Vec<Hex>> = Vec::new();
+
+    for hex in hex_list.iter() {
+        if !allocated_coords.contains(hex) {
+            let mut pool_backlog: Vec<Hex> = Vec::new();
+            let mut pool_processed: HashSet<Hex> = HashSet::new();
+            let mut island: Vec<Hex> = Vec::new();
+            pool_backlog.push(*hex);
+
+            while !pool_backlog.is_empty() {
+                let current = pool_backlog.pop().unwrap();
+                island.push(current);
+                allocated_coords.insert(current);
+                for neighbor in current.all_neighbors() {
+                    if hexes.contains_key(&neighbor)
+                        && !pool_processed.contains(&neighbor)
+                        && !allocated_coords.contains(&neighbor)
+                    {
+                        pool_backlog.push(neighbor);
+                        pool_processed.insert(neighbor);
+                    }
+                }
+            }
+            islands.push(island);
+        }
+    }
+    islands.sort_by_key(|island| island.len());
+    islands
+}
+
+fn biggest_island(hex_list: &Vec<Hex>, hexes: &HashMap<Hex, PreparedHexTile>) -> Vec<Hex> {
+    group_by_islands(hex_list, hexes).last().unwrap().clone()
 }

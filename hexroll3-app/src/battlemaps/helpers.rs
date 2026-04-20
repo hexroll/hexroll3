@@ -40,6 +40,16 @@ pub fn remove_points_outside_of_hex(
     line
 }
 
+pub fn is_point_inside_hex(point: &[f64], hex_size: f32, offset: f32) -> bool {
+    sd_hexagon(
+        bevy::math::Vec2::new(
+            point[0] as f32 / hex_size,
+            (point[1] as f32 - offset) / hex_size,
+        ),
+        1.0,
+    ) < 0.0
+}
+
 pub fn ensure_min_distance(
     points: Vec<lyon::math::Point>,
     min_distance: f32,

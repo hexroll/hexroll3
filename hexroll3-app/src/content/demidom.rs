@@ -64,9 +64,10 @@ use super::{
 
 #[derive(Clone, Debug)]
 pub enum DemidomContextAttachment {
-    EditableAttribute(String),
+    EditableAttribute(String, Option<String>),
     DataSettlement(String),
     DataMapLabel,
+    Rerollable(bool),
 }
 
 #[derive(Clone, Debug)]
@@ -157,6 +158,15 @@ pub struct Element {
 pub struct DemidomResponse {
     pub coords: Option<MapCoords>,
     pub text: String,
+    pub rerollable: bool,
+}
+
+impl DemidomResponse {
+    fn propagate(&mut self, v: Self) {
+        self.rerollable = v.rerollable && self.rerollable;
+        self.coords = v.coords.or(self.coords.take());
+        self.text.push_str(&v.text);
+    }
 }
 
 #[derive(Component)]
@@ -235,7 +245,7 @@ pub struct DemidomRenderContext {
     pub parent: Entity,
     pub theme: DemidomTheme,
     pub table: Option<TableContext>,
-    pub space_if_needed: bool,
+    pub space_if_needed: u32,
     pub text_node_params: TextNodeParams,
     pub unlocked: bool,
     pub spoilers: bool,
@@ -584,9 +594,16 @@ impl DemidomRenderContext {
             words.push(" ".to_string());
         }
 
-        if !words.first().unwrap_or(&"".to_string()).starts_with(")") && self.space_if_needed {
+        if !words.first().unwrap_or(&"".to_string()).starts_with(")")
+            && !words.first().unwrap_or(&"".to_string()).starts_with("”")
+            && !words.first().unwrap_or(&"".to_string()).starts_with(".")
+            && !words.first().unwrap_or(&"".to_string()).starts_with(",")
+            && !words.first().unwrap_or(&"".to_string()).starts_with("?")
+            && !words.first().unwrap_or(&"".to_string()).starts_with("!")
+            && self.space_if_needed > 0
+        {
             words.insert(0, " ".to_string());
-            self.space_if_needed = false;
+            self.space_if_needed = self.space_if_needed.saturating_sub(1);
         }
 
         // NOTE: use CHUNK_SIZE = 2 or 3 to optimize performance by reducing
@@ -643,6 +660,7 @@ pub fn render_demidom(
     let mut ret = DemidomResponse {
         coords: None,
         text: String::new(),
+        rerollable: true,
     };
     if let Some(element_to_render) = demidom.get(&n) {
         let children_to_render = element_to_render.children.clone();
@@ -687,8 +705,7 @@ pub fn render_demidom(
                             .with_size(header_font_size),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 ret.text.push_str("\n");
@@ -701,16 +718,20 @@ pub fn render_demidom(
                     .id();
                 context.spawn_spacer(&mut commands, font.size);
                 ret.text.push_str("\n");
+
+                // NOTE: There's no point in cascading the context per child, so instead
+                // let's create one subcontext and reuse it.
+                // (This might be the case in other uses of cascade to pay attention)
+                let mut subcontext = context.cascade(g);
                 for c in children_to_render {
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
-                        &mut context.cascade(g),
+                        &mut subcontext,
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -741,12 +762,12 @@ pub fn render_demidom(
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
+                        // TODO: Do we really need to cascade the context here?
                         &mut context.cascade(g),
                         font.clone().with_size(font.size * 1.2),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -765,8 +786,7 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
             }
@@ -810,8 +830,7 @@ pub fn render_demidom(
                             .with_size(font.size * 0.75),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 ret.text.push_str("|");
@@ -835,12 +854,12 @@ pub fn render_demidom(
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
+                        // TODO: Do we really need to cascade the context here?
                         &mut context.cascade(g),
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
             }
@@ -884,8 +903,7 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 ret.text.push_str("|");
@@ -964,8 +982,7 @@ pub fn render_demidom(
                         font.clone(),
                         *c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -1006,8 +1023,7 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -1048,8 +1064,7 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -1083,8 +1098,7 @@ pub fn render_demidom(
                         font.with_size(font.size * 0.75),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
             }
@@ -1096,20 +1110,19 @@ pub fn render_demidom(
                     Color::srgb_u8(0, 0, 0),
                     font.clone(),
                 );
-                context.space_if_needed = false;
                 for c in children_to_render {
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
+                        // TODO: Do we really need to cascade the context here?
                         &mut context.cascade(g),
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
-                context.space_if_needed = true;
+                context.space_if_needed += 1;
             }
             ElementType::Text(text) => {
                 let elements_borrowed = &demidom;
@@ -1126,7 +1139,7 @@ pub fn render_demidom(
                             Color::srgb_u8(0, 0, 0),
                             font.clone(),
                         );
-                        context.space_if_needed = true;
+                        context.space_if_needed += 1;
                     }
                     ElementType::Strong => {
                         let grandparent =
@@ -1141,7 +1154,7 @@ pub fn render_demidom(
                                     Color::srgb_u8(0, 0, 0),
                                     font.with_font(context.theme.bold_text_font.clone()),
                                 );
-                                context.space_if_needed = true;
+                                context.space_if_needed += 1;
                             }
                             _ => {
                                 ret.text.push_str(&text);
@@ -1170,14 +1183,20 @@ pub fn render_demidom(
 
                             for attachment in attachments {
                                 match attachment {
-                                    DemidomContextAttachment::EditableAttribute(attr) => {
-                                        params.get_or_insert(attr.clone());
+                                    DemidomContextAttachment::EditableAttribute(
+                                        attr,
+                                        entity,
+                                    ) => {
+                                        params.get_or_insert((attr.clone(), entity.clone()));
                                     }
                                     DemidomContextAttachment::DataMapLabel => {
                                         is_a_map_label = true;
                                     }
                                     DemidomContextAttachment::DataSettlement(id) => {
                                         in_settlement.get_or_insert(id.clone());
+                                    }
+                                    DemidomContextAttachment::Rerollable(rerollable) => {
+                                        ret.rerollable = *rerollable;
                                     }
                                 }
                             }
@@ -1206,7 +1225,8 @@ pub fn render_demidom(
 
                                     commands.spawn((
                                         EditableTitleInput(EditableAttributeParams {
-                                            attr_name: params.clone(),
+                                            attr_name: params.0.clone(),
+                                            attr_entity: params.1.clone(),
                                             is_a_map_label,
                                             in_settlement: in_settlement.clone(),
                                         }),
@@ -1252,13 +1272,25 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
             }
             ElementType::Div(attributes) => {
                 let mut spoiler = false;
+
+                if let Some(attachments) = &attributes.attachments {
+                    for attachment in attachments {
+                        match attachment {
+                            DemidomContextAttachment::Rerollable(rerollable) => {
+                                ret.rerollable = *rerollable;
+                                return Some(ret);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
                 if let Some(id) = &attributes.id {
                     if id == "doc-title" {
                         return Some(ret);
@@ -1294,8 +1326,7 @@ pub fn render_demidom(
                                 font.clone(),
                                 c,
                             ) {
-                                ret.coords = v.coords.or(ret.coords);
-                                ret.text.push_str(&v.text);
+                                ret.propagate(v);
                             }
                         }
                         context.spawn_spacer(&mut commands, font.size);
@@ -1348,16 +1379,16 @@ pub fn render_demidom(
                             ))
                             .insert(ChildOf(gb))
                             .id();
+                        let mut subcontext = context.cascade(g);
                         for c in children_to_render {
                             if let Some(v) = render_demidom(
                                 &mut commands,
                                 demidom.clone(),
-                                &mut context.cascade(g),
+                                &mut subcontext,
                                 font.clone(),
                                 c,
                             ) {
-                                ret.coords = v.coords.or(ret.coords);
-                                ret.text.push_str(&v.text);
+                                ret.propagate(v);
                             }
                         }
                         return Some(ret);
@@ -1371,23 +1402,35 @@ pub fn render_demidom(
                                 font.with_font(context.theme.sigils_font.clone()),
                                 c,
                             ) {
-                                ret.coords = v.coords.or(ret.coords);
-                                ret.text.push_str(&v.text);
+                                ret.propagate(v);
                             }
                         }
                         return Some(ret);
                     }
                     if id == "breadcrumbs" {
+                        let g = commands
+                            .spawn((
+                                Name::new("HeaderBreadcrumbs"),
+                                Node {
+                                    width: Val::Percent(100.0),
+                                    flex_wrap: FlexWrap::Wrap,
+
+                                    ..default()
+                                },
+                            ))
+                            .insert(ChildOf(context.parent))
+                            .id();
+
+                        let mut subcontext = context.cascade(g);
                         for c in children_to_render {
                             if let Some(v) = render_demidom(
                                 &mut commands,
                                 demidom.clone(),
-                                context,
+                                &mut subcontext,
                                 font.with_size(font.size * 0.55),
                                 c,
                             ) {
-                                ret.coords = v.coords.or(ret.coords);
-                                ret.text.push_str(&v.text);
+                                ret.propagate(v);
                             }
                         }
                         return Some(ret);
@@ -1400,16 +1443,16 @@ pub fn render_demidom(
                     .spawn_empty()
                     .make_clipboard_container(context)
                     .id();
+                let mut subcontext = context.cascade(g);
                 for c in children_to_render {
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
-                        &mut context.cascade(g),
+                        &mut subcontext,
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
                 commands.entity(g).insert(DemidomClipboardText {
@@ -1431,8 +1474,7 @@ pub fn render_demidom(
                         font.clone(),
                         c,
                     ) {
-                        ret.coords = v.coords.or(ret.coords);
-                        ret.text.push_str(&v.text);
+                        ret.propagate(v);
                     }
                 }
             }
@@ -1778,6 +1820,8 @@ impl TreeSink for Sink {
             "div" | "span" => {
                 let mut attributes = ElementAttributes::new();
                 let mut attachments: Vec<DemidomContextAttachment> = Vec::new();
+                let mut maybe_editable_attr = None;
+                let mut maybe_editable_attr_entity = None;
                 for attr in attrs {
                     if &*attr.name.local == "id" {
                         attributes.id = Some(attr.value.to_string());
@@ -1788,10 +1832,14 @@ impl TreeSink for Sink {
                     if &*attr.name.local == "hidden" {
                         attributes.hidden = Some(true);
                     }
+                    if &*attr.name.local == "data-reroll" {
+                        attachments.push(DemidomContextAttachment::Rerollable(false));
+                    }
                     if &*attr.name.local == "data-attr" {
-                        attachments.push(DemidomContextAttachment::EditableAttribute(
-                            attr.value.to_string(),
-                        ));
+                        maybe_editable_attr = Some(attr.value.to_string());
+                    }
+                    if &*attr.name.local == "data-entity" {
+                        maybe_editable_attr_entity = Some(attr.value.to_string());
                     }
                     if &*attr.name.local == "data-settlement" {
                         attachments.push(DemidomContextAttachment::DataSettlement(
@@ -1801,6 +1849,12 @@ impl TreeSink for Sink {
                     if &*attr.name.local == "data-map-label" {
                         attachments.push(DemidomContextAttachment::DataMapLabel);
                     }
+                }
+                if let Some(editable_attr) = maybe_editable_attr {
+                    attachments.push(DemidomContextAttachment::EditableAttribute(
+                        editable_attr,
+                        maybe_editable_attr_entity,
+                    ));
                 }
                 attributes.attachments = if attachments.is_empty() {
                     None
@@ -2061,6 +2115,7 @@ impl RerollEntity {
     pub fn from_roller_attributes(attrs: &RollerAttributes) -> Self {
         Self {
             uid: attrs.uid.clone(),
+            coords: None,
             class_override: attrs.class_override.clone(),
             is_map_reload_needed: attrs.is_map_reload_needed,
         }
@@ -2099,9 +2154,9 @@ fn take_inseparable_chars(text: &str) -> (String, String) {
     let mut taken = String::new();
     let mut counter = 0;
     for c in text.chars() {
-        if c == ')' || c == ',' || c == '.' {
+        if c == ')' || c == ',' || c == '.' || c == '”' || c == '?' || c == '!' {
             taken.push(c);
-            counter += 1;
+            counter += c.len_utf8(); // Count the number of bytes for multi-byte characters
         } else {
             break;
         }

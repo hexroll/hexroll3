@@ -45,7 +45,8 @@ use crate::{
     },
 };
 
-use super::helpers::remove_points_outside_of_hex;
+use super::helpers::{is_point_inside_hex, remove_points_outside_of_hex};
+use hexroll3_cartographer::watabou::json::*;
 
 pub struct SettlementPlugin;
 
@@ -225,11 +226,18 @@ impl SettlementMapConstructs {
             }
         }
     }
-    pub fn detect_fields(&mut self, f: &Feature) {
+    pub fn detect_fields(&mut self, f: &Feature, hex_size: f32, offset: f32) {
         let factor = 1.0;
         if let Feature::MultiPolygon { id, coordinates } = f {
             if id == "fields" {
                 for c in coordinates.iter() {
+                    if !c
+                        .points
+                        .iter()
+                        .all(|p| is_point_inside_hex(p.as_slice(), hex_size, offset))
+                    {
+                        continue;
+                    }
                     let polygon: Vec<lyon::math::Point> = c
                         .points
                         .iter()
@@ -297,91 +305,4 @@ impl SettlementMapConstructs {
 pub struct SettlementJson {
     pub map_data: MapData,
     pub poi: Vec<PointOfInterest>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)] // Adding lint exception for unused field
-pub struct MapData {
-    #[serde(rename = "type")]
-    pub map_type: String,
-    pub features: Vec<Feature>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
-#[allow(non_snake_case)]
-#[allow(clippy::large_enum_variant)]
-#[allow(clippy::enum_variant_names)]
-#[allow(dead_code)] // Adding lint exception for unused field
-pub enum Feature {
-    Feature {
-        id: String,
-        roadWidth: Option<f64>,
-        towerRadius: Option<f64>,
-        wallThickness: Option<f64>,
-        generator: Option<String>,
-        coast_dir: Option<i32>,
-        has_river: Option<bool>,
-        rotate_river: Option<f64>,
-        version: Option<String>,
-    },
-    Polygon {
-        id: String,
-        coordinates: Vec<Vec<[f64; 2]>>,
-    },
-    GeometryCollection {
-        id: String,
-        geometries: Vec<Geometry>,
-    },
-    MultiPolygon {
-        id: String,
-        coordinates: Vec<Polygon>,
-    },
-    MultiPoint {
-        id: String,
-        coordinates: Vec<[f64; 2]>,
-    },
-}
-
-#[derive(Deserialize, Debug, Clone, Default)]
-#[serde(default)]
-pub struct Polygon {
-    pub points: Vec<Vec<f64>>,
-    pub uid: Option<String>,
-    pub uid1: Option<String>,
-    pub uid2: Option<String>,
-    pub uid3: Option<String>,
-    pub uid4: Option<String>,
-    pub uid5: Option<String>,
-    pub uid6: Option<String>,
-    pub uid7: Option<String>,
-    pub uid8: Option<String>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
-pub enum Geometry {
-    LineString {
-        width: Option<f64>,
-        coordinates: Vec<[f64; 2]>,
-    },
-    Polygon {
-        width: Option<f64>,
-        coordinates: Vec<Vec<[f64; 2]>>,
-    },
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)] // Adding lint exception for unused field
-pub struct PointOfInterest {
-    pub coords: Coords,
-    pub title: String,
-    pub uuid: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)] // Adding lint exception for unused field
-pub struct Coords {
-    pub x: f64,
-    pub y: f64,
 }

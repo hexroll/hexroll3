@@ -34,6 +34,7 @@ pub struct ContentContext {
     pub history: Vec<String>,
     pub fistory: Vec<String>,
     pub unlocked: bool,
+    pub rerollable: bool,
     pub spoilers: bool,
 }
 

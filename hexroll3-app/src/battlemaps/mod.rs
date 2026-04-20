@@ -44,20 +44,21 @@ mod wall;
 
 pub use battlemaps::BattlemapsPlugin;
 
+#[derive(Clone)]
 pub struct BattlemapRequest {
     pub uid: String,
     pub hex: Entity,
 }
 
-#[derive(Event, Deref)]
+#[derive(Event, Deref, Clone)]
 // This event is triggered by this module when a dungeon map shoule become visible
 pub struct RequestDungeonFromBackend(pub BattlemapRequest);
 
-#[derive(Event, Deref)]
+#[derive(Event, Deref, Clone)]
 // This event is triggered by this module when a city or a town map shoule become visible
 pub struct RequestCityOrTownFromBackend(pub BattlemapRequest);
 
-#[derive(Event, Deref)]
+#[derive(Event, Deref, Clone)]
 // This event is triggered by this module when a village map shoule become visible
 pub struct RequestVillageFromBackend(pub BattlemapRequest);
 

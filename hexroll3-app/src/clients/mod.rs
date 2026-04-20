@@ -23,6 +23,43 @@
 // for more information about commercial licensing terms.
 */
 
+use std::path::PathBuf;
+
 pub mod controller;
 pub mod http;
 pub mod model;
+pub mod standalone;
+
+use anyhow::Result;
+use bevy::{ecs::event::Event, log::info};
+use hexroll3_scroll::instance::SandboxInstance;
+
+use crate::shared::settings::UserSettings;
+
+pub fn main_scroll_path() -> PathBuf {
+    UserSettings::assets_path()
+        .join("scrolls")
+        .join("main.scroll")
+}
+
+pub fn roll_new_sandbox(id: &str) -> Result<String> {
+    let mut instance = SandboxInstance::new();
+    let filepath = UserSettings::sandbox_path(id);
+    let scroll_path = main_scroll_path();
+    if let Some(root_uid) = instance
+        .with_scroll(scroll_path)?
+        .create(filepath.to_str().unwrap())?
+        .sid()
+    {
+        info!("Sid is {}", root_uid);
+        Ok(root_uid)
+    } else {
+        unreachable!()
+    }
+}
+
+#[derive(Event)]
+pub struct RemoteBackendEvent<T: Event>(T);
+
+#[derive(Event)]
+pub struct StandaloneBackendEvent<T: Event>(T);

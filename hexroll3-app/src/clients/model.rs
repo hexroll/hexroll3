@@ -26,6 +26,7 @@
 use std::hash::{Hash, Hasher};
 
 use bevy::ecs::event::Event;
+use hexx::Hex;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone, Default)]
@@ -75,9 +76,10 @@ pub enum FetchEntityReason {
     Refresh,
 }
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct RerollEntity {
     pub uid: String,
+    pub coords: Option<Hex>,
     pub class_override: String,
     pub is_map_reload_needed: bool,
 }
@@ -86,6 +88,7 @@ impl RerollEntity {
     pub fn from_uid(uid: String) -> Self {
         Self {
             uid,
+            coords: None,
             class_override: "default".to_string(),
             is_map_reload_needed: true,
         }

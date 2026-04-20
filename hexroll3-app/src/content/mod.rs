@@ -71,11 +71,12 @@ pub struct EntityRenderingCompleted {
 #[derive(Clone, Debug)]
 pub struct EditableAttributeParams {
     pub attr_name: String,
+    pub attr_entity: Option<String>,
     pub is_a_map_label: bool,
     pub in_settlement: Option<String>,
 }
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct RenameSandboxEntity {
     pub entity_uid: String,
     pub value: String,

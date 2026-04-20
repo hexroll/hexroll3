@@ -57,6 +57,7 @@ use crate::{
         layers::{RENDER_LAYER_CONTENT_OFFSCREEN, RENDER_LAYER_CONTENT_ONSCREEN},
         settings::Config,
         tweens::UiImageNodeAlphaLens,
+        widgets::buttons::MenuButtonDisabled,
     },
 };
 
@@ -489,7 +490,7 @@ fn render_entity_page(
             table_header: page_theme.table_header,
         },
         table: None,
-        space_if_needed: false,
+        space_if_needed: 0,
         text_node_params: crate::content::demidom::TextNodeParams::default(),
         unlocked: content_stuff.unlocked,
         spoilers: content_stuff.spoilers,
@@ -534,7 +535,7 @@ fn render_entity_page(
             table_header: page_theme.table_header,
         },
         table: None,
-        space_if_needed: false,
+        space_if_needed: 0,
         text_node_params: crate::content::demidom::TextNodeParams::default(),
         unlocked: content_stuff.unlocked,
         spoilers: content_stuff.spoilers,
@@ -613,6 +614,7 @@ fn on_render_entity_content(
     content_dark_mode: Res<ContentDarkMode>,
     app_config: Res<Config>,
     window: Single<Entity, With<PrimaryWindow>>,
+    reroller: Single<Entity, With<super::header::RerollButtonMarker>>,
 ) {
     let Some(content_assets) = content_assets else {
         return;
@@ -652,6 +654,19 @@ fn on_render_entity_content(
     }
 
     if let Some(resp) = resp {
+        if !resp.rerollable {
+            if content_stuff.unlocked {
+                commands.entity(*reroller).try_insert(MenuButtonDisabled);
+            }
+            content_stuff.rerollable = false;
+        } else {
+            if content_stuff.unlocked {
+                commands
+                    .entity(*reroller)
+                    .try_remove::<MenuButtonDisabled>();
+            }
+            content_stuff.rerollable = true;
+        }
         commands.trigger(EntityRenderingCompleted {
             uid: data.demidom.uid.clone(),
             anchor: trigger.anchor.clone(),

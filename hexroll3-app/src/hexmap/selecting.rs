@@ -67,6 +67,16 @@ impl Plugin for SelectingPlugin {
                 .run_if(not(egui_wants_any_input))
                 .run_if(in_state(HexMapState::Active))
                 .run_if(
+                    in_state(HexMapToolState::Selection), //.or(in_state(HexMapToolState::Edit)),
+                ),
+        )
+        .add_systems(
+            Update,
+            detect_selected_hex
+                .before(detect_click)
+                .run_if(not(egui_wants_any_input))
+                .run_if(in_state(HexMapState::Active))
+                .run_if(
                     in_state(HexMapToolState::Selection).or(in_state(HexMapToolState::Edit)),
                 ),
         )
@@ -133,8 +143,6 @@ pub fn detect_click(
     mut commands: Commands,
     mut map: ResMut<HexMapData>,
     mut vtt_map: ResMut<VttData>,
-    mut highlighted: Local<Hex>,
-    selector: Single<Entity, With<SelectionEntity>>,
     click: Res<ButtonInput<MouseButton>>,
     masks: Query<(Entity, &mut HexMask)>,
     camera_motion_state: Res<DraggingMotionDetector>,
@@ -148,26 +156,8 @@ pub fn detect_click(
     if camera_motion_state.motion_detected() {
         return;
     }
-    let layout = y_inverted_hexmap_layout();
 
-    if let Some(point) = map.cursor {
-        let coord = layout.world_pos_to_hex(point.xz());
-        let pos = layout.hex_to_world_pos(coord);
-        let fract = layout.world_pos_to_fract_hex(point.xz());
-
-        const THRESHOLD: f32 = 0.4;
-        if !((fract.x.fract().abs() > THRESHOLD && fract.x.fract().abs() < 1.0 - THRESHOLD)
-            || (fract.y.fract().abs() > THRESHOLD && fract.y.fract().abs() < 1.0 - THRESHOLD)
-                && highlighted.distance_to(coord) < 1)
-        {
-            commands
-                .entity(*selector)
-                .insert(Transform::from_xyz(pos.x, 300.0, pos.y));
-            map.selected = Some(coord);
-
-            *highlighted = coord;
-        }
-
+    if map.cursor.is_some() {
         if let Some(coord) = map.selected {
             if click.just_released(MouseButton::Left) && selected_tokens.is_empty() {
                 match vtt_map.mode {
@@ -207,6 +197,10 @@ pub fn detect_click(
                                 // - - - - - - - - - - - - - - - - - - - - - - -
                                 // Clicking a pre-generated hex
                                 if let Some(entity) = map.hexes.get(&coord) {
+                                    if entity.uid == "<uid>" {
+                                        debug!("clicking ungenerated hex");
+                                        return;
+                                    }
                                     commands.trigger(FetchEntityFromStorage {
                                         uid: entity.uid.clone(),
                                         anchor: None,
@@ -246,6 +240,38 @@ pub fn detect_click(
                     _ => {}
                 }
             }
+        }
+    }
+}
+
+pub fn detect_selected_hex(
+    mut commands: Commands,
+    mut map: ResMut<HexMapData>,
+    mut highlighted: Local<Hex>,
+    selector: Single<Entity, With<SelectionEntity>>,
+    camera_motion_state: Res<DraggingMotionDetector>,
+) {
+    if camera_motion_state.motion_detected() {
+        return;
+    }
+    let layout = y_inverted_hexmap_layout();
+
+    if let Some(point) = map.cursor {
+        let coord = layout.world_pos_to_hex(point.xz());
+        let pos = layout.hex_to_world_pos(coord);
+        let fract = layout.world_pos_to_fract_hex(point.xz());
+
+        const THRESHOLD: f32 = 0.4;
+        if !((fract.x.fract().abs() > THRESHOLD && fract.x.fract().abs() < 1.0 - THRESHOLD)
+            || (fract.y.fract().abs() > THRESHOLD && fract.y.fract().abs() < 1.0 - THRESHOLD)
+                && highlighted.distance_to(coord) < 1)
+        {
+            commands
+                .entity(*selector)
+                .insert(Transform::from_xyz(pos.x, 300.0, pos.y));
+            map.selected = Some(coord);
+
+            *highlighted = coord;
         }
     }
 }

@@ -39,10 +39,23 @@ pub struct MenuButtonDisabled;
 
 fn on_menu_button_disabled(mut world: DeferredWorld, context: HookContext) {
     if let Some(children) = world.entity(context.entity).get_components::<&Children>() {
-        let image_entities: Vec<Entity> = children
+        let image_entities: Vec<Entity> = if children
             .iter()
-            .filter(|v| world.entity(*v).contains::<ImageNode>())
-            .collect();
+            .any(|v| world.entity(v).contains::<MenuButtonSwitcherIconShown>())
+        {
+            children
+                .iter()
+                .filter(|v| {
+                    world.entity(*v).contains::<ImageNode>()
+                        && world.entity(*v).contains::<MenuButtonSwitcherIconShown>()
+                })
+                .collect()
+        } else {
+            children
+                .iter()
+                .filter(|v| world.entity(*v).contains::<ImageNode>())
+                .collect()
+        };
         for image_entity in image_entities {
             world
                 .commands()
@@ -58,10 +71,23 @@ fn on_menu_button_disabled(mut world: DeferredWorld, context: HookContext) {
 
 fn on_menu_button_enabled(mut world: DeferredWorld, context: HookContext) {
     if let Some(children) = world.entity(context.entity).get_components::<&Children>() {
-        let image_entities: Vec<Entity> = children
+        let image_entities: Vec<Entity> = if children
             .iter()
-            .filter(|v| world.entity(*v).contains::<ImageNode>())
-            .collect();
+            .any(|v| world.entity(v).contains::<MenuButtonSwitcherIconShown>())
+        {
+            children
+                .iter()
+                .filter(|v| {
+                    world.entity(*v).contains::<ImageNode>()
+                        && world.entity(*v).contains::<MenuButtonSwitcherIconShown>()
+                })
+                .collect()
+        } else {
+            children
+                .iter()
+                .filter(|v| world.entity(*v).contains::<ImageNode>())
+                .collect()
+        };
         for image_entity in image_entities {
             world
                 .commands()
@@ -441,6 +467,7 @@ impl MenuButtonSwitcher for EntityCommands<'_> {
                 should_block_lower: false,
                 is_hoverable: false,
             },
+            MenuButtonSwitcherIconShown,
         ));
         self.with_child((
             Node {

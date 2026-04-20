@@ -58,7 +58,10 @@ struct LockIconNodeLocked;
 struct LockIconNodeUnlocked;
 
 #[derive(Component)]
-struct RerollButtonMarker;
+pub struct RerollButtonMarker;
+
+#[derive(Component)]
+pub struct LockButtonMarker;
 
 #[derive(Component)]
 pub struct BackButtonMarker;
@@ -267,15 +270,20 @@ pub fn make_header_bundle(
                 ..default()
             },
             MenuButtonSwitcherState::Idle,
+            LockButtonMarker,
         ))
         .menu_button_hover_effect()
         .observe(
             |trigger: On<Pointer<Click>>,
+             button_disabled: Query<&MenuButtonDisabled>,
              mut content_stuff: ResMut<ContentContext>,
              page_rollers: Query<(Entity, &RerollButtonMarker)>,
              mut rollers: Query<(Entity, &mut Node, &RollerIcon)>,
              state: Query<&MenuButtonSwitcherState>,
              mut commands: Commands| {
+                if button_disabled.contains(trigger.entity) {
+                    return;
+                }
                 let Ok(state) = state.get(trigger.entity) else {
                     return;
                 };
@@ -306,16 +314,20 @@ pub fn make_header_bundle(
                         node.display = Display::DEFAULT;
                         commands.entity(e).insert(RollerIcon::Visible);
                     });
-                    for (e, _) in page_rollers.iter() {
-                        commands.entity(e).remove::<MenuButtonDisabled>();
+                    if content_stuff.rerollable {
+                        for (e, _) in page_rollers.iter() {
+                            commands.entity(e).remove::<MenuButtonDisabled>();
+                        }
                     }
                 } else {
                     rollers.iter_mut().for_each(|(e, mut node, _)| {
                         node.display = Display::None;
                         commands.entity(e).insert(RollerIcon::Hidden);
                     });
-                    for (e, _) in page_rollers.iter() {
-                        commands.entity(e).insert(MenuButtonDisabled);
+                    if content_stuff.rerollable {
+                        for (e, _) in page_rollers.iter() {
+                            commands.entity(e).insert(MenuButtonDisabled);
+                        }
                     }
                 }
             },
@@ -360,9 +372,13 @@ pub fn make_header_bundle(
         ))
         .menu_button_hover_effect()
         .observe(
-            |_: On<Pointer<Click>>,
+            |trigger: On<Pointer<Click>>,
+             button_disabled: Query<&MenuButtonDisabled>,
              content_stuff: Res<ContentContext>,
              mut commands: Commands| {
+                if button_disabled.contains(trigger.entity) {
+                    return;
+                }
                 if let Some(uid) = &content_stuff.current_entity_uid {
                     commands.trigger(RerollEntity::from_uid(uid.clone()));
                 }

@@ -23,6 +23,8 @@
 // for more information about commercial licensing terms.
 */
 
+use std::collections::BTreeMap;
+
 // City and town maps - based on Watabou's datasets
 use bevy::{platform::collections::HashMap, prelude::*};
 
@@ -41,6 +43,8 @@ use crate::{
 };
 
 use super::{BattlemapFeatureUtils, helpers::*, settlement::*};
+
+use hexroll3_cartographer::watabou::json::*;
 
 pub struct CityPlugin;
 
@@ -112,7 +116,7 @@ fn on_spawn_city_map(
                     building.pointer_on_hover();
 
                     if let Some(label) = city_constructs.poi_labels.get(uid) {
-                        building.tooltip_on_hover(label, 0.5);
+                        building.tooltip_on_hover(label, 0.1);
                     }
                     building.observe(move |_: On<Pointer<Click>>, mut commands: Commands| {
                         commands.trigger(crate::hexmap::elements::FetchEntityFromStorage {
@@ -267,7 +271,7 @@ impl CityMapConstructs {
                 roads = r;
             }
             base.detect_trees(f);
-            base.detect_fields(f);
+            base.detect_fields(f, 1020.0, offset);
             base.detect_squares(f);
 
             if let Feature::GeometryCollection { id, geometries } = f {
@@ -302,14 +306,32 @@ impl CityMapConstructs {
                     }
                 }
                 if id == "buildings" {
-                    for c in coordinates.iter() {
+                    let proxy: BTreeMap<i32, String> = map
+                        .poi
+                        .iter()
+                        .filter_map(|v| {
+                            if let Some(building_index) = v.building {
+                                Some((building_index, v.uuid.clone()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    for (i, c) in coordinates.iter().enumerate() {
+                        if !c
+                            .points
+                            .iter()
+                            .all(|p| is_point_inside_hex(p.as_slice(), 1020.0, offset))
+                        {
+                            continue;
+                        }
                         let polygon: Vec<lyon::math::Point> = c
                             .points
                             .iter()
                             .map(|p| lyon::math::Point::new(p[0] as f32, p[1] as f32))
                             .collect();
-                        buildings
-                            .push((make_filled_mesh_from_outline(&polygon), c.uid.clone()));
+                        let uid = proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
+                        buildings.push((make_filled_mesh_from_outline(&polygon), uid));
                         building_outlines.push(make_mesh_from_outline(&polygon, 2.0));
                     }
                 }

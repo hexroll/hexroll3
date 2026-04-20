@@ -281,6 +281,11 @@ pub trait LayoutSpawner {
         align_items: AlignItems,
         func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
     );
+    fn spawn_row_with_wrap(
+        &mut self,
+        align_items: AlignItems,
+        func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
+    );
     fn spawn_col(
         &mut self,
         func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
@@ -317,6 +322,22 @@ impl LayoutSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, Child
         self.spawn((Node {
             flex_direction: FlexDirection::Row,
             align_items,
+            ..default()
+        },))
+            .with_children(func);
+    }
+    fn spawn_row_with_wrap(
+        &mut self,
+        align_items: AlignItems,
+        func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
+    ) {
+        self.spawn((Node {
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            justify_content: JustifyContent::Center,
+            align_items,
+            row_gap: Val::Px(10.0),
+            column_gap: Val::Px(10.0),
             ..default()
         },))
             .with_children(func);

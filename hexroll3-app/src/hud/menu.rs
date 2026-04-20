@@ -136,6 +136,7 @@ fn menu_visibility_controller(
                 || *discrete_state == DiscreteAppState::Modal
                 || *content_mode == ContentMode::SplitScreen
                 || *hexmap_tool_state == HexMapToolState::Draw
+                || *hexmap_tool_state == HexMapToolState::Edit
             {
                 Visibility::Hidden
             } else {

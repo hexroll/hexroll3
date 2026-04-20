@@ -40,7 +40,7 @@ use hexx::Hex;
 #[derive(Event)]
 pub struct StoreVttState;
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct LoadVttState;
 
 #[derive(Debug, Resource, Default, Serialize, Deserialize, Clone)]

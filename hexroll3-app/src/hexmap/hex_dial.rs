@@ -27,19 +27,24 @@ use bevy::prelude::*;
 use hexx::*;
 
 use crate::{
-    clients::http::PerformHexMapActionInBackend,
-    hexmap::elements::{AppendSandboxEntity, HexMapData, RerollHex},
-    shared::widgets::modal::DiscreteAppState,
+    clients::{controller::PerformHexMapActionInBackend, model::RerollEntity},
+    hexmap::elements::{AppendSandboxEntity, HexMapData},
     shared::{
+        settings::UserSettings,
         vtt::VttData,
-        widgets::dial::{
-            DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
-            MenuItemSpawner, placeholder_click_handler,
+        widgets::{
+            dial::{
+                DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
+                MenuItemSpawner, placeholder_click_handler,
+            },
+            modal::DiscreteAppState,
         },
     },
 };
 
 use super::{
+    TerrainType,
+    editor::{MapEditor, PenType},
     elements::{HexMapState, HexMapToolState, y_inverted_hexmap_layout},
     selecting::{detect_click, track_hex_under_cursor},
 };
@@ -69,7 +74,6 @@ pub enum MenuIconLock {
 pub enum DialIcon {
     Dice,
     Broom,
-    Feather,
     Trash,
     Dungeon,
     Settlement,
@@ -84,6 +88,11 @@ pub enum DialIcon {
     Hex,
     Region,
     Feature,
+    Pencil,
+    RealmLands,
+    RealmEmpire,
+    RealmKingdom,
+    RealmDuchy,
 }
 
 fn setup(
@@ -110,8 +119,8 @@ fn setup(
             &asset_server,
         )
         .add_item(
-            DialIcon::Feather,
-            "icons/icon-remap.ktx2",
+            DialIcon::Pencil,
+            "icons/icon-pencil-256.ktx2",
             &mut materials,
             &asset_server,
         )
@@ -198,6 +207,30 @@ fn setup(
             "icons/icon-realm.ktx2",
             &mut materials,
             &asset_server,
+        )
+        .add_item(
+            DialIcon::RealmDuchy,
+            "icons/icon-realm-duchy.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::RealmKingdom,
+            "icons/icon-realm-kingdom.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::RealmEmpire,
+            "icons/icon-realm-empire.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::RealmLands,
+            "icons/icon-realm-lands.ktx2",
+            &mut materials,
+            &asset_server,
         );
     commands.insert_resource(dial_assets);
 }
@@ -233,6 +266,7 @@ fn on_spawn_hex_dial(
     vtt_data: Res<VttData>,
     app_state: Res<State<DiscreteAppState>>,
     map_state: Res<State<HexMapState>>,
+    user_settings: Res<UserSettings>,
 ) {
     if vtt_data.mode.is_player()
         || *app_state != DiscreteAppState::Normal
@@ -284,21 +318,24 @@ fn on_spawn_hex_dial(
                     "Remove entities",
                 )
                 .make_conditional_and_lockable(&locked, true);
-            c.spawn_empty()
-                .spawn_menu_item(
-                    8,
-                    MAX_ITEMS_IN_DIAL,
-                    DialIcon::Feather,
-                    placeholder_click_handler(),
-                    &dial_assets,
-                    "Restructure map",
-                )
-                .make_conditional_and_lockable(&locked, true);
+            let standalone_sandbox = user_settings.local.unwrap_or(false);
+            if standalone_sandbox {
+                c.spawn_empty()
+                    .spawn_menu_item(
+                        2,
+                        MAX_ITEMS_IN_DIAL,
+                        DialIcon::Pencil,
+                        dial_menu_draw_realm(),
+                        &dial_assets,
+                        "Draw new realms",
+                    )
+                    .make_conditional_and_lockable(&locked, true);
+            }
         });
     }
 }
 
-fn create_trigger_closure(
+fn create_append_trigger_closure(
     attr: &str,
     what: &str,
 ) -> impl Fn(On<Pointer<Click>>, Commands, ResMut<NextState<HexMapToolState>>, Res<HexMapData>)
@@ -314,6 +351,17 @@ fn create_trigger_closure(
             });
         }
         next_state.set(HexMapToolState::Selection);
+    }
+}
+
+fn create_editor_trigger_closure(
+    realm_type: &str,
+) -> impl Fn(On<Pointer<Click>>, ResMut<MapEditor>, ResMut<NextState<HexMapToolState>>) {
+    move |_, mut editor, mut next_tool_state| {
+        next_tool_state.set(HexMapToolState::Edit);
+        editor.realm_type = realm_type.to_string();
+        editor.pen = PenType::Brush;
+        editor.terrain = TerrainType::MountainsHex;
     }
 }
 
@@ -347,7 +395,7 @@ fn dial_menu_roll_menu(
                     10,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Dungeon,
-                    create_trigger_closure("Dungeon", "Dungeon"),
+                    create_append_trigger_closure("Dungeon", "Dungeon"),
                     &dial_assets,
                     "Roll a dungeon",
                 )
@@ -399,6 +447,66 @@ fn dial_menu_roll_menu(
 }
 
 #[allow(clippy::type_complexity)]
+fn dial_menu_draw_realm() -> impl Fn(
+    On<Pointer<Click>>,
+    Commands,
+    Query<&ChildOf>,
+    Query<Entity, With<DialButton>>,
+    Res<DialAssets<DialIcon>>,
+    Single<&MenuIconLock>,
+) {
+    move |trigger, mut commands, parents, prev, dial_assets, locked| {
+        for e in prev.iter() {
+            commands.entity(e).despawn();
+        }
+        let entity_pointer = parents.get(trigger.entity).unwrap();
+        commands.entity(entity_pointer.parent()).with_children(|c| {
+            const MAX_ITEMS_IN_DIAL: i32 = 12;
+            c.spawn_empty()
+                .spawn_menu_item(
+                    10,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::RealmLands,
+                    create_editor_trigger_closure("RealmTypeLands"),
+                    &dial_assets,
+                    "Draw lands",
+                )
+                .make_conditional_and_lockable(&locked, true);
+            c.spawn_empty()
+                .spawn_menu_item(
+                    8,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::RealmDuchy,
+                    create_editor_trigger_closure("RealmTypeDuchy"),
+                    &dial_assets,
+                    "Draw a duchy",
+                )
+                .make_conditional_and_lockable(&locked, true);
+            c.spawn_empty()
+                .spawn_menu_item(
+                    6,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::RealmKingdom,
+                    create_editor_trigger_closure("RealmTypeKingdom"),
+                    &dial_assets,
+                    "Draw a kingdom",
+                )
+                .make_conditional_and_lockable(&locked, true);
+            c.spawn_empty()
+                .spawn_menu_item(
+                    4,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::RealmEmpire,
+                    create_editor_trigger_closure("RealmTypeEmpire"),
+                    &dial_assets,
+                    "Draw an empire",
+                )
+                .make_conditional_and_lockable(&locked, true);
+        });
+    }
+}
+
+#[allow(clippy::type_complexity)]
 fn dial_menu_roll_settlement() -> impl Fn(
     On<Pointer<Click>>,
     Commands,
@@ -419,7 +527,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     10,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::City,
-                    create_trigger_closure("Settlement", "City"),
+                    create_append_trigger_closure("Settlement", "City"),
                     &dial_assets,
                     "Roll a city",
                 )
@@ -429,7 +537,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     8,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Town,
-                    create_trigger_closure("Settlement", "Town"),
+                    create_append_trigger_closure("Settlement", "Town"),
                     &dial_assets,
                     "Roll a town",
                 )
@@ -439,7 +547,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     6,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Village,
-                    create_trigger_closure("Settlement", "Village"),
+                    create_append_trigger_closure("Settlement", "Village"),
                     &dial_assets,
                     "Roll a village",
                 )
@@ -449,7 +557,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     4,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Inn,
-                    create_trigger_closure("Inn", "Inn"),
+                    create_append_trigger_closure("Inn", "Inn"),
                     &dial_assets,
                     "Roll an inn",
                 )
@@ -458,7 +566,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                 2,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Dwelling,
-                create_trigger_closure("Residency", "Residency"),
+                create_append_trigger_closure("Residency", "Residency"),
                 &dial_assets,
                 "Roll a dwelling",
             );
@@ -523,10 +631,11 @@ fn dial_menu_clean_menu(
                           map_data: Res<HexMapData>| {
                         if let Some((hex_uid, class)) = map_data.get_selected_uid_and_class() {
                             if let Some(hex_coords) = map_data.selected {
-                                commands.trigger(RerollHex {
-                                    hex_coords,
-                                    class,
-                                    hex_uid,
+                                commands.trigger(RerollEntity {
+                                    coords: Some(hex_coords),
+                                    class_override: class,
+                                    uid: hex_uid,
+                                    is_map_reload_needed: false,
                                 });
                             }
                         }

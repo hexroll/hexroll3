@@ -24,50 +24,49 @@
 */
 
 use std::fs::File;
-use std::time::Duration;
 
 use bevy::prelude::*;
 
 use bevy::window::{CursorIcon, PrimaryWindow, SystemCursorIcon};
 
-use serde_json::Value;
-
-use bevy_tweening::{Tween, lens::TransformScaleLens};
-
-use crate::battlemaps::BattlemapFeatureUtils;
-use crate::clients::controller::TokenState;
-use crate::content::{EditableAttributeParams, RenameSandboxEntity};
 use crate::{
     battlemaps::{
-        BattleMapConstructs, CaveMapConstructs, CityMapConstructs, DungeonMapConstructs,
-        RequestCityOrTownFromBackend, RequestDungeonFromBackend, RequestVillageFromBackend,
-        VillageMapConstructs,
+        BattleMapConstructs, BattlemapFeatureUtils, CaveMapConstructs, CityMapConstructs,
+        DungeonMapConstructs, RequestCityOrTownFromBackend, RequestDungeonFromBackend,
+        RequestVillageFromBackend, VillageMapConstructs,
     },
-    clients::model::BackendUid,
-    content::{ContentPageModel, context::ContentContext},
+    clients::{
+        controller::{PostMapLoadedOpPrefix, RenamingResponse, TokenState},
+        model::BackendUid,
+    },
+    content::{ContentPageModel, RenameSandboxEntity},
     hexmap::{
-        HexMapJson, HexMapTileMaterials, HexmapTheme, MapMessage,
+        HexMapJson, HexMapTileMaterials, HexmapTheme,
         elements::{
-            AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
-            HexMapData, HexMapResources, HexToInvalidateMarker, RerollHex, VttDataState,
-            hexx_to_hexroll_coords,
+            AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexMapData,
+            HexMapResources, VttDataState, hexx_to_hexroll_coords,
         },
-        prepare_hex_map_data, update_hex_map_tiles,
+        prepare_hex_map_data,
     },
     shared::{
-        asynchttp::{ApiHandler, AsyncHttpTasks, HttpAgent},
+        asynchttp::{ApiHandler, AsyncBackendTasks, HttpAgent},
         effects::{EffectSystems, RollNewFeatureEffect},
         settings::{AppSettings, UserSettings},
         vtt::{HexMapMode, LoadVttState, StoreVttState, VttData},
     },
     tokens::Token,
-    vtt::sync::{EventContext, EventSource, SyncMapForPeers},
+    vtt::sync::{EventContext, EventSource},
 };
 
-use super::controller::{ClientState, VttStateApiController};
+use super::controller::SearchEntitiesInBackend;
 use super::{
-    controller::{RenderEntityContent, ShowSearchResults, on_ingest_battlemap_data},
-    model::{FetchEntityReason, RerollEntity, SandboxMode, SearchResponse},
+    RemoteBackendEvent,
+    controller::{
+        ClientState, FeatureUidResponse, PerformHexMapActionInBackend, PostMapLoadedOp,
+        RequestMapFromBackend, RequestSandboxFromBackend, RequestVttSessionFromBackend,
+        VttSessionResponse, VttStateApiController,
+    },
+    model::{FetchEntityReason, RerollEntity, SearchResponse},
 };
 
 pub struct ApiClientPlugin;
@@ -83,75 +82,55 @@ impl Plugin for ApiClientPlugin {
             // ---------------------------------------------------------------------------------------------
             // Get sandbox 
             .add_observer(request_sandbox)
-            .register_api_callback::<_, String, Option<String>>(receive_sandbox)
             // Join VTT
             .add_observer(request_vtt_session)
-            .register_api_callback::<_, String, VttSessionResponse>(receive_vtt_session)
             // Get entity content page 
             .add_observer(fetch_hex)
-            .register_api_callback::<_, String, (ContentPageModel, FetchEntityReason, Option<String>)>(receive_hex)
             // Roll a new feature
             .add_observer(append_feature)
-            .register_api_callback::<_, String, FeatureUidResponse>(receive_appended_feature)
             // Rename a sandbox entity
             .add_observer(rename_entity)
-            .register_api_callback::<_, String, RenamingResponse>(receive_renaming_result)
             // Save vtt state
             .add_observer(save_vtt_state)
             .register_api_callback::<_, String, StoreStateResponse>(receive_vtt_store_response)
             // Load vtt state
             .add_observer(load_vtt_state)
             .register_api_callback::<_, String, LoadStateResponse>(receive_vtt_load_response)
-            // Reroll a hex
-            .add_observer(reroll_hex)
-            .register_api_callback::<_, String, RerollHexResponse>(receive_hex_reroll)
             // Get sandbox hexmap
             .add_observer(request_hex_map)
-            .register_api_callback::<_, String, (Option<HexMapData>, PostMapLoadedOp)>(receive_hex_map)
             // Get battlemaps
             .add_observer(request_dungeon_map)
             .add_observer(request_city_or_town_map)
             .add_observer(request_village_map)
-            .register_api_callback::<_, (String, Entity), (BattleMapConstructs, String)>(
-                receive_battlemaps_data.after(update_hex_map_tiles),
-            )
             // Reroll an entity
             .add_observer(request_a_reroll)
-            .register_api_callback::<_, String, (bool, String)>(receive_reroll_response)
             // Search
             .add_observer(request_search)
-            .register_api_callback::<_, String, SearchResponse>(receive_search_results)
             // Hex Map Action
             .add_observer(request_hex_action)
-            .register_api_callback::<_, (String,String), String>(receive_hex_action_results)
             // ---------------------------------------------------------------------------------------------
             // <--
             ;
     }
 }
 // ---------------------------------------------------------------------------------------------------------
-#[derive(Event, Default)]
-pub struct RequestSandboxFromBackend {
-    pub sandbox_uid: String,
-    pub pairing_key: String,
-}
-
 pub fn request_sandbox(
-    trigger: On<RequestSandboxFromBackend>,
+    trigger: On<RemoteBackendEvent<RequestSandboxFromBackend>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, Option<String>>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, Option<String>>>,
     user_settings: Res<UserSettings>,
 ) {
-    let sandbox_uid = &trigger.sandbox_uid;
+    let event = &trigger.event().0;
+    let sandbox_uid = &event.sandbox_uid;
     let server_host = &user_settings.server;
-    let api_key = Some(trigger.pairing_key.clone());
+    let api_key = event.pairing_key.clone();
 
     #[cfg(not(target_arch = "wasm32"))]
     let url = format!("{}/body/{}/root", server_host, sandbox_uid);
     #[cfg(target_arch = "wasm32")]
     let url = format!("/api/body/{}/root", sandbox_uid);
 
-    let pairing_key = trigger.pairing_key.clone();
+    let pairing_key = event.pairing_key.clone();
     let _ = http_tasks.spawn_request(
         &mut http_agent,
         url,
@@ -162,42 +141,17 @@ pub fn request_sandbox(
             if data.contains("Not found") || data.contains("message") {
                 None
             } else {
-                Some(pairing_key.clone())
+                pairing_key.clone()
             }
         },
     );
 }
 
-pub fn receive_sandbox(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, Option<String>>>,
-) {
-    http_tasks.poll_responses(|uid, data| {
-        if let Some(ret) = data {
-            if let Some(data) = ret {
-                commands.trigger(RequestMapResult::Loaded(uid.clone(), data));
-            } else {
-                commands.trigger(RequestMapResult::Failed);
-            }
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
-#[derive(Event, Default)]
-pub struct RequestVttSessionFromBackend {
-    pub sandbox_uid: String,
-    pub node_name: String,
-}
-
-pub struct VttSessionResponse {
-    node_name: String,
-}
-
 pub fn request_vtt_session(
     trigger: On<RequestVttSessionFromBackend>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, VttSessionResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, VttSessionResponse>>,
     user_settings: Res<UserSettings>,
 ) {
     let sandbox_uid = &trigger.sandbox_uid;
@@ -221,52 +175,11 @@ pub fn request_vtt_session(
     );
 }
 
-pub fn receive_vtt_session(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, VttSessionResponse>>,
-) {
-    http_tasks.poll_responses(|uid, data| {
-        if let Some(data) = data {
-            commands.trigger(RequestMapResult::Joined(
-                uid.clone(),
-                data.node_name.clone(),
-            ));
-        }
-    });
-}
-
-#[derive(Default, Clone, Event)]
-pub struct PostMapLoadedOpPrefix {
-    pub post_map_op: PostMapLoadedOp,
-}
-
-#[derive(Default, Clone, PartialEq, Event)]
-pub enum PostMapLoadedOp {
-    #[default]
-    None,
-    Initialize(SandboxMode),
-    InvalidateVisible,
-    FetchEntity(String),
-}
-
 // ---------------------------------------------------------------------------------------------------------
-#[derive(Event, Default)]
-pub struct RequestMapFromBackend {
-    pub post_map_loaded_op: PostMapLoadedOp,
-}
-
-// ---------------------------------------------------------------------------------------------------------
-#[derive(Event, PartialEq)]
-pub enum RequestMapResult {
-    Loaded(String /* Sandbox Id */, String /* Key */),
-    Joined(String /* Sandbox Id */, String /* Node name */),
-    Failed,
-}
-
 pub fn request_hex_map(
-    trigger: On<RequestMapFromBackend>,
+    trigger: On<RemoteBackendEvent<RequestMapFromBackend>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
     assets: Res<HexMapResources>,
     tiles: Res<HexMapTileMaterials>,
     user_settings: Res<UserSettings>,
@@ -284,7 +197,7 @@ pub fn request_hex_map(
     let url = format!("/api/map/{}", sandbox_uid);
     let curved_mesh_tile_set = assets.curved_mesh_tile_set.clone();
     let tiles = tiles.clone();
-    let post_map_loaded_op = trigger.post_map_loaded_op.clone();
+    let post_map_loaded_op = trigger.0.post_map_loaded_op.clone();
     let scale_calculator = theme.tile_scale_values();
 
     commands.trigger(PostMapLoadedOpPrefix {
@@ -314,33 +227,18 @@ pub fn request_hex_map(
     );
 }
 
-pub fn receive_hex_map(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
-    callbacks: Res<HexEntityCallbacks>,
-) {
-    http_tasks.poll_responses(|_, data| {
-        if let Some((data, post_map_loaded_op)) = data {
-            if let Some(data) = data {
-                commands.insert_resource(data);
-                commands.run_system(callbacks.invalidate);
-                commands.trigger(post_map_loaded_op);
-            }
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
 pub fn fetch_hex(
-    trigger: On<FetchEntityFromStorage>,
+    trigger: On<RemoteBackendEvent<FetchEntityFromStorage>>,
     mut http_agent: ResMut<HttpAgent>,
     mut http_tasks: ResMut<
-        AsyncHttpTasks<String, (ContentPageModel, FetchEntityReason, Option<String>)>,
+        AsyncBackendTasks<String, (ContentPageModel, FetchEntityReason, Option<String>)>,
     >,
     user_settings: Res<UserSettings>,
     mut commands: Commands,
     window: Single<Entity, With<PrimaryWindow>>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
@@ -349,20 +247,20 @@ pub fn fetch_hex(
     #[cfg(target_arch = "wasm32")]
     let url = format!("/api/get/{}/{}", sandbox_uid, trigger.event().uid);
     #[cfg(not(target_arch = "wasm32"))]
-    let url = format!("{server_host}/get/{}/{}", sandbox_uid, trigger.event().uid);
-    let uid = trigger.event().uid.clone();
-    let why = trigger.why.clone();
+    let url = format!("{server_host}/get/{}/{}", sandbox_uid, event.uid);
+    let uid = event.uid.clone();
+    let why = event.why.clone();
 
     commands
         .entity(*window)
         .insert(CursorIcon::System(SystemCursorIcon::Progress));
 
-    let anchor = trigger.event().anchor.clone();
+    let anchor = event.anchor.clone();
     let _ = http_tasks.spawn_request(
         &mut http_agent,
         url,
         api_key,
-        trigger.event().uid.clone(),
+        event.uid.clone(),
         move |data| {
             (
                 ContentPageModel::from_entity_html(&uid, &data),
@@ -373,35 +271,18 @@ pub fn fetch_hex(
     );
 }
 
-pub fn receive_hex(
-    mut commands: Commands,
-    mut http_tasks: ResMut<
-        AsyncHttpTasks<String, (ContentPageModel, FetchEntityReason, Option<String>)>,
-    >,
-) {
-    http_tasks.poll_responses(|uid, ret| {
-        if let Some((data, why, anchor)) = ret {
-            commands.trigger(RenderEntityContent {
-                uid: uid.to_string(),
-                data,
-                anchor,
-                why,
-            });
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
 pub fn append_feature(
-    trigger: On<AppendSandboxEntity>,
+    trigger: On<RemoteBackendEvent<AppendSandboxEntity>>,
     mut http_agent: ResMut<HttpAgent>,
     mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, FeatureUidResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
     // hexes: Query<(Entity, &HexEntity)>,
     effects: Res<EffectSystems>,
     user_settings: Res<UserSettings>,
     window: Single<Entity, With<PrimaryWindow>>,
 ) {
+    let event = &trigger.event().0;
     commands
         .entity(*window)
         .insert(CursorIcon::System(SystemCursorIcon::Progress));
@@ -414,26 +295,26 @@ pub fn append_feature(
     let url = format!("{server_host}/append/");
     let mut json_data = serde_json::json!({
         "instance": sandbox_uid,
-        "entity": trigger.event().hex_uid,
-        "type": trigger.event().what,
-        "attribute": trigger.event().attr,
+        "entity": event.hex_uid,
+        "type": event.what,
+        "attribute": event.attr,
     });
 
-    if let Some(hex_coords) = trigger.hex_coords {
+    if let Some(hex_coords) = trigger.0.hex_coords {
         commands
             .spawn_empty()
             .insert(RollNewFeatureEffect(hex_coords));
         commands.run_system(effects.roll_feature_effect);
 
-        if trigger.send_coords {
-            let (x, y) = hexx_to_hexroll_coords(hex_coords);
+        if trigger.0.send_coords {
+            let (x, y) = hexx_to_hexroll_coords(&hex_coords);
             json_data["nx"] = x.into();
             json_data["ny"] = y.into();
         }
     }
-    let coords = trigger.hex_coords;
-    let send_coords = trigger.send_coords;
-    let hex_uid = trigger.hex_uid.clone();
+    let coords = trigger.0.hex_coords;
+    let send_coords = trigger.0.send_coords;
+    let hex_uid = trigger.0.hex_uid.clone();
     http_tasks.spawn_post(
         &mut http_agent,
         url,
@@ -456,11 +337,12 @@ pub fn append_feature(
 
 // ---------------------------------------------------------------------------------------------------------
 pub fn rename_entity(
-    trigger: On<RenameSandboxEntity>,
+    trigger: On<RemoteBackendEvent<RenameSandboxEntity>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, RenamingResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, RenamingResponse>>,
     user_settings: Res<UserSettings>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
@@ -469,13 +351,13 @@ pub fn rename_entity(
     let url = format!("{server_host}/rename/");
     let json_data = serde_json::json!({
         "instance": sandbox_uid,
-        "entity": trigger.event().entity_uid,
-        "attr": trigger.event().params.attr_name,
-        "value": trigger.event().value,
+        "entity": event.entity_uid,
+        "attr": event.params.attr_name,
+        "value": event.value,
     });
 
-    let params = trigger.event().params.clone();
-    let uid = trigger.event().entity_uid.clone();
+    let params = event.params.clone();
+    let uid = event.entity_uid.clone();
 
     http_tasks.spawn_post(
         &mut http_agent,
@@ -487,130 +369,10 @@ pub fn rename_entity(
     );
 }
 
-pub struct RenamingResponse(String, EditableAttributeParams);
-
-pub fn receive_renaming_result(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, RenamingResponse>>,
-) {
-    http_tasks.poll_responses(|_, data| {
-        if let Some(data) = data {
-            if data.1.is_a_map_label {
-                debug!("received renaming result - refreshing map");
-                commands.trigger(RequestMapFromBackend {
-                    post_map_loaded_op: PostMapLoadedOp::FetchEntity(data.0),
-                });
-            } else {
-                debug!("received renaming result - refreshing entity");
-                commands.trigger(FetchEntityFromStorage {
-                    uid: data.0,
-                    anchor: None,
-                    why: FetchEntityReason::Refresh,
-                });
-            }
-        }
-    });
-}
-
-pub struct FeatureUidResponse(String, Option<hexx::Hex>, Option<String>);
-
-pub fn receive_appended_feature(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, FeatureUidResponse>>,
-    hexes: Query<(Entity, &HexEntity)>,
-) {
-    http_tasks.poll_responses(|_, data| {
-        if let Some(data) = data {
-            if let Ok(parsed_data) = serde_json::from_str::<Value>(&data.0) {
-                debug!("{:?}", parsed_data);
-                if let Some(hex_coords) = data.1 {
-                    for (entity, hex) in hexes.iter() {
-                        if hex.hex == hex_coords {
-                            commands.entity(entity).insert(HexToInvalidateMarker);
-                        }
-                    }
-                }
-                if let Some(uid) = parsed_data.get("uuid").and_then(Value::as_str) {
-                    commands.trigger(RequestMapFromBackend {
-                        post_map_loaded_op: PostMapLoadedOp::FetchEntity(
-                            data.2.unwrap_or(uid.to_string()),
-                        ),
-                    });
-                }
-                commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
-            }
-        }
-    });
-}
-
-// ---------------------------------------------------------------------------------------------------------
-pub struct RerollHexResponse(hexx::Hex);
-
-pub fn reroll_hex(
-    trigger: On<RerollHex>,
-    mut http_agent: ResMut<HttpAgent>,
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, RerollHexResponse>>,
-    effects: Res<EffectSystems>,
-    user_settings: Res<UserSettings>,
-) {
-    let Some(sandbox_uid) = &user_settings.sandbox else {
-        return;
-    };
-    commands
-        .spawn_empty()
-        .insert(RollNewFeatureEffect(trigger.hex_coords));
-    commands.run_system(effects.roll_feature_effect);
-    let server_host = &user_settings.server;
-    let api_key = Some(user_settings.key.as_ref().unwrap().clone());
-    let url = format!(
-        "{server_host}/reroll/{}/{}/{}",
-        sandbox_uid,
-        trigger.event().hex_uid,
-        trigger.event().class,
-    );
-    let coords = trigger.hex_coords;
-    let _ = http_tasks.spawn_request(
-        &mut http_agent,
-        url,
-        api_key,
-        sandbox_uid.clone(),
-        move |_data| RerollHexResponse(coords),
-    );
-}
-
-pub fn receive_hex_reroll(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, RerollHexResponse>>,
-    hexes: Query<(Entity, &HexEntity)>,
-) {
-    http_tasks.poll_responses(|_, data| {
-        if let Some(data) = data {
-            for (entity, hex) in hexes.iter() {
-                if hex.hex == data.0 {
-                    let _tween = Tween::new(
-                        EaseFunction::QuarticIn,
-                        Duration::from_millis(500),
-                        TransformScaleLens {
-                            start: Vec3::splat(1.0),
-                            end: Vec3::splat(0.0),
-                        },
-                    );
-                    commands.entity(entity).insert(HexToInvalidateMarker);
-                    // NOTE(CRITICAL): This seems to crash Avian3D!!!
-                    // .insert(bevy_tweening::Animator::new(tween));
-                }
-            }
-            commands.trigger(RequestMapFromBackend::default());
-            commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
 
 pub struct StoreStateResponse;
-pub struct LoadStateResponse(ClientState);
+pub struct LoadStateResponse(pub ClientState);
 
 pub fn save_vtt_state(
     _trigger: On<StoreVttState>,
@@ -625,7 +387,7 @@ pub fn save_vtt_state(
 pub fn handle_save_vtt_state(
     mut http_agent: ResMut<HttpAgent>,
     mut controller: ResMut<VttStateApiController>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, StoreStateResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, StoreStateResponse>>,
     settings: Res<AppSettings>,
     vtt_data: Res<VttData>,
     tokens: Query<(&Token, &Transform)>,
@@ -638,9 +400,6 @@ pub fn handle_save_vtt_state(
     if let VttStateApiController::Staged(timer) = &mut *controller {
         if timer.tick(time.delta()).is_finished() {
             debug!("Save state timer expired.");
-            let server_host = &user_settings.server;
-            let api_key = Some(user_settings.key.as_ref().unwrap().clone());
-            let url = format!("{server_host}/state/{}/{}", sandbox_uid, "default3");
             let tokens: Vec<TokenState> = tokens
                 .iter()
                 .map(|(token, transform)| TokenState {
@@ -666,6 +425,14 @@ pub fn handle_save_vtt_state(
             serde_json::to_writer_pretty(writer, &json_data)
                 .expect("Failed to write vtt state data file");
 
+            if user_settings.local.unwrap_or(false) {
+                *controller = VttStateApiController::Idle;
+                return;
+            }
+            let server_host = &user_settings.server;
+            let api_key = Some(user_settings.key.as_ref().unwrap().clone());
+            let url = format!("{server_host}/state/{}/{}", sandbox_uid, "default3");
+
             http_tasks.spawn_post(
                 &mut http_agent,
                 url,
@@ -681,16 +448,16 @@ pub fn handle_save_vtt_state(
 }
 
 pub fn receive_vtt_store_response(
-    mut http_tasks: ResMut<AsyncHttpTasks<String, StoreStateResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, StoreStateResponse>>,
 ) {
     http_tasks.poll_responses(|_, _data| {});
 }
 
 // ---------------------------------------------------------------------------------------------------------
 pub fn load_vtt_state(
-    _trigger: On<LoadVttState>,
+    _trigger: On<RemoteBackendEvent<LoadVttState>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, LoadStateResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, LoadStateResponse>>,
     mut controller: ResMut<VttStateApiController>,
     user_settings: Res<UserSettings>,
 ) {
@@ -723,7 +490,7 @@ pub fn load_vtt_state(
 
 pub fn receive_vtt_load_response(
     mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, LoadStateResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, LoadStateResponse>>,
     mut controller: ResMut<VttStateApiController>,
     hexes: Query<Entity, With<HexEntity>>,
     existing_vtt_data: Res<VttData>,
@@ -757,24 +524,25 @@ pub fn receive_vtt_load_response(
 
 // ---------------------------------------------------------------------------------------------------------
 pub fn request_dungeon_map(
-    trigger: On<RequestDungeonFromBackend>,
+    trigger: On<RemoteBackendEvent<RequestDungeonFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
-    let url = format!("/api/dungeon/{}/{}", sandbox_uid, trigger.uid);
+    let url = format!("/api/dungeon/{}/{}", sandbox_uid, event.uid);
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
-    let url = format!("{server_host}/dungeon/{}/{}", sandbox_uid, trigger.uid);
+    let url = format!("{server_host}/dungeon/{}/{}", sandbox_uid, event.uid);
 
-    let uid = trigger.uid.clone();
+    let uid = event.uid.clone();
     let task = move |data: String| -> (BattleMapConstructs, String) {
         if data.contains("areas") {
             (
@@ -794,12 +562,12 @@ pub fn request_dungeon_map(
         }
     };
 
-    if let Some(data) = cache.jsons.get(&trigger.uid) {
+    if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(data.clone(), (trigger.uid.clone(), trigger.hex), task)
+            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), task)
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     } else {
         if my_tasks
@@ -807,48 +575,45 @@ pub fn request_dungeon_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (trigger.uid.clone(), trigger.hex),
+                (event.uid.clone(), event.hex),
                 task,
             )
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     }
 }
 
 pub fn request_city_or_town_map(
-    trigger: On<RequestCityOrTownFromBackend>,
+    trigger: On<RemoteBackendEvent<RequestCityOrTownFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
-    let url = format!("/api/city/{}/{}", sandbox_uid, trigger.uid);
+    let url = format!("/api/city/{}/{}", sandbox_uid, event.uid);
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
-    let url = format!("{server_host}/city/{}/{}", sandbox_uid, trigger.uid);
-    if let Some(data) = cache.jsons.get(&trigger.uid) {
+    let url = format!("{server_host}/city/{}/{}", sandbox_uid, event.uid);
+    if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(
-                data.clone(),
-                (trigger.uid.clone(), trigger.hex),
-                move |data| {
-                    (
-                        BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
-                        data.clone(),
-                    )
-                },
-            )
+            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), move |data| {
+                (
+                    BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
+                    data.clone(),
+                )
+            })
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     } else {
         if my_tasks
@@ -856,7 +621,7 @@ pub fn request_city_or_town_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (trigger.uid.clone(), trigger.hex),
+                (event.uid.clone(), event.hex),
                 move |data| {
                     info!("Processing city map in task");
                     (
@@ -867,47 +632,44 @@ pub fn request_city_or_town_map(
             )
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     }
 }
 
 pub fn request_village_map(
-    trigger: On<RequestVillageFromBackend>,
+    trigger: On<RemoteBackendEvent<RequestVillageFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
-    let url = format!("/api/city/{}/{}", sandbox_uid, trigger.uid);
+    let url = format!("/api/city/{}/{}", sandbox_uid, event.uid);
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
-    let url = format!("{server_host}/city/{}/{}", sandbox_uid, trigger.uid);
-    let uid = trigger.uid.clone();
-    if let Some(data) = cache.jsons.get(&trigger.uid) {
+    let url = format!("{server_host}/city/{}/{}", sandbox_uid, event.uid);
+    let uid = event.uid.clone();
+    if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(
-                data.clone(),
-                (trigger.uid.clone(), trigger.hex),
-                move |data| {
-                    (
-                        BattleMapConstructs::Village(VillageMapConstructs::from(
-                            BackendUid::from(uid.clone()),
-                            data.clone(),
-                        )),
+            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), move |data| {
+                (
+                    BattleMapConstructs::Village(VillageMapConstructs::from(
+                        BackendUid::from(uid.clone()),
                         data.clone(),
-                    )
-                },
-            )
+                    )),
+                    data.clone(),
+                )
+            })
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     } else {
         if my_tasks
@@ -915,7 +677,7 @@ pub fn request_village_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (trigger.uid.clone(), trigger.hex),
+                (event.uid.clone(), event.hex),
                 move |data| {
                     (
                         BattleMapConstructs::Village(VillageMapConstructs::from(
@@ -928,157 +690,62 @@ pub fn request_village_map(
             )
             .is_err()
         {
-            commands.entity(trigger.hex).reset_battlemap_loading_state();
+            commands.entity(event.hex).reset_battlemap_loading_state();
         }
     }
 }
 
-fn receive_battlemaps_data(
-    mut commands: Commands,
-    mut my_tasks: ResMut<AsyncHttpTasks<(String, Entity), (BattleMapConstructs, String)>>,
-    mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
-) {
-    my_tasks.poll_responses(|key, data| {
-        if let Some(data) = data
-            && !data.1.is_empty()
-        {
-            debug!("ingesting battlemap map for {}", key.0);
-            on_ingest_battlemap_data(key, data, &mut commands, cache.as_mut());
-        } else {
-            // NOTE: Seems like fetching a battlemap failed.
-            // By removing the SubMapMarker the battlemaps module will attempt another fetch.
-            error!("error in battlemap map for {}", key.0);
-            let (_, entity) = key;
-            commands.entity(*entity).reset_battlemap_loading_state();
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
 pub fn request_a_reroll(
-    trigger: On<RerollEntity>,
+    trigger: On<RemoteBackendEvent<RerollEntity>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<String, (bool, String)>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<String, (bool, String, Option<hexx::Hex>)>>,
     user_settings: Res<UserSettings>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
     let url = format!(
         "/api/reroll/{}/{}/{}",
-        sandbox_uid, trigger.uid, trigger.class_override
+        sandbox_uid, event.uid, event.class_override
     );
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
     let url = format!(
         "{server_host}/reroll/{}/{}/{}",
-        sandbox_uid, trigger.uid, "default"
+        sandbox_uid, event.uid, "default"
     );
-    let reload = trigger.is_map_reload_needed;
+    let reload = event.is_map_reload_needed;
+    let maybe_coords = event.coords;
     let _ = my_tasks.spawn_request(
         &mut http_agent,
         url,
         api_key,
-        trigger.uid.clone(),
-        move |data| (reload, data),
+        event.uid.clone(),
+        move |data| (reload, data, maybe_coords),
     );
-}
-
-pub fn receive_reroll_response(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, (bool, String)>>,
-    map_data: Res<HexMapData>,
-    hexes: Query<(Entity, &HexEntity)>,
-    mut content_stuff: ResMut<ContentContext>,
-    mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
-) {
-    http_tasks.poll_responses(|rerolled_uid, data| {
-        if let Some((reload, data)) = data {
-            if let Ok(parsed_data) = serde_json::from_str::<Value>(&data) {
-                if let Some(uid) = parsed_data.get("uuid").and_then(Value::as_str) {
-                    if reload {
-                        // TODO: We are currently refreshing the entire map, but a better solution
-                        // would be to detect only the relevant parts of the map that were impacted
-                        // by the change (for example, all the neighboring hexes that had trails
-                        // added to a new settlement)
-                        commands.trigger(RequestMapFromBackend {
-                            post_map_loaded_op: PostMapLoadedOp::FetchEntity(uid.to_string()),
-                        });
-
-                        if let Some(current_hex_uid) = content_stuff.current_hex_uid.as_ref() {
-                            let coords = map_data.coords.get(current_hex_uid).unwrap();
-                            cache.invalidate_json(current_hex_uid);
-
-                            // FIXME: Not working because not invalidating json on player side
-                            commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(Some(
-                                current_hex_uid.clone(),
-                            ))));
-
-                            for (entity, hex) in hexes.iter() {
-                                if hex.hex == *coords {
-                                    // FIXME: should be done differently.
-                                    // The Invalidation should be triggered from the RequestMapTrigger handler.
-                                    // .with_completed_system(callbacks.invalidate);
-                                    commands.entity(entity).insert(HexToInvalidateMarker);
-                                }
-                            }
-                        } else {
-                            unreachable!();
-                        }
-                    }
-                    if let Some(current_entity_uid) = content_stuff.current_entity_uid.clone()
-                    {
-                        if &current_entity_uid == rerolled_uid {
-                            content_stuff.invalidate_last_history_entry();
-                        }
-                        if !reload {
-                            commands.trigger(FetchEntityFromStorage {
-                                // NOTE: it might be that the following condition is redundant
-                                // in case when we are not reloading means we never hit the
-                                // if branch and only use the else.
-                                uid: if &current_entity_uid == rerolled_uid {
-                                    uid.to_string()
-                                } else {
-                                    current_entity_uid.clone()
-                                },
-                                anchor: None,
-                                why: FetchEntityReason::SandboxLink,
-                            });
-                        }
-                    }
-                } else {
-                    error!("UID not found in reroll response");
-                }
-            } else {
-                error!("Failed to parse reroll response JSON: {}", data);
-            }
-        }
-    });
-}
-
-#[derive(Event)]
-pub struct SearchEntitiesInBackend {
-    pub query: String,
 }
 
 // ---------------------------------------------------------------------------------------------------------
 pub fn request_search(
-    trigger: On<SearchEntitiesInBackend>,
+    trigger: On<RemoteBackendEvent<SearchEntitiesInBackend>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<String, SearchResponse>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<String, SearchResponse>>,
     user_settings: Res<UserSettings>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
-    let url = format!("/api/search/{}/{}", sandbox_uid, trigger.query);
+    let url = format!("/api/search/{}/{}", sandbox_uid, event.query);
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
-    let url = format!("{server_host}/search/{}/{}", sandbox_uid, trigger.query,);
+    let url = format!("{server_host}/search/{}/{}", sandbox_uid, event.query,);
     let _ = my_tasks.spawn_request(
         &mut http_agent,
         url,
@@ -1088,76 +755,45 @@ pub fn request_search(
     );
 }
 
-pub fn receive_search_results(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<String, SearchResponse>>,
-) {
-    http_tasks.poll_responses(|_, data| {
-        if let Some(data) = data {
-            commands.trigger(ShowSearchResults::from_response(data));
-        }
-    });
-}
-
 // ---------------------------------------------------------------------------------------------------------
-#[derive(Event, Default)]
-pub struct PerformHexMapActionInBackend {
-    pub uid: String,
-    pub action: String,
-    pub topic: Option<String>,
-}
 pub fn request_hex_action(
-    trigger: On<PerformHexMapActionInBackend>,
+    trigger: On<RemoteBackendEvent<PerformHexMapActionInBackend>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncHttpTasks<(String, String), String>>,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, String), String>>,
     user_settings: Res<UserSettings>,
 ) {
+    let event = &trigger.event().0;
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
     #[cfg(target_arch = "wasm32")]
-    let url = if let Some(topic) = &trigger.topic {
+    let url = if let Some(topic) = &event.topic {
         format!(
             "/api/{}/{}/{}/{}",
-            trigger.action, sandbox_uid, trigger.uid, topic
+            event.action, sandbox_uid, event.uid, topic
         )
     } else {
-        format!("/api/{}/{}/{}", trigger.action, sandbox_uid, trigger.uid)
+        format!("/api/{}/{}/{}", event.action, sandbox_uid, event.uid)
     };
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     #[cfg(not(target_arch = "wasm32"))]
-    let url = if let Some(topic) = &trigger.topic {
+    let url = if let Some(topic) = &event.topic {
         format!(
             "{server_host}/{}/{}/{}/{}",
-            trigger.action, sandbox_uid, trigger.uid, topic
+            event.action, sandbox_uid, event.uid, topic
         )
     } else {
         format!(
             "{server_host}/{}/{}/{}",
-            trigger.action, sandbox_uid, trigger.uid
+            event.action, sandbox_uid, event.uid
         )
     };
     let _ = my_tasks.spawn_request(
         &mut http_agent,
         url,
         api_key,
-        (sandbox_uid.clone(), trigger.uid.clone()),
+        (sandbox_uid.clone(), event.uid.clone()),
         move |data| data,
     );
-}
-
-pub fn receive_hex_action_results(
-    mut commands: Commands,
-    mut http_tasks: ResMut<AsyncHttpTasks<(String, String), String>>,
-) {
-    http_tasks.poll_responses(|key, data| {
-        if data.is_some() {
-            commands.trigger(RequestMapFromBackend {
-                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
-            });
-
-            commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(Some(key.1.clone()))));
-        }
-    });
 }

@@ -24,22 +24,27 @@
 */
 use bevy::{input_focus::InputFocus, prelude::*};
 use bevy_ui_text_input::{actions::TextInputAction, *};
+use rand::Rng;
+use rand::distributions::Alphanumeric;
 
 use crate::{
     clients::{
-        http::{
+        controller::{
             PostMapLoadedOp, RequestMapFromBackend, RequestMapResult,
             RequestSandboxFromBackend, RequestVttSessionFromBackend,
         },
         model::SandboxMode,
+        roll_new_sandbox,
     },
-    hexmap::elements::VttDataState,
+    hexmap::{
+        MapEditor, PenType, TerrainType,
+        elements::{HexMapToolState, VttDataState},
+    },
     shared::{
         settings::{SandboxRef, UserSettings},
         vtt::{HexMapMode, LoadVttState, VttData},
         widgets::{
             Button, ButtonSpawner, InputSpawner, LayoutSpawner, TextButton, border_radius_pct,
-            buttons::MenuButtonDisabled,
             modal::{DiscreteAppState, ModalWindow},
             text_centered,
         },
@@ -131,7 +136,10 @@ fn show_sandbox_options(
                     c.spawn_list(|c| {
                         user_settings.sandboxes.iter().for_each(|v| {
                             let v_sid = v.sandbox.clone().unwrap();
-                            let v_key = v.key.clone().unwrap();
+                            if v.local.unwrap_or(false) && !UserSettings::sandbox_exists(&v_sid) {
+                                return;
+                            }
+                            let v_key = v.key.clone();
                             c.spawn_list_item(
                                 &format!(
                                     "{} ({})",
@@ -141,16 +149,22 @@ fn show_sandbox_options(
                                 Val::Px(360.0),
                                 Val::Percent(20.0),
                             ).observe(
-                                move |_: On<Pointer<Click>>, mut commands:Commands, user_settings: Res<UserSettings>, mut next_state: ResMut<NextState<DiscreteAppState>> | {
+                                move |_: On<Pointer<Click>>, mut commands:Commands,
+                                    mut user_settings: ResMut<UserSettings>, mut next_state: ResMut<NextState<DiscreteAppState>> | {
                                     if let Some(current_sandbox_id) = &user_settings.sandbox {
                                         if *current_sandbox_id == v_sid.to_owned() {
                                             next_state.set(DiscreteAppState::Normal);
                                             return;
                                         }
                                     }
+                                    if v_key.is_none() {
+                                        user_settings.local = Some(true);
+                                    } else {
+                                        user_settings.local = None;
+                                    }
                                     commands.trigger(RequestSandboxFromBackend {
                                         sandbox_uid: v_sid.to_owned().to_string(),
-                                        pairing_key: v_key.to_owned().to_string(),
+                                        pairing_key: v_key.clone(),
                                     });
                                 },
                             );
@@ -164,15 +178,50 @@ fn show_sandbox_options(
                         TextButton::from_text(
                             "Roll a new sandbox",
                             Button::from_image(asset_server.load("icons/icon-dice-256.ktx2"))
-                                .color(Color::srgba_u8(255, 255, 255, 50))
+                                // .color(Color::srgba_u8(255, 255, 255, 50))
                                 .button_size(Val::Px(60.0))
                                 .image_size(Val::Px(32.0))
                                 .border_radius(Val::Percent(20.0)),
                         )
                         .width(Val::Px(360.0)),
                     )
-                        .insert(MenuButtonDisabled)
-                        .observe(|_: On<Pointer<Click>>| {});
+                        .observe(|_: On<Pointer<Click>>,
+                                  mut user_settings: ResMut<UserSettings>,
+                                  mut next_state: ResMut<NextState<DiscreteAppState>>,
+                                  modals: Query<Entity, With<ModalWindow>>,
+                                  mut commands: Commands | {
+                                    let mut rng = rand::thread_rng();
+                                    let sandbox_id : String= (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
+
+                                    if let Ok(_) = roll_new_sandbox(&sandbox_id) {
+                                        user_settings.sandbox = Some(sandbox_id.clone());
+                                                            user_settings.local=Some(true);
+                                        if let Some(existing) = user_settings
+                                            .sandboxes
+                                            .iter_mut()
+                                            .find(|s| s.sandbox.as_ref() == Some(&sandbox_id))
+                                        {
+                                            existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
+                                        } else {
+                                            user_settings.sandboxes.push(SandboxRef {
+                                                sandbox: Some(sandbox_id.clone()),
+                                                key: None,
+                                                last_used: Some(chrono::Utc::now().timestamp() as u64),
+                                                local: Some(true)
+                                            });
+                                        }
+                                        commands.trigger(RequestSandboxFromBackend {
+                                            sandbox_uid: sandbox_id.to_string(),
+                                            pairing_key: None,
+                                        });
+                                        next_state.set(DiscreteAppState::Normal);
+                                        user_settings.save();
+                                        for modal in modals.iter() {
+                                            commands.entity(modal).try_despawn();
+                                        }
+                                        commands.run_system_cached(show_new_sandbox_options);
+                                    }
+                                });
                     c.spawn_spacer();
                     c.spawn_text_button(
                         TextButton::from_text(
@@ -226,6 +275,52 @@ fn show_sandbox_options(
                         },
                     );
                 });
+            });
+        });
+}
+
+fn show_new_sandbox_options(
+    mut next_state: ResMut<NextState<DiscreteAppState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    next_state.set(DiscreteAppState::Modal);
+    commands
+        .spawn(modal_window("NewSandbox"))
+        .with_children(|c| {
+            c.spawn(text_centered("Choose your first realm"));
+            c.spawn_spacer();
+            c.spawn_row_with_wrap(AlignItems::Center, |c| {
+                let mut button = |realm_type: &str| {
+                    let realm_type = realm_type.to_string();
+                    c.spawn_text_button(
+                        TextButton::from_text(
+                            &realm_type,
+                            Button::from_image(asset_server.load(format!("icons/icon-realm-{}.ktx2", realm_type.to_lowercase())))
+                                .button_size(Val::Px(60.0))
+                                .image_size(Val::Px(48.0))
+                                .border_radius(Val::Percent(20.0)),
+                        )
+                        .width(Val::Px(200.0)),
+                    )
+                    .observe(
+                        move |_: On<Pointer<Click>>,
+                        mut next_state: ResMut<NextState<DiscreteAppState>>,
+                        mut editor: ResMut<MapEditor>,
+                        mut next_tool_state: ResMut<NextState<HexMapToolState>>
+                        | {
+                            next_tool_state.set(HexMapToolState::Edit);
+                            editor.realm_type = format!("RealmType{}", realm_type);
+                            editor.pen = PenType::Brush;
+                            editor.terrain = TerrainType::MountainsHex;
+                            next_state.set(DiscreteAppState::Normal);
+                        },
+                    );
+                };
+                button("Lands");
+                button("Empire");
+                button("Kingdom");
+                button("Duchy");
             });
         });
 }
@@ -295,7 +390,7 @@ fn show_pairing_modal(
                             }
                             commands.trigger(RequestSandboxFromBackend {
                                 sandbox_uid: sandbox_uid.to_string(),
-                                pairing_key: pairing_key.to_string(),
+                                pairing_key: Some(pairing_key.to_string()),
                             });
                         } else {
                             // Handle the error case where the length is not as expected.
@@ -403,18 +498,20 @@ fn fetch_map_result(
     match trigger.event() {
         RequestMapResult::Loaded(sandbox_uid, pairing_key) => {
             user_settings.sandbox = Some(sandbox_uid.clone());
-            user_settings.key = Some(pairing_key.clone());
+            user_settings.key = pairing_key.clone();
+            user_settings.local = Some(pairing_key.is_none());
             if let Some(existing) = user_settings
                 .sandboxes
                 .iter_mut()
                 .find(|s| s.sandbox.as_ref() == Some(&sandbox_uid))
             {
-                existing.key = Some(pairing_key.clone());
+                existing.key = pairing_key.clone();
                 existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
             } else {
                 user_settings.sandboxes.push(SandboxRef {
                     sandbox: Some(sandbox_uid.clone()),
-                    key: Some(pairing_key.clone()),
+                    local: Some(pairing_key.is_none()),
+                    key: pairing_key.clone(),
                     last_used: Some(chrono::Utc::now().timestamp() as u64),
                 });
             }

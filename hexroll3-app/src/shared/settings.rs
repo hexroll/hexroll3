@@ -75,6 +75,7 @@ pub struct AppSettings {
 #[derive(Reflect, Serialize, Deserialize, Clone)]
 pub struct SandboxRef {
     pub sandbox: Option<String>,
+    pub local: Option<bool>,
     pub key: Option<String>,
     pub last_used: Option<u64>,
 }
@@ -85,6 +86,7 @@ pub struct UserSettings {
     pub server: String,
     pub signaling: String,
     pub sandbox: Option<String>,
+    pub local: Option<bool>,
     pub key: Option<String>,
     pub sandboxes: Vec<SandboxRef>,
     pub tts_command: Option<String>,
@@ -100,6 +102,45 @@ impl UserSettings {
         let config_dir = dirs::config_dir().expect("Unable to get config dir");
         let config_path = config_dir.join(CONFIG_DIR).join(Self::CONFIG_FILENAME);
         config_path
+    }
+
+    pub fn data_path() -> PathBuf {
+        let data_dir = dirs::data_dir().expect("Unable to get data dir");
+        let data_path = data_dir.join(CONFIG_DIR);
+        data_path
+    }
+
+    pub fn assets_path() -> PathBuf {
+        #[cfg(not(target_os = "macos"))]
+        let path = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        #[cfg(target_os = "macos")]
+        let mut path = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        #[cfg(target_os = "macos")]
+        {
+            path.pop();
+            path.pop();
+            path.push("Resources");
+        }
+        path
+    }
+
+    pub fn sandbox_path(sid: &str) -> PathBuf {
+        let data_path = Self::data_path();
+        if std::fs::metadata(&data_path).is_err() {
+            std::fs::create_dir_all(data_path.clone()).expect("Failed to create directory");
+        }
+        data_path.join(format!("{}.h3x", sid))
+    }
+
+    pub fn sandbox_exists(sid: &str) -> bool {
+        let sandbox_file = Self::sandbox_path(sid);
+        std::path::Path::new(&sandbox_file).exists()
     }
 
     #[cfg(feature = "dev")]
@@ -136,6 +177,7 @@ impl Default for UserSettings {
             server: "https://hexroll.app".to_string(),
             signaling: "wss://vtt.hexroll.app:4321".to_string(),
             sandbox: None,
+            local: None,
             key: None,
             sandboxes: Vec::new(),
             tts_command: None,

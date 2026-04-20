@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     battlemaps::DoorData,
-    clients::http::{PostMapLoadedOp, RequestMapFromBackend},
+    clients::controller::{PostMapLoadedOp, RequestMapFromBackend},
     hexmap::elements::HexEntity,
     shared::vtt::{HexRevealState, VttData},
 };

@@ -53,6 +53,9 @@ pub use sync::DoorState;
 pub use sync::HexState;
 pub use sync::MapMessage;
 
+pub use editor::MapEditor;
+pub use editor::PenType;
+
 mod borderlines;
 mod curve_tiles;
 mod data;

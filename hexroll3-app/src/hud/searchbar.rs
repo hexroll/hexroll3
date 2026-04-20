@@ -38,8 +38,7 @@ use super::{
 };
 use crate::{
     clients::{
-        controller::ShowSearchResults,
-        http::SearchEntitiesInBackend,
+        controller::{SearchEntitiesInBackend, ShowSearchResults},
         model::{FetchEntityReason, SearchResponse},
     },
     hexmap::elements::FetchEntityFromStorage,

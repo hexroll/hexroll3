@@ -23,7 +23,7 @@
 // for more information about commercial licensing terms.
 */
 
-use crate::clients::http::PostMapLoadedOp;
+use crate::clients::controller::PostMapLoadedOp;
 use crate::hexmap::data::*;
 use crate::shared::LoadingState;
 use crate::shared::labels::MapLabel;
@@ -424,7 +424,7 @@ fn load_hexmap_theme_resources(
         use_rim_for_rivers: theme.use_rim_for_rivers,
     });
     if *curr_hex_map_spawner_state != HexMapSpawnerState::Unready {
-        commands.trigger(crate::clients::http::RequestMapFromBackend {
+        commands.trigger(crate::clients::controller::RequestMapFromBackend {
             post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
         });
     }

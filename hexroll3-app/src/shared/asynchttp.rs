@@ -53,7 +53,7 @@ use bevy::{
 use ureq::http::StatusCode;
 
 #[derive(Resource)]
-pub struct AsyncHttpTasks<K, P>
+pub struct AsyncBackendTasks<K, P>
 where
     K: Hash + Eq + PartialEq,
     P: Sync + Send + 'static,
@@ -61,13 +61,13 @@ where
     generating_chunks: HashMap<K, Task<Option<P>>>,
 }
 
-impl<K, P> Default for AsyncHttpTasks<K, P>
+impl<K, P> Default for AsyncBackendTasks<K, P>
 where
     K: Hash + Eq + PartialEq,
     P: Sync + Send + 'static,
 {
     fn default() -> Self {
-        AsyncHttpTasks {
+        AsyncBackendTasks {
             generating_chunks: HashMap::new(),
         }
     }
@@ -80,16 +80,33 @@ pub enum AsyncHttpResult {
     Failure,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum AsyncHttpSpawnFailure {
     TaskKeyExists,
 }
 
-impl<K, P> AsyncHttpTasks<K, P>
+impl<K, P> AsyncBackendTasks<K, P>
 where
     K: Hash + Eq + PartialEq,
     P: Sync + Send + 'static,
 {
+    pub fn spawn_standalone<F>(
+        &mut self,
+        key: K,
+        mut callback: F,
+    ) -> core::result::Result<(), AsyncHttpSpawnFailure>
+    where
+        F: FnMut() -> Option<P> + Send + Sync + 'static,
+    {
+        if self.generating_chunks.contains_key(&key) {
+            return Err(AsyncHttpSpawnFailure::TaskKeyExists);
+        }
+        let task_pool = AsyncComputeTaskPool::get();
+        let task = task_pool.spawn(async move { callback() });
+        self.generating_chunks.insert(key, task);
+        return Ok(());
+    }
+
     pub fn spawn_cached<F>(
         &mut self,
         data: String,
@@ -244,7 +261,7 @@ impl ApiHandler for App {
         R: std::marker::Send + std::marker::Sync + 'static,
         I: std::marker::Send + std::marker::Sync + Hash + Eq + 'static,
     {
-        self.insert_resource(AsyncHttpTasks::<I, R>::default())
+        self.insert_resource(AsyncBackendTasks::<I, R>::default())
             .add_systems(Update, system);
         self
     }

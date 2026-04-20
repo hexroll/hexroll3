@@ -59,6 +59,18 @@ impl TerrainType {
             TerrainType::OceanHex => "OceanHex",
         }
     }
+    pub fn as_region_str(&self) -> &'static str {
+        match self {
+            TerrainType::ForestHex => "ForestRegion",
+            TerrainType::DesertHex => "DesertRegion",
+            TerrainType::MountainsHex => "MountainsRegion",
+            TerrainType::SwampsHex => "SwampsRegion",
+            TerrainType::TundraHex => "TundraRegion",
+            TerrainType::PlainsHex => "PlainsRegion",
+            TerrainType::JungleHex => "JungleRegion",
+            TerrainType::OceanHex => "OceanRegion",
+        }
+    }
 }
 
 #[derive(Component, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

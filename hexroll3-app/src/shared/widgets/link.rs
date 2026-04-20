@@ -42,11 +42,16 @@ pub trait ContentHoverLink {
     fn hover_effect(&mut self) -> &mut Self;
 }
 
+#[derive(Component)]
+struct OriginalTextColor(Color);
+
 impl ContentHoverLink for EntityCommands<'_> {
     fn hover_effect(&mut self) -> &mut Self {
         self.observe(
             |trigger: On<Pointer<Over>>,
              mut commands: Commands,
+             children: Query<&Children>,
+             mut link_text: Query<(Entity, &mut TextColor)>,
              window: Single<Entity, With<PrimaryWindow>>,
              button_disabled: Query<&MenuButtonDisabled>,
              bg: Query<&BackgroundColor>| {
@@ -71,11 +76,24 @@ impl ContentHoverLink for EntityCommands<'_> {
                         .entity(trigger.entity)
                         .insert(bevy_tweening::Animator::new(tween));
                 }
+
+                children
+                    .iter_descendants(trigger.entity)
+                    .for_each(|entity| {
+                        if let Ok((text_entity, mut text_color)) = link_text.get_mut(entity) {
+                            commands
+                                .entity(text_entity)
+                                .try_insert(OriginalTextColor(text_color.0.clone()));
+                            text_color.0 = Color::WHITE;
+                        }
+                    });
             },
         );
         self.observe(
             |trigger: On<Pointer<Out>>,
              mut commands: Commands,
+             children: Query<&Children>,
+             mut link_text: Query<(Entity, &mut TextColor, &OriginalTextColor)>,
              window: Single<Entity, With<PrimaryWindow>>,
              bg: Query<&BackgroundColor>,
              theme_bg: Query<&ThemeBackgroundColor>| {
@@ -99,6 +117,18 @@ impl ContentHoverLink for EntityCommands<'_> {
                         .entity(trigger.entity)
                         .insert(bevy_tweening::Animator::new(tween));
                 }
+                children
+                    .iter_descendants(trigger.entity)
+                    .for_each(|entity| {
+                        if let Ok((text_entity, mut text_color, original_text_color)) =
+                            link_text.get_mut(entity)
+                        {
+                            text_color.0 = original_text_color.0;
+                            commands
+                                .entity(text_entity)
+                                .try_remove::<OriginalTextColor>();
+                        }
+                    });
             },
         );
         self
