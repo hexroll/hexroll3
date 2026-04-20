@@ -30,9 +30,10 @@ bevy_simple_scroll_view = { git = "https://github.com/hexroll/bevy_simple_scroll
 bevy_mod_billboard = { git = "https://github.com/hexroll/bevy_mod_billboard", branch="hexroll" }
 # Keep using templated tween lenses for now
 bevy_tweening = { git = "https://github.com/hexroll/bevy_tweening", branch="hexroll-0.17"}
+# Fixed a minimize window crash in Windows
+bevy_mod_outline = { git = "https://github.com/hexroll/bevy_mod_outline", branch="hexroll-bugfixes"}
 
 # Bevy crates that are used as-is:
-bevy_mod_outline = { version="0.11" }
 bevy_matchbox = { version="0.13" }
 bevy_rich_text3d = { version="0.5.1" }
 hexx = { version="0.23", features=["serde"] }
