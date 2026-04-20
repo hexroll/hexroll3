@@ -1077,14 +1077,26 @@ fn roll_d20(
     _touches: Res<Touches>,
     key_input: Res<ButtonInput<KeyCode>>,
 ) {
-    for (key, _d, n) in DICE_MAP {
+    for (key, d, n) in DICE_MAP {
         if key_input.just_pressed(key)
             && !key_input.pressed(KeyCode::AltLeft)
             && input_mode.keyboard_available()
         {
-            commands.trigger(RollDice {
-                dice: n.to_string(),
-            });
+            match d.dice_type {
+                DiceType::D100 => {
+                    commands.trigger(RollDice {
+                        dice: "d100".to_string(),
+                    });
+                    commands.trigger(RollDice {
+                        dice: "d10".to_string(),
+                    });
+                }
+                _ => {
+                    commands.trigger(RollDice {
+                        dice: n.to_string(),
+                    });
+                }
+            }
         }
     }
 }
