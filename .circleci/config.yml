@@ -3,6 +3,46 @@ orbs:
     win: circleci/windows@5.1.1
 
 jobs:
+  build-linux:
+    docker:
+      - image: cimg/rust:1.92.0
+    steps:
+      - checkout
+      - run: cargo --version
+
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              libssl-dev \
+              libwayland-client0 \
+              wayland-client++ \
+              libasound2-dev \
+              libudev-dev \
+              libwayland-dev \
+              libxkbcommon-dev \
+              pkg-config
+
+      - run:
+          name: Build release binary
+          command: |
+            cargo build --release --package hexroll3-app
+
+      - run:
+          name: Create tar.gz archive
+          command: |
+            mkdir dist
+            curl -L "$ASSETS_URL" -o assets.zip
+            unzip assets.zip -d dist/
+            cp target/release/hexroll3-app dist/
+            cd dist
+            tar -czvf ../hexroll3-linux.tar.gz **
+
+      - store_artifacts:
+          path: hexroll3-linux.tar.gz
+          destination: hexroll3-linux.tar.gz
+
   build-macos:
     macos:
       xcode: 16.4.0
@@ -161,6 +201,13 @@ jobs:
 workflows:
   release:
     jobs:
+      - build-linux:
+          filters:
+            tags:
+              only: /^linux.*/
+            branches:
+              ignore: /.*/
+
       - build-macos:
          filters:
            tags:
