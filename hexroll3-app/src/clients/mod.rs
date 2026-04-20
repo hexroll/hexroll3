@@ -59,7 +59,7 @@ pub fn roll_new_sandbox(id: &str) -> Result<String> {
 }
 
 #[derive(Event)]
-pub struct RemoteBackendEvent<T: Event>(T);
+pub struct RemoteBackendEvent<T: Event>(pub T);
 
 #[derive(Event)]
-pub struct StandaloneBackendEvent<T: Event>(T);
+pub struct StandaloneBackendEvent<T: Event>(pub T);

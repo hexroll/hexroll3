@@ -29,6 +29,7 @@ use rand::distributions::Alphanumeric;
 
 use crate::{
     clients::{
+        RemoteBackendEvent, StandaloneBackendEvent,
         controller::{
             PostMapLoadedOp, RequestMapFromBackend, RequestMapResult,
             RequestSandboxFromBackend, RequestVttSessionFromBackend,
@@ -210,10 +211,10 @@ fn show_sandbox_options(
                                                 local: Some(true)
                                             });
                                         }
-                                        commands.trigger(RequestSandboxFromBackend {
+                                        commands.trigger(StandaloneBackendEvent(RequestSandboxFromBackend {
                                             sandbox_uid: sandbox_id.to_string(),
                                             pairing_key: None,
-                                        });
+                                        }));
                                         next_state.set(DiscreteAppState::Normal);
                                         user_settings.save();
                                         for modal in modals.iter() {
@@ -388,10 +389,10 @@ fn show_pairing_modal(
                                     return;
                                 }
                             }
-                            commands.trigger(RequestSandboxFromBackend {
+                            commands.trigger(RemoteBackendEvent(RequestSandboxFromBackend {
                                 sandbox_uid: sandbox_uid.to_string(),
                                 pairing_key: Some(pairing_key.to_string()),
-                            });
+                            }));
                         } else {
                             // Handle the error case where the length is not as expected.
                         }
