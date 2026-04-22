@@ -78,6 +78,7 @@ pub fn ensure_min_distance(
 
 pub fn extend_line_to_endpoints_by_radius_and_angles(
     mut line: Vec<lyon::math::Point>,
+    is_estuary: bool,
 ) -> Vec<lyon::math::Point> {
     line.retain(|point| {
         point.x >= -600.0 && point.x <= 600.0 && point.y >= -600.0 && point.y <= 600.0
@@ -101,14 +102,14 @@ pub fn extend_line_to_endpoints_by_radius_and_angles(
         }
     }
 
-    {
+    if line.len() > 1 {
         let first_point = line.first().unwrap();
-        let almost_first_point = line[(line.len() * 1) / 4];
+        let almost_first_point = line[1];
         let direction = *first_point - almost_first_point;
         let unit_direction = direction / direction.length();
         let mut distance = 100.0;
 
-        while distance <= 900.0 {
+        while distance <= if is_estuary { 200.0 } else { 900.0 } {
             let after_first_point = *first_point + unit_direction * distance;
             distance += 5.0;
             extended_line.insert(0, after_first_point);

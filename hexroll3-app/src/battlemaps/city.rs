@@ -249,6 +249,8 @@ impl CityMapConstructs {
         let mut river_width: f32 = 0.0;
         let mut roads: Vec<(Vec<lyon::math::Point>, f32)> = Vec::new();
 
+        let mut is_estuary = false;
+
         for f in map.map_data.features.iter() {
             if let Feature::Feature {
                 id: _,
@@ -257,13 +259,16 @@ impl CityMapConstructs {
                 wallThickness: _,
                 generator: _,
                 coast_dir,
-                has_river: _,
+                has_river,
                 rotate_river: _,
                 version: _,
             } = f
             {
                 if coast_dir.is_some() {
                     offset = 420.0;
+                    if has_river.unwrap_or(false) {
+                        is_estuary = true;
+                    }
                 }
             }
 
@@ -350,6 +355,7 @@ impl CityMapConstructs {
                                     remove_points_outside_of_hex(
                                         extend_line_to_endpoints_by_radius_and_angles(
                                             river_points.clone(),
+                                            is_estuary,
                                         ),
                                         1020.0,
                                         offset,

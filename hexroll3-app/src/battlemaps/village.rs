@@ -239,7 +239,7 @@ impl VillageMapConstructs {
                                     river = create_river_mesh(
                                         remove_points_outside_of_hex(
                                             extend_line_to_endpoints_by_radius_and_angles(
-                                                points,
+                                                points, false,
                                             ),
                                             510.0,
                                             offset,
