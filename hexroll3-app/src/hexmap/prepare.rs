@@ -419,6 +419,8 @@ pub fn group_by_islands(
 
     let mut islands: Vec<Vec<Hex>> = Vec::new();
 
+    let realm_hexes: HashSet<_> = hex_list.iter().cloned().collect();
+
     for hex in hex_list.iter() {
         if !allocated_coords.contains(hex) {
             let mut pool_backlog: Vec<Hex> = Vec::new();
@@ -432,6 +434,7 @@ pub fn group_by_islands(
                 allocated_coords.insert(current);
                 for neighbor in current.all_neighbors() {
                     if hexes.contains_key(&neighbor)
+                        && realm_hexes.contains(&neighbor)
                         && !pool_processed.contains(&neighbor)
                         && !allocated_coords.contains(&neighbor)
                     {
