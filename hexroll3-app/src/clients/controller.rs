@@ -319,7 +319,6 @@ pub fn receive_reroll_response(
     mut content_stuff: ResMut<ContentContext>,
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
     content_mode: Res<State<ContentMode>>,
-    // callbacks: Res<HexEntityCallbacks>,
 ) {
     http_tasks.poll_responses(|rerolled_uid, data| {
         if let Some((reload, data, maybe_coords)) = data {
@@ -346,19 +345,12 @@ pub fn receive_reroll_response(
                         // would be to detect only the relevant parts of the map that were impacted
                         // by the change (for example, all the neighboring hexes that had trails
                         // added to a new settlement)
-                        // commands.trigger(RequestMapFromBackend {
-                        //     post_map_loaded_op: PostMapLoadedOp::FetchEntity(uid.to_string()),
-                        // });
                         commands.trigger(RequestMapFromBackend::default());
-                        debug!("In reload case");
 
                         if let Some(current_hex_uid) = content_stuff.current_hex_uid.as_ref() {
-                            debug!("In content uid case");
                             if let Some(coords) = map_data.coords.get(current_hex_uid) {
-                                debug!("In found coords case");
                                 cache.invalidate_json(current_hex_uid);
 
-                                // FIXME: Not working because not invalidating json on player side
                                 commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(
                                     Some(current_hex_uid.clone()),
                                 )));
@@ -371,7 +363,6 @@ pub fn receive_reroll_response(
                                         commands.entity(entity).insert(HexToInvalidateMarker);
                                     }
                                 }
-                                // commands.run_system(callbacks.invalidate);
                             }
                         }
                     }
@@ -382,8 +373,6 @@ pub fn receive_reroll_response(
                         }
 
                         if *content_mode == ContentMode::SplitScreen {
-                            // if !reload && *content_mode == ContentMode::SplitScreen {
-                            debug!("we should not be here");
                             commands.trigger(FetchEntityFromStorage {
                                 // NOTE: it might be that the following condition is redundant
                                 // in case when we are not reloading means we never hit the

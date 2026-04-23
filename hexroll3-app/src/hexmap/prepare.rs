@@ -354,13 +354,14 @@ pub fn post_map_loaded_handler(
     mut camera: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
     mut next_hex_map_updater_state: ResMut<NextState<HexMapSpawnerState>>,
 ) {
+    // FIXME: despawning all labels might be an overkill - we need a better solution
+    all_labels.iter().for_each(|e| commands.entity(e).despawn());
     match trigger.event() {
         PostMapLoadedOp::None => {}
         PostMapLoadedOp::Initialize(_) => {
             visible_hexes
                 .iter()
                 .for_each(|e| commands.entity(e).despawn());
-            all_labels.iter().for_each(|e| commands.entity(e).despawn());
             for (mut ct, mut cp) in camera.iter_mut() {
                 map_data.center_camera_on_map(&mut ct, &mut cp);
             }
@@ -370,12 +371,9 @@ pub fn post_map_loaded_handler(
             visible_hexes
                 .iter()
                 .for_each(|e| commands.entity(e).despawn());
-            all_labels.iter().for_each(|e| commands.entity(e).despawn());
             next_hex_map_updater_state.set(HexMapSpawnerState::Enabled);
         }
         PostMapLoadedOp::FetchEntity(uid) => {
-            // FIXME: despawning all labels might be an overkill here.
-            all_labels.iter().for_each(|e| commands.entity(e).despawn());
             commands.trigger(FetchEntityFromStorage {
                 uid: uid.to_string(),
                 anchor: None,
