@@ -129,12 +129,26 @@ impl UserSettings {
         path
     }
 
+    pub fn sandbox_scrolls_path(sid: &str) -> PathBuf {
+        let data_path = Self::data_path();
+        let sandbox_dir = data_path.join(sid);
+        sandbox_dir.join(format!("{}-scrolls", sid))
+    }
+
+    pub fn sandbox_main_scroll_path(sid: &str) -> PathBuf {
+        Self::sandbox_scrolls_path(sid).join("main.scroll")
+    }
+
     pub fn sandbox_path(sid: &str) -> PathBuf {
         let data_path = Self::data_path();
         if std::fs::metadata(&data_path).is_err() {
             std::fs::create_dir_all(data_path.clone()).expect("Failed to create directory");
         }
-        data_path.join(format!("{}.h3x", sid))
+        let sandbox_dir = data_path.join(sid);
+        if std::fs::metadata(&sandbox_dir).is_err() {
+            std::fs::create_dir_all(sandbox_dir.clone()).expect("Failed to create directory");
+        }
+        sandbox_dir.join(format!("{}.h3x", sid))
     }
 
     pub fn sandbox_exists(sid: &str) -> bool {

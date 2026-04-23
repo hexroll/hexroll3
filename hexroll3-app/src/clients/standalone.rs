@@ -45,6 +45,7 @@ use hexroll3_scroll::{
     repository::ReadOnlyLoader,
 };
 
+use crate::clients::main_scrolls_repo_path;
 use crate::{
     battlemaps::{
         BattleMapConstructs, BattlemapFeatureUtils, CaveMapConstructs, CityMapConstructs,
@@ -128,7 +129,7 @@ pub fn request_sandbox_standalone(
 
     let mut instance = SandboxInstance::new();
 
-    let scroll_path = main_scroll_path();
+    let scroll_path = UserSettings::sandbox_main_scroll_path(&event.sandbox_uid);
 
     if let Err(err) = instance.with_scroll(scroll_path) {
         error!("Failed to load scroll: {err}");

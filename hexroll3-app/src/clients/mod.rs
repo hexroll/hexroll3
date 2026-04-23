@@ -31,21 +31,31 @@ pub mod model;
 pub mod standalone;
 
 use anyhow::Result;
-use bevy::{ecs::event::Event, log::info};
+use bevy::{ecs::event::Event, log::info, utils::default};
 use hexroll3_scroll::instance::SandboxInstance;
 
 use crate::shared::settings::UserSettings;
 
-pub fn main_scroll_path() -> PathBuf {
-    UserSettings::assets_path()
-        .join("scrolls")
-        .join("main.scroll")
+pub fn main_scrolls_repo_path() -> PathBuf {
+    UserSettings::assets_path().join("scrolls")
 }
 
 pub fn roll_new_sandbox(id: &str) -> Result<String> {
     let mut instance = SandboxInstance::new();
     let filepath = UserSettings::sandbox_path(id);
-    let scroll_path = main_scroll_path();
+
+    let scrolls_repo_directory = main_scrolls_repo_path();
+    let sandbox_scrolls_directory = UserSettings::sandbox_scrolls_path(id);
+    let options = fs_extra::dir::CopyOptions {
+        skip_exist: true,
+        copy_inside: true,
+        content_only: false,
+        ..default()
+    };
+    fs_extra::dir::copy(scrolls_repo_directory, sandbox_scrolls_directory, &options)?;
+
+    let scroll_path = UserSettings::sandbox_main_scroll_path(id);
+
     if let Some(root_uid) = instance
         .with_scroll(scroll_path)?
         .create(filepath.to_str().unwrap())?
