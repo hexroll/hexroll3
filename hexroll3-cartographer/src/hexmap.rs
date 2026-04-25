@@ -229,12 +229,12 @@ impl HexMap {
 
     fn draw_trail(&self, a: Hex, b: Hex, proposal: &mut TrailProposal) -> bool {
         let mut dx: i32 = b.x - a.x;
-        if a.y % 2 == 0 {
+        let mut dy: i32 = b.y - a.y;
+        if a.y % 2 == 0 || dy == 0 {
             dx *= 2;
         } else {
             dx = dx * 2 - 1;
         }
-        let mut dy: i32 = b.y - a.y;
 
         const INVERT: [i32; 6] = [3, 4, 5, 0, 1, 2];
 
