@@ -45,7 +45,6 @@ use hexroll3_scroll::{
     repository::ReadOnlyLoader,
 };
 
-use crate::clients::main_scrolls_repo_path;
 use crate::{
     battlemaps::{
         BattleMapConstructs, BattlemapFeatureUtils, CaveMapConstructs, CityMapConstructs,
@@ -70,7 +69,6 @@ use crate::{
     },
 };
 
-use super::main_scroll_path;
 use super::{
     StandaloneBackendEvent,
     controller::{
@@ -263,8 +261,9 @@ pub fn append_feature_standalone(
                                 }
                             }
                             Ok(())
-                        })
-                        .unwrap();
+                        }).unwrap_or_else(|e| {
+                            error!("{:?}", e)
+                        });
                     Some(FeatureUidResponse(
                         format!("{{ \"uuid\":\"{}\" }}", uid),
                         coords,
@@ -490,7 +489,10 @@ pub fn request_city_standalone(
             };
             Ok(ret)
         })
-        .unwrap()
+        .unwrap_or_else(|e| {
+            error!("{:?}", e);
+            None
+        })
     };
 
     if my_tasks
@@ -534,7 +536,10 @@ pub fn request_village_standalone(
             };
             Ok(ret)
         })
-        .unwrap()
+        .unwrap_or_else(|e| {
+            error!("{:?}", e);
+            None
+        })
     };
 
     if my_tasks
@@ -578,7 +583,10 @@ pub fn request_dungeon_map_standalone(
                 None
             })
         })
-        .unwrap()
+        .unwrap_or_else(|e| {
+            error!("{:?}", e);
+            None
+        })
     };
 
     if my_tasks
@@ -935,7 +943,10 @@ fn find_term(
 
             Ok(ret)
         })
-        .unwrap()
+        .unwrap_or_else(|e| {
+            error!("{:?}", e);
+            serde_json::json!({"results":[]})
+        })
 }
 
 // ---------------------------------------------------------------------------------------------------------
