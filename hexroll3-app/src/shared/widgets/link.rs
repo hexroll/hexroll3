@@ -37,9 +37,11 @@ use bevy_tweening::lens::UiBackgroundColorLens;
 use crate::content::ThemeBackgroundColor;
 
 use super::buttons::MenuButtonDisabled;
+use super::cursor::PointerExclusivityIsPreferred;
 
 pub trait ContentHoverLink {
     fn hover_effect(&mut self) -> &mut Self;
+    fn hover_effect_ex(&mut self, check_for_exclusivity: bool) -> &mut Self;
 }
 
 #[derive(Component)]
@@ -47,15 +49,22 @@ struct OriginalTextColor(Color);
 
 impl ContentHoverLink for EntityCommands<'_> {
     fn hover_effect(&mut self) -> &mut Self {
+        self.hover_effect_ex(false)
+    }
+    fn hover_effect_ex(&mut self, check_for_exclusivity: bool) -> &mut Self {
         self.observe(
-            |trigger: On<Pointer<Over>>,
-             mut commands: Commands,
-             children: Query<&Children>,
-             mut link_text: Query<(Entity, &mut TextColor)>,
-             window: Single<Entity, With<PrimaryWindow>>,
-             button_disabled: Query<&MenuButtonDisabled>,
-             bg: Query<&BackgroundColor>| {
+            move |trigger: On<Pointer<Over>>,
+                  mut commands: Commands,
+                  children: Query<&Children>,
+                  mut link_text: Query<(Entity, &mut TextColor)>,
+                  window: Single<Entity, With<PrimaryWindow>>,
+                  button_disabled: Query<&MenuButtonDisabled>,
+                  bg: Query<&BackgroundColor>,
+                  exclusivity: Query<&PointerExclusivityIsPreferred>| {
                 if button_disabled.contains(trigger.entity) {
+                    return;
+                }
+                if !exclusivity.is_empty() && check_for_exclusivity {
                     return;
                 }
                 commands

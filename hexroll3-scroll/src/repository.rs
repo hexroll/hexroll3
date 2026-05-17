@@ -276,6 +276,12 @@ impl<'a> ReadWriteTransaction<'a> {
         self.cache.insert(uid.to_string(), v);
         self.save(uid)
     }
+    pub fn invalidate(&mut self, uid: &str) -> Result<()> {
+        if self.cache.contains_key(uid) {
+            self.cache.remove(uid);
+        }
+        Ok(())
+    }
 }
 
 impl ReadOnlyLoader for ReadOnlyTransaction {

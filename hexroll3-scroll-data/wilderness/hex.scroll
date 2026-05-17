@@ -71,7 +71,7 @@ Hex {
     Monster := *Monster
   }
 
-  [1..1 Feature!] @ Feature {
+  [0..0 Feature!] @ Feature {
     HexLink := &uuid
     FeatureMonster = *Monster
   }
