@@ -1276,8 +1276,8 @@ pub fn apply_map_context(
             let entity = tx.load(uid)?;
             let entity_obj = entity.as_object_mut().unwrap();
             if let Some(coords) = data.coords {
-                entity_obj["coord_x"] = coords["x"].clone();
-                entity_obj["coord_y"] = coords["y"].clone();
+                entity_obj.insert("coord_x".to_string(), coords["x"].clone());
+                entity_obj.insert("coord_y".to_string(), coords["y"].clone());
                 entity_obj.insert("$coords".to_string(), coords);
             }
             if let Some(borders) = data.borders {
