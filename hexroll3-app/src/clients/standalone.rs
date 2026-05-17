@@ -722,6 +722,9 @@ pub fn request_hex_action_standlone(
                 if event.action == "clear" && topic == "river" {
                     hex_map.clear_river(tx, &builder.randomizer, &hex_uid)?;
                 }
+                if event.action == "clear" && topic == "trails" {
+                    hex_map.fix_trails(tx, &hex_uid)?;
+                }
 
                 Ok(())
             }) {

@@ -437,6 +437,18 @@ impl HexMap {
         Ok(())
     }
 
+    pub fn fix_trails(
+        &mut self,
+        tx: &mut ReadWriteTransaction,
+        hex_uid: &str,
+    ) -> anyhow::Result<Vec<Hex>> {
+        let impacted_hexes =
+            self.clear_path(tx, hex_uid, "$trails", false, None)?;
+
+        self.stage_trails(tx)?;
+        Ok(impacted_hexes)
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // RIVERS
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
