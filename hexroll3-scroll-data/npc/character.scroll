@@ -36,6 +36,7 @@ Character {
 
     # HostingEntity = none
     LinkedName = none
+    RegionName = none
     URLExt! = none
     SettlementName! = *Settlement.NamePart
 

@@ -413,7 +413,7 @@ CorridorDescription {
     <h5> Doorways </h5>
     <ul>
       {%for d in doors%}
-      <li> {{reroller(d, "", False)}} {{d.DescriptionOpposite}} </li>
+      <li> {{reroller(d, "", True)}} {{d.DescriptionOpposite}} </li>
       {%endfor%}
     </ul>
     {%endif%}
@@ -490,43 +490,43 @@ RoomDescription(AreaDescription) {
 
       <ul>
         {%if door_1%}
-        <li> {{reroller(door_1, "", False)}} {{door_1.Description}} </li>
+        <li> {{reroller(door_1, "", True)}} {{door_1.Description}} </li>
         {%endif%}
 
         {%if door_2%}
-        <li> {{reroller(door_2, "", False)}} {{door_2.Description}} </li>
+        <li> {{reroller(door_2, "", True)}} {{door_2.Description}} </li>
         {%endif%}
 
         {%if door_3%}
-        <li> {{reroller(door_3, "", False)}} {{door_3.Description}} </li>
+        <li> {{reroller(door_3, "", True)}} {{door_3.Description}} </li>
         {%endif%}
 
         {%if door_4%}
-        <li> {{reroller(door_4, "", False)}} {{door_4.Description}} </li>
+        <li> {{reroller(door_4, "", True)}} {{door_4.Description}} </li>
         {%endif%}
 
         {%if door_5%}
-        <li> {{reroller(door_5, "", False)}} {{door_5.Description}} </li>
+        <li> {{reroller(door_5, "", True)}} {{door_5.Description}} </li>
         {%endif%}
 
         {%if secret_door_1%}
-        <li> {{reroller(secret_door_1, "", False)}} {{secret_door_1.Description}} </li>
+        <li> {{reroller(secret_door_1, "", True)}} {{secret_door_1.Description}} </li>
         {%endif%}
 
         {%if secret_door_2%}
-        <li> {{reroller(secret_door_2, "", False)}} {{secret_door_2.Description}} </li>
+        <li> {{reroller(secret_door_2, "", True)}} {{secret_door_2.Description}} </li>
         {%endif%}
 
         {%if secret_door_3%}
-        <li> {{reroller(secret_door_3, "", False)}} {{secret_door_3.Description}} </li>
+        <li> {{reroller(secret_door_3, "", True)}} {{secret_door_3.Description}} </li>
         {%endif%}
 
         {%if secret_door_4%}
-        <li> {{reroller(secret_door_4, "", False)}} {{secret_door_4.Description}} </li>
+        <li> {{reroller(secret_door_4, "", True)}} {{secret_door_4.Description}} </li>
         {%endif%}
 
         {%if secret_door_5%}
-        <li> {{reroller(secret_door_5, "", False)}} {{secret_door_5.Description}} </li>
+        <li> {{reroller(secret_door_5, "", True)}} {{secret_door_5.Description}} </li>
         {%endif%}
 
         {%if passage_1%}

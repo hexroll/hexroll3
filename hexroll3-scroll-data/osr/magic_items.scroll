@@ -294,7 +294,7 @@ LegendaryItem {
   ]
   Description! = "{{Item}}"
   Link! ~ <%
-    {% if exists("HexRegion") %}
+    {% if HexRegion %}
     <li>
    {{begin_spoiler()}}
     The <strong>{{Item}}</strong> is somewhere

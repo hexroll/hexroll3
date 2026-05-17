@@ -91,7 +91,7 @@ Town(Settlement) {
   %>
 
   <metadata%
-    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="4"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="6"> </a>
   %metadata>
 
   <header%
