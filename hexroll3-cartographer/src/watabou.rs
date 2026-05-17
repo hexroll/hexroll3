@@ -844,7 +844,6 @@ fn assets_path() -> PathBuf {
     #[cfg(target_os = "macos")]
     {
         path.pop();
-        path.pop();
         path.push("Resources");
     }
     path
