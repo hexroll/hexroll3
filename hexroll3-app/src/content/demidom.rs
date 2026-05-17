@@ -128,6 +128,7 @@ pub enum ElementType {
     HorizontalLine,
     Strong,
     Small,
+    Em,
     Text(String),
     Blockquote,
     Coords(MapCoords),
@@ -594,13 +595,30 @@ impl DemidomRenderContext {
             words.push(" ".to_string());
         }
 
-        if !words.first().unwrap_or(&"".to_string()).starts_with(")")
-            && !words.first().unwrap_or(&"".to_string()).starts_with("”")
-            && !words.first().unwrap_or(&"".to_string()).starts_with(".")
-            && !words.first().unwrap_or(&"".to_string()).starts_with(",")
-            && !words.first().unwrap_or(&"".to_string()).starts_with("?")
-            && !words.first().unwrap_or(&"".to_string()).starts_with("!")
-            && self.space_if_needed > 0
+        // Fuse word sequence starting with GLUE_FORWARD or ending with GLUE_BACKWARDS
+        // to prevent intra-element wrapping.
+        if words.len() > 1 {
+            let mut merged: Vec<String> = Vec::with_capacity(words.len());
+            for w in words.into_iter() {
+                if first_char_in(&w, GLUE_BACKWARD)
+                    || merged
+                        .last()
+                        .is_some_and(|p| last_non_ws_in(p, GLUE_FORWARD))
+                {
+                    if let Some(last) = merged.last_mut() {
+                        last.push_str(&w);
+                        continue;
+                    }
+                }
+                merged.push(w);
+            }
+            words = merged;
+        }
+
+        if self.space_if_needed > 0
+            && !words
+                .first()
+                .is_some_and(|w| first_char_in(w, GLUE_BACKWARD))
         {
             words.insert(0, " ".to_string());
             self.space_if_needed = self.space_if_needed.saturating_sub(1);
@@ -1483,6 +1501,67 @@ pub fn render_demidom(
     Some(ret)
 }
 
+// ---------------------------------------------------------------------------
+// Inseparable-character glue
+//
+// Some glyphs must never line-break away from their adjacent word. We enforce
+// that at parse time by wrapping the glyph + its anchored neighbour in a
+// `Bundle` element (which renders with `FlexWrap::NoWrap`).
+//
+//   GLUE_BACKWARD  — must stay with the *previous* sibling: `)`, `,`, `.`, …
+//   GLUE_FORWARD   — must stay with the *next*     sibling: `(`, `[`, `“`, …
+// ---------------------------------------------------------------------------
+
+const GLUE_BACKWARD: &[char] = &[
+    ')', ',', '.', '”', '?', '!', ';', ':', ']', '}', '»', '’', '%', '°', '…',
+];
+const GLUE_FORWARD: &[char] = &['(', '[', '{', '«', '“', '‘', '¿', '¡'];
+
+fn first_char_in(text: &str, set: &[char]) -> bool {
+    text.chars().next().is_some_and(|c| set.contains(&c))
+}
+
+fn last_non_ws_in(text: &str, set: &[char]) -> bool {
+    text.trim_end()
+        .chars()
+        .last()
+        .is_some_and(|c| set.contains(&c))
+}
+
+/// Returns `(remainder, peeled)` where `peeled` is the leading run of `text`
+/// whose chars are all in `set`.
+fn split_leading_glue(text: &str, set: &[char]) -> (String, String) {
+    let mut bytes = 0;
+    for c in text.chars() {
+        if set.contains(&c) {
+            bytes += c.len_utf8();
+        } else {
+            break;
+        }
+    }
+    (text[bytes..].to_string(), text[..bytes].to_string())
+}
+
+/// Returns `(remainder, peeled)` where `peeled` is the trailing run of
+/// `text.trim_end()` whose chars are all in `set`. The remainder preserves
+/// any trailing whitespace from the original input.
+fn split_trailing_glue(text: &str, set: &[char]) -> (String, String) {
+    let trimmed = text.trim_end();
+    let trailing_ws = &text[trimmed.len()..];
+    let mut bytes = 0;
+    for c in trimmed.chars().rev() {
+        if set.contains(&c) {
+            bytes += c.len_utf8();
+        } else {
+            break;
+        }
+    }
+    let kept_len = trimmed.len() - bytes;
+    let kept = format!("{}{}", &trimmed[..kept_len], trailing_ws);
+    let glue = trimmed[kept_len..].to_string();
+    (kept, glue)
+}
+
 pub struct Sink {
     pub next_id: Cell<usize>,
     pub names: RefCell<HashMap<usize, &'static QualName>>,
@@ -1608,83 +1687,158 @@ impl Sink {
         text
     }
 
-    /// Ensure characters that absolutely must be in the same line as the previously
-    /// added text element are bundled together using a dedicated element type.
-    fn fix_inseparable_nodes(&self, inseparable: String, _parent: &usize) {
-        if !inseparable.is_empty() {
-            let last_sibling =
-                if let Some(pe) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
-                    pe.children.pop()
-                } else {
-                    None
-                };
+    /// Insert a fresh `Bundle` whose children are exactly `[first, second]`,
+    /// re-parenting both. Returns the bundle id. The caller is responsible for
+    /// inserting the bundle id into its enclosing parent's children vector.
+    fn make_bundle_pair(
+        &self,
+        elements: &mut HashMap<usize, Element>,
+        parent: &usize,
+        first: usize,
+        second: usize,
+    ) -> usize {
+        let bid = self.get_id();
+        elements.insert(
+            bid,
+            Element {
+                element: ElementType::Bundle,
+                parent_id: *parent,
+                children: vec![first, second],
+            },
+        );
+        if let Some(e) = elements.get_mut(&first) {
+            e.parent_id = bid;
+        }
+        if let Some(e) = elements.get_mut(&second) {
+            e.parent_id = bid;
+        }
+        bid
+    }
 
-            // NOTE: The purpose of the following code is to ensure spacing is handled
-            // correctly for hyperlinks. We want hyperlinks to have an extra gap at the end
-            // and we use the default added word spacing to achieve this. We do however
-            // need to remove this extra space in case there's an additional inseparable
-            // character immediately following the link text while still being inside the link.
-            // This can happen in the following case:
-            // <a><strong>Some Text</strong>.</a>
-            // In this case we want the link to look like so:
-            // [ Some Text. ]
-            if let Some(last_sibling) = last_sibling {
-                let last_text_id = self.last_text_element.get();
-                if last_text_id != 0 {
-                    let is_in_link = self.is_in_link(last_text_id);
-                    // NOTE: We have a custom check here since `is_in_link` is not checking the
-                    // passed element. Using is_inseparable_in_the_link is not manadatory
-                    // but will cause some formatting issues when the inseparable character
-                    // is following the link, for example, this formatting is wrong:
-                    // [ Some Text].
-                    // And should be:
-                    // [ Some Text ].
-                    let is_inseparable_in_the_link =
-                        if let Some(e) = self.elements.as_ref().borrow().get(_parent) {
-                            e.element.is_link()
-                        } else {
-                            false
-                        };
-                    if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(&last_text_id)
-                        && (!is_in_link
-                            || (inseparable.starts_with(".") && is_inseparable_in_the_link))
-                    {
-                        if let ElementType::Text(text) = &mut e.element {
-                            *text = text.trim_end().to_string();
-                        }
-                    }
-                }
+    /// Forward-glue: when an inline element `pivot` is being appended, peel any
+    /// trailing GLUE_FORWARD run from the previous text sibling and bundle it
+    /// with `pivot`. Returns `true` if bundling occurred — in that case the
+    /// caller MUST NOT also push `pivot` into `parent` itself.
+    fn glue_forward(&self, parent: &usize, pivot: usize) -> bool {
+        let mut elements = self.elements.as_ref().borrow_mut();
 
-                let bid = self.get_id();
-                self.elements.as_ref().borrow_mut().insert(
-                    bid,
-                    Element {
-                        element: ElementType::Bundle,
-                        parent_id: *_parent,
-                        children: Vec::new(),
-                    },
-                );
-                if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
-                    e.children.push(bid);
+        // Only worth gluing inline-renderable pivots.
+        if !matches!(
+            elements.get(&pivot).map(|e| &e.element),
+            Some(ElementType::Strong)
+                | Some(ElementType::Small)
+                | Some(ElementType::Em)
+                | Some(ElementType::Link(_))
+                | Some(ElementType::Icon(_))
+                | Some(ElementType::DiceRoller(_))
+                | Some(ElementType::EntityRoller(_))
+        ) {
+            return false;
+        }
+
+        let Some(last_id) = elements
+            .get(parent)
+            .and_then(|p| p.children.last().copied())
+        else {
+            return false;
+        };
+
+        // Peel the trailing forward-glue from the previous text sibling.
+        let glue = match elements.get_mut(&last_id).map(|e| &mut e.element) {
+            Some(ElementType::Text(t)) => {
+                let (kept, peeled) = split_trailing_glue(t, GLUE_FORWARD);
+                if peeled.is_empty() {
+                    return false;
                 }
-                {
-                    let id = self.get_id();
-                    self.elements.as_ref().borrow_mut().insert(
-                        id,
-                        Element {
-                            element: ElementType::Text(inseparable),
-                            parent_id: bid,
-                            children: Vec::new(),
-                        },
-                    );
-                    self.last_added.replace(id);
-                    if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(&bid) {
-                        e.children.push(last_sibling);
-                        e.children.push(id);
-                    }
-                }
+                *t = kept;
+                peeled
+            }
+            _ => return false,
+        };
+
+        // If the previous text is now whitespace-only, drop it from `parent`.
+        let became_empty = matches!(
+            elements.get(&last_id).map(|e| &e.element),
+            Some(ElementType::Text(t)) if t.trim().is_empty()
+        );
+        if became_empty {
+            if let Some(p) = elements.get_mut(parent) {
+                p.children.retain(|c| *c != last_id);
             }
         }
+
+        // Bundle: [Text(glue), pivot].
+        let glue_id = self.get_id();
+        elements.insert(
+            glue_id,
+            Element {
+                element: ElementType::Text(glue),
+                parent_id: 0,
+                children: Vec::new(),
+            },
+        );
+        let bid = self.make_bundle_pair(&mut elements, parent, glue_id, pivot);
+        if let Some(p) = elements.get_mut(parent) {
+            p.children.push(bid);
+        }
+
+        self.last_text_element.set(glue_id);
+        true
+    }
+
+    /// Backward-glue: a freshly-arrived text starts with a GLUE_BACKWARD run
+    /// (`glue`). Move it into a bundle with the previous sibling so it cannot
+    /// wrap to the next line.
+    ///
+    /// Special case for hyperlinks: we normally let trailing whitespace inside
+    /// a link survive (so the link reads as `[ text ]`). But when the glue
+    /// starts with `.` and we're inside a link, we strip that whitespace so we
+    /// render `[ text. ]` rather than `[ text . ]`.
+    fn glue_backward(&self, parent: &usize, glue: String) {
+        if glue.is_empty() {
+            return;
+        }
+
+        // Read these before holding a mutable borrow — `is_in_link` recurses
+        // through `self.elements` itself.
+        let last_text_id = self.last_text_element.get();
+        let is_in_link = last_text_id != 0 && self.is_in_link(last_text_id);
+
+        let mut elements = self.elements.as_ref().borrow_mut();
+
+        let parent_is_link = elements
+            .get(parent)
+            .map(|e| e.element.is_link())
+            .unwrap_or(false);
+
+        let Some(last_sibling) = elements.get_mut(parent).and_then(|p| p.children.pop())
+        else {
+            return;
+        };
+
+        if last_text_id != 0
+            && (!is_in_link || (glue.starts_with('.') && parent_is_link))
+            && let Some(ElementType::Text(text)) =
+                elements.get_mut(&last_text_id).map(|e| &mut e.element)
+        {
+            *text = text.trim_end().to_string();
+        }
+
+        let glue_id = self.get_id();
+        elements.insert(
+            glue_id,
+            Element {
+                element: ElementType::Text(glue),
+                parent_id: 0,
+                children: Vec::new(),
+            },
+        );
+        let bid = self.make_bundle_pair(&mut elements, parent, last_sibling, glue_id);
+        if let Some(p) = elements.get_mut(parent) {
+            p.children.push(bid);
+        }
+
+        self.last_added.replace(glue_id);
     }
 }
 
@@ -1891,6 +2045,7 @@ impl TreeSink for Sink {
             "br" => ElementType::LineBreak,
             "hr" => ElementType::HorizontalLine,
             "strong" => ElementType::Strong,
+            "em" => ElementType::Em,
             "small" => ElementType::Small,
             _ => ElementType::NoOp,
         };
@@ -1932,64 +2087,63 @@ impl TreeSink for Sink {
     fn append(&self, _parent: &usize, child: NodeOrText<usize>) {
         match child {
             NodeOrText::AppendNode(n) => {
-                if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
-                    e.children.push(n);
-                }
-                if let Some(e) = &mut self.elements.as_ref().borrow_mut().get_mut(&n) {
-                    e.parent_id = *_parent;
+                // Glue any trailing forward-glue chars (e.g. "(") from the
+                // previous sibling onto this new inline element.
+                if !self.glue_forward(_parent, n) {
+                    let mut elements = self.elements.as_ref().borrow_mut();
+                    if let Some(e) = elements.get_mut(_parent) {
+                        e.children.push(n);
+                    }
+                    if let Some(e) = elements.get_mut(&n) {
+                        e.parent_id = *_parent;
+                    }
                 }
             }
             NodeOrText::AppendText(t) => {
                 let text = self.filter_unneeded_whitespaces(&t, _parent);
                 if !text.is_empty() {
-                    // NOTE: Detect the opportunity to bundle this text with the previously added
-                    // element, if it was another text element.
+                    // Coalesce with the previous text sibling under the same
+                    // parent if there is one.
                     if *self.last_added.borrow() != 0 {
                         let mut elements = self.elements.as_ref().borrow_mut();
-                        let last_node =
-                            &mut elements.get_mut(&self.last_added.borrow()).unwrap();
-                        if let ElementType::Text(last_text) = &mut last_node.element {
-                            if last_node.parent_id == *_parent {
-                                if text != " " {
-                                    last_text.push_str(&text);
+                        let last_id = *self.last_added.borrow();
+                        if let Some(last_node) = elements.get_mut(&last_id) {
+                            if let ElementType::Text(last_text) = &mut last_node.element {
+                                if last_node.parent_id == *_parent {
+                                    if text != " " {
+                                        last_text.push_str(&text);
+                                    }
+                                    return;
                                 }
-                                return;
                             }
                         }
                     }
 
-                    // NOTE: From this point on, we expect this text element to follow some
-                    // other element (Link, Strong, Div, etc..)
-
-                    // Now, check for inseparable characters that must reside in the same line
-                    // with the previously added text element (said element can reside inside a link
-                    // or a strong tag for example)
-                    let (next_text, mut inseparable) = take_inseparable_chars(&text);
-
-                    // Care for any needed whitespaces, by moving them from the
-                    // beginning of the next_text to the inseparable text.
-                    if !inseparable.is_empty() && next_text.starts_with(" ") {
-                        inseparable.push(' ');
+                    // From here on the text is following some other element
+                    // (Link, Strong, Div, …). Peel any leading backward-glue
+                    // run and attach it to that previous sibling via a bundle.
+                    let (next_text, mut glue) = split_leading_glue(&text, GLUE_BACKWARD);
+                    if !glue.is_empty() && next_text.starts_with(' ') {
+                        glue.push(' ');
                     }
-
-                    self.fix_inseparable_nodes(inseparable, _parent);
+                    self.glue_backward(_parent, glue);
 
                     let mut next_text = next_text
-                        // .trim_end() // TODO: Is this really needed
                         .split_whitespace()
                         .collect::<Vec<&str>>()
                         .join(" ");
 
-                    // We ensure whitespace is added before the next element, unless the
-                    // text ends with a character that is not calling for a whitespace.
-                    // TODO: Consider adding other characters?
-                    if !next_text.ends_with("(") {
+                    // Append a trailing space unless this text ends with a
+                    // forward-glue char (it'll be picked up by `glue_forward`
+                    // when the next inline element arrives).
+                    if !last_non_ws_in(&next_text, GLUE_FORWARD) {
                         next_text.push(' ');
                     }
 
                     let id = self.get_id();
                     self.last_text_element.set(id);
-                    self.elements.as_ref().borrow_mut().insert(
+                    let mut elements = self.elements.as_ref().borrow_mut();
+                    elements.insert(
                         id,
                         Element {
                             element: ElementType::Text(next_text),
@@ -1998,7 +2152,7 @@ impl TreeSink for Sink {
                         },
                     );
                     self.last_added.replace(id);
-                    if let Some(e) = self.elements.as_ref().borrow_mut().get_mut(_parent) {
+                    if let Some(e) = elements.get_mut(_parent) {
                         e.children.push(id);
                     }
                 }
@@ -2148,20 +2302,6 @@ pub fn dice_link_click() -> impl Fn(On<Pointer<Click>>, Commands, Query<&Demidom
             commands.trigger(RollDice { dice: url });
         }
     }
-}
-
-fn take_inseparable_chars(text: &str) -> (String, String) {
-    let mut taken = String::new();
-    let mut counter = 0;
-    for c in text.chars() {
-        if c == ')' || c == ',' || c == '.' || c == '”' || c == '?' || c == '!' {
-            taken.push(c);
-            counter += c.len_utf8(); // Count the number of bytes for multi-byte characters
-        } else {
-            break;
-        }
-    }
-    (text[counter..].to_string(), taken)
 }
 
 fn adjust_text_to_app_fonts(source: &String) -> String {
