@@ -69,6 +69,7 @@ use crate::{
     },
 };
 
+use super::NodeBackendEvent;
 use super::{
     StandaloneBackendEvent,
     controller::{
@@ -97,6 +98,11 @@ impl Plugin for StandaloneClientPlugin {
             .add_observer(request_hex_action_standlone)
             .add_observer(request_search_standalone)
             .add_observer(rename_entity_standalone)
+            // NOTE: Standalone player nodes are serverless as well:
+            .add_observer(request_hex_map_for_standalone_player_node)
+            .add_observer(request_dungeon_map_for_standalone_player_node)
+            .add_observer(request_city_map_for_standalone_player_node)
+            .add_observer(request_village_map_for_standalone_player_node)
             // <--
             ;
     }
@@ -302,12 +308,11 @@ pub fn fetch_hex_standalone(
 
     let anchor = trigger.event().0.anchor.clone();
     let instance = &sandbox.instance;
-    // let Ok(mut blueprint) = instance.blueprint.try_lock() else {
     let Ok(mut blueprint) = instance.blueprint.lock() else {
         error!("Error trying to lock the sandbox blueprint");
         return;
     };
-    let _ = instance.repo.inspect(|tx| {
+    match instance.repo.inspect(|tx| {
         let e = tx.load(&uid)?;
         let (header_html, body_html) =
             render_entity_html(instance, &mut blueprint, tx, &e.value)?;
@@ -324,13 +329,18 @@ pub fn fetch_hex_standalone(
             why,
         });
         Ok(())
-    });
+    }) {
+        Ok(_) => {}
+        Err(e) => error!("{:?}", e),
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
 pub fn request_hex_map_standalone(
     trigger: On<StandaloneBackendEvent<RequestMapFromBackend>>,
-    mut async_tasks: ResMut<AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
+    mut async_tasks: ResMut<
+        AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>,
+    >,
     sandbox: Option<Res<StandaloneSandbox>>,
     mut commands: Commands,
     // callbacks: Res<HexEntityCallbacks>,
@@ -360,7 +370,7 @@ pub fn request_hex_map_standalone(
     if async_tasks
         .spawn_standalone(
             sid,
-            move || -> Option<(Option<HexMapData>, PostMapLoadedOp)> {
+            move || -> Option<(Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)> {
                 let map = generate_hex_map_json(&instance);
                 let s = match map {
                     Ok(m) => m.to_string(),
@@ -372,12 +382,13 @@ pub fn request_hex_map_standalone(
                 if let Ok(map) = serde_json::from_str::<HexMapJson>(&s) {
                     Some((
                         Some(prepare_hex_map_data(
-                            map,
+                            map.clone(),
                             curved_mesh_tile_set.clone(),
                             tiles.clone(),
                             scale_calculator,
                         )),
                         post_map_loaded_op.clone(),
+                        Some(map),
                     ))
                 } else {
                     None
@@ -1003,4 +1014,170 @@ pub fn sanitize_renaming_value(input: &str) -> String {
         .filter(|&c| c.is_ascii_alphabetic() || c == ' ' || c == '\'' || c == '-')
         .take(80)
         .collect()
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Standalone (serverless) player node observers
+// ---------------------------------------------------------------------------------------------------------
+pub fn request_hex_map_for_standalone_player_node(
+    trigger: On<NodeBackendEvent<RequestMapFromBackend>>,
+    mut async_tasks: ResMut<
+        AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>,
+    >,
+    mut commands: Commands,
+    assets: Res<HexMapResources>,
+    tiles: Res<HexMapTileMaterials>,
+    theme: Res<HexmapTheme>,
+    vtt_data: Res<crate::shared::vtt::VttData>,
+    user_settings: Res<UserSettings>,
+) {
+    let Some(sandbox_id) = user_settings.sandbox.clone() else {
+        return;
+    };
+    debug!("Player is requesting hex map");
+    commands.trigger(PostMapLoadedOpPrefix {
+        post_map_op: trigger.0.post_map_loaded_op.clone(),
+    });
+
+    let curved_mesh_tile_set = assets.curved_mesh_tile_set.clone();
+    let tiles = tiles.clone();
+    let post_map_loaded_op = trigger.0.post_map_loaded_op.clone();
+    let scale_calculator = theme.tile_scale_values();
+    let map = vtt_data.cache.clone();
+
+    if async_tasks
+        .spawn_standalone(
+            sandbox_id,
+            move || -> Option<(Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)> {
+                if let Some(map) = map.clone() {
+                    debug!("Player found cached map sized");
+                    Some((
+                        Some(prepare_hex_map_data(
+                            map.clone(),
+                            curved_mesh_tile_set.clone(),
+                            tiles.clone(),
+                            scale_calculator,
+                        )),
+                        post_map_loaded_op.clone(),
+                        Some(map),
+                    ))
+                } else {
+                    None
+                }
+            },
+        )
+        .is_err()
+    {};
+}
+
+pub fn request_dungeon_map_for_standalone_player_node(
+    trigger: On<NodeBackendEvent<RequestDungeonFromBackend>>,
+    mut commands: Commands,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    cache: Res<crate::hexmap::elements::HexMapCache>,
+) {
+    let event = trigger.event().0.clone();
+    debug!("Requesting (node) battlemap");
+
+    if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
+        let data = data.to_string();
+        debug!("Found (node) battlemap: {}", data);
+        if my_tasks
+            .spawn_standalone(
+                (trigger.0.uid.clone(), trigger.0.hex),
+                move || -> Option<(BattleMapConstructs, String)> {
+                    if data.contains("areas") {
+                        debug!("Found (node) dungeon map");
+                        Some((
+                            BattleMapConstructs::Dungeon(DungeonMapConstructs::from(
+                                data.clone(),
+                            )),
+                            data.to_string(),
+                        ))
+                    } else if data.contains("caverns") {
+                        debug!("Found (node) cave map");
+                        Some((
+                            BattleMapConstructs::Cave(CaveMapConstructs::from(
+                                data.clone(),
+                                BackendUid::from(event.uid.clone()),
+                            )),
+                            data.to_string(),
+                        ))
+                    } else {
+                        // (BattleMapConstructs::Empty, data.clone())
+                        None
+                    }
+                },
+            )
+            .is_err()
+        {
+            commands
+                .entity(trigger.0.hex)
+                .reset_battlemap_loading_state();
+        }
+    }
+}
+
+pub fn request_city_map_for_standalone_player_node(
+    trigger: On<NodeBackendEvent<RequestCityOrTownFromBackend>>,
+    mut commands: Commands,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    cache: Res<crate::hexmap::elements::HexMapCache>,
+) {
+    debug!("Requesting (node) battlemap");
+
+    if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
+        debug!("Found (node) battlemap");
+        let data = data.to_string();
+        if my_tasks
+            .spawn_standalone(
+                (trigger.0.uid.clone(), trigger.0.hex),
+                move || -> Option<(BattleMapConstructs, String)> {
+                    Some((
+                        BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
+                        data.clone(),
+                    ))
+                },
+            )
+            .is_err()
+        {
+            commands
+                .entity(trigger.0.hex)
+                .reset_battlemap_loading_state();
+        }
+    }
+}
+
+pub fn request_village_map_for_standalone_player_node(
+    trigger: On<NodeBackendEvent<RequestVillageFromBackend>>,
+    mut commands: Commands,
+    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    cache: Res<crate::hexmap::elements::HexMapCache>,
+) {
+    let event = trigger.event().0.clone();
+    debug!("Requesting (node) battlemap");
+
+    if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
+        debug!("Found (node) battlemap");
+        let data = data.to_string();
+        if my_tasks
+            .spawn_standalone(
+                (trigger.0.uid.clone(), trigger.0.hex),
+                move || -> Option<(BattleMapConstructs, String)> {
+                    Some((
+                        BattleMapConstructs::Village(VillageMapConstructs::from(
+                            BackendUid::from(event.uid.clone()),
+                            data.clone(),
+                        )),
+                        data.clone(),
+                    ))
+                },
+            )
+            .is_err()
+        {
+            commands
+                .entity(trigger.0.hex)
+                .reset_battlemap_loading_state();
+        }
+    }
 }

@@ -42,7 +42,7 @@ use crate::{
         RenameSandboxEntity, ScrollToAnchor, context::ContentContext,
     },
     hexmap::{
-        MapMessage,
+        HexMapJson, MapMessage,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
             HexMapData, HexToInvalidateMarker,
@@ -56,11 +56,11 @@ use crate::{
         vtt::{LoadVttState, VttData},
     },
     tokens::Token,
-    vtt::sync::SyncMapForPeers,
+    vtt::sync::{Chunkomatic, SyncMapForPeers},
 };
 
 use super::{
-    RemoteBackendEvent, StandaloneBackendEvent,
+    NodeBackendEvent, RemoteBackendEvent, StandaloneBackendEvent,
     model::{FetchEntityReason, RerollEntity, SandboxMode, SearchResponse},
     standalone::StandaloneSandbox,
 };
@@ -97,7 +97,7 @@ impl Plugin for ApiControllerPlugin {
             // Rename a sandbox entity
             .register_api_callback::<_, String, RenamingResponse>(receive_renaming_result)
             // Get sandbox hexmap
-            .register_api_callback::<_, String, (Option<HexMapData>, PostMapLoadedOp)>(receive_hex_map)
+            .register_api_callback::<_, String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>(receive_hex_map)
             // Get battlemaps
             .register_api_callback::<_, (String, Entity), (BattleMapConstructs, String)>(
                 receive_battlemaps_data.after(update_hex_map_tiles),
@@ -192,12 +192,46 @@ pub enum RequestMapResult {
 
 pub fn receive_hex_map(
     mut commands: Commands,
-    mut http_tasks: ResMut<AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
+    mut http_tasks: ResMut<
+        AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>,
+    >,
     callbacks: Res<HexEntityCallbacks>,
+    vtt_data: ResMut<crate::shared::vtt::VttData>,
+    user_settings: Res<UserSettings>,
 ) {
     http_tasks.poll_responses(|_, data| {
-        if let Some((data, post_map_loaded_op)) = data {
-            if let Some(data) = data {
+        if let Some((data, post_map_loaded_op, json_obj)) = data {
+            if let Some(mut data) = data {
+                // FIXME: condition this to when vtt is actually connected as well
+                if user_settings.local.unwrap_or(false) {
+                    if vtt_data.mode.is_referee() {
+                        debug!("referee is sending cached map");
+                        if json_obj.is_some() {
+                            debug!("vtt_data cache is set!");
+                            data.cache = json_obj.clone();
+                        } else {
+                            debug!("WHY?!");
+                        }
+
+                        let raw = serde_json::to_string(&json_obj.unwrap())
+                            .expect("Failed to convert JSON object to string");
+
+                        let chunkomatic = Chunkomatic::from_string(raw);
+                        chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
+                            commands.trigger(crate::vtt::sync::SyncMapForPeers(
+                                crate::hexmap::MapMessage::Cache(
+                                    crate::hexmap::MapMessageCacheType::ChunkedHexMap(
+                                        crate::hexmap::ChunkedMap {
+                                            chunk: chunk.to_string(),
+                                            part: chunk_index + 1,
+                                            total: total_chunks,
+                                        },
+                                    ),
+                                ),
+                            ));
+                        });
+                    }
+                }
                 commands.insert_resource(data);
                 commands.run_system(callbacks.invalidate);
                 commands.trigger(post_map_loaded_op);
@@ -293,13 +327,35 @@ fn receive_battlemaps_data(
     mut commands: Commands,
     mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
+    vtt_data: Res<crate::shared::vtt::VttData>,
+    user_settings: Res<UserSettings>,
 ) {
     my_tasks.poll_responses(|key, data| {
         if let Some(data) = data
             && !data.1.is_empty()
         {
+            let raw_json = data.1.clone();
             debug!("ingesting battlemap map for {}", key.0);
             on_ingest_battlemap_data(key, data, &mut commands, cache.as_mut());
+
+            // FIXME: condition this to when vtt is actually connected
+            if vtt_data.mode.is_referee() && user_settings.local.unwrap_or(false) {
+                let chunkomatic = Chunkomatic::from_string(raw_json);
+                chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
+                    commands.trigger(crate::vtt::sync::SyncMapForPeers(
+                        crate::hexmap::MapMessage::Cache(
+                            crate::hexmap::MapMessageCacheType::ChunkedBattleMap(
+                                key.0.clone(),
+                                crate::hexmap::ChunkedMap {
+                                    chunk: chunk.to_string(),
+                                    part: chunk_index + 1,
+                                    total: total_chunks,
+                                },
+                            ),
+                        ),
+                    ));
+                });
+            }
         } else {
             // NOTE: Seems like fetching a battlemap failed.
             // By removing the SubMapMarker the battlemaps module will attempt another fetch.
@@ -566,12 +622,17 @@ pub fn backend_router<T>(
     trigger: On<T>,
     mut commands: Commands,
     user_settings: Res<UserSettings>,
+    vtt_data: Res<VttData>,
 ) where
     T: Event + Clone,
 {
     let e = trigger.event();
     if user_settings.local.unwrap_or(false) {
-        commands.trigger(StandaloneBackendEvent(e.clone()));
+        if vtt_data.mode.is_referee() {
+            commands.trigger(StandaloneBackendEvent(e.clone()));
+        } else {
+            commands.trigger(NodeBackendEvent(e.clone()));
+        }
     } else {
         commands.trigger(RemoteBackendEvent(e.clone()));
     }

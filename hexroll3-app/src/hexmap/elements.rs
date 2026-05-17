@@ -173,6 +173,7 @@ pub struct HexMapData {
     pub cursor: Option<Vec3>,
     pub selected: Option<Hex>,
     pub generating: bool,
+    pub cache: Option<HexMapJson>,
 }
 
 impl HexMapData {

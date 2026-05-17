@@ -24,9 +24,9 @@
 */
 
 use bevy::{platform::collections::HashMap, prelude::Component};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct HexMapJson {
     pub map: Vec<MapHex>,
     pub realms: HashMap<String, Realm>,
@@ -34,7 +34,7 @@ pub struct HexMapJson {
     pub borders: HashMap<String, Vec<Border>>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash, Component)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash, Component)]
 pub enum TerrainType {
     ForestHex,
     DesertHex,
@@ -73,7 +73,7 @@ impl TerrainType {
     }
 }
 
-#[derive(Component, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Component, Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum HexFeature {
     None,
     Other,
@@ -128,7 +128,7 @@ impl HexMetadata {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Serialize)]
 pub struct MapHex {
     pub x: i32,
     pub y: i32,
@@ -147,13 +147,13 @@ pub struct MapHex {
     pub borderline: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Realm {
     pub name: String,
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Border {
     pub hex_x: i32,
     pub hex_y: i32,

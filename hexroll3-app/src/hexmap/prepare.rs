@@ -289,6 +289,7 @@ pub fn prepare_hex_map_data(
         cursor: None,
         selected: None,
         generating: false,
+        cache: None,
     }
 }
 

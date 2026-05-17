@@ -73,3 +73,6 @@ pub struct RemoteBackendEvent<T: Event>(pub T);
 
 #[derive(Event)]
 pub struct StandaloneBackendEvent<T: Event>(pub T);
+
+#[derive(Event)]
+pub struct NodeBackendEvent<T: Event>(pub T);

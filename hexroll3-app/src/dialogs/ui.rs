@@ -179,7 +179,6 @@ fn show_sandbox_options(
                         TextButton::from_text(
                             "Roll a new sandbox",
                             Button::from_image(asset_server.load("icons/icon-dice-256.ktx2"))
-                                // .color(Color::srgba_u8(255, 255, 255, 50))
                                 .button_size(Val::Px(60.0))
                                 .image_size(Val::Px(32.0))
                                 .border_radius(Val::Percent(20.0)),
@@ -193,10 +192,9 @@ fn show_sandbox_options(
                                   mut commands: Commands | {
                                     let mut rng = rand::thread_rng();
                                     let sandbox_id : String= (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
-
                                     if let Ok(_) = roll_new_sandbox(&sandbox_id) {
                                         user_settings.sandbox = Some(sandbox_id.clone());
-                                                            user_settings.local=Some(true);
+                                        user_settings.local=Some(true);
                                         if let Some(existing) = user_settings
                                             .sandboxes
                                             .iter_mut()
@@ -470,17 +468,21 @@ fn show_join_vtt_modal(
                     };
                     let sandbox_uid = text.get_text();
                     let node_name = node.get_text();
-                    if sandbox_uid.len() == 8 {
+                    if sandbox_uid.len() == 8 || sandbox_uid.len() == 10 {
                         if let Some(current_sandbox_id) = &user_settings.sandbox {
                             if current_sandbox_id == &sandbox_uid {
                                 next_state.set(DiscreteAppState::Normal);
                                 return;
                             }
                         }
-                        commands.trigger(RequestVttSessionFromBackend {
-                            sandbox_uid,
-                            node_name,
-                        });
+                        if sandbox_uid.len() == 10 {
+                            commands.trigger(RequestMapResult::Joined(sandbox_uid, node_name));
+                        } else {
+                            commands.trigger(RequestVttSessionFromBackend {
+                                sandbox_uid,
+                                node_name,
+                            });
+                        }
                     } else {
                         // TODO: handle failure here
                     }
@@ -526,6 +528,11 @@ fn fetch_map_result(
         RequestMapResult::Joined(sandbox_uid, node_name) => {
             user_settings.sandbox = Some(sandbox_uid.clone());
             user_settings.key = Some("".to_string());
+            user_settings.local = if sandbox_uid.len() == 10 {
+                Some(true)
+            } else {
+                None
+            };
             commands.trigger(RequestMapFromBackend {
                 post_map_loaded_op: PostMapLoadedOp::Initialize(SandboxMode::Player),
             });

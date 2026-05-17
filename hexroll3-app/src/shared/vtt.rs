@@ -32,6 +32,8 @@ use serde::{
     ser::{SerializeMap, Serializer},
 };
 
+use crate::hexmap::HexMapJson;
+
 use bevy::platform::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 
@@ -44,6 +46,8 @@ pub struct StoreVttState;
 pub struct LoadVttState;
 
 #[derive(Debug, Resource, Default, Serialize, Deserialize, Clone)]
+// When adding ephemeral data, ensure to set it
+// in patch_ephemeral_state below
 pub struct VttData {
     pub node_name: String,
     pub mode: HexMapMode,
@@ -56,12 +60,17 @@ pub struct VttData {
     pub open_doors: HashSet<String>,
     #[serde(skip)]
     pub invalidate_map: bool,
+    #[serde(skip)]
+    pub cache: Option<HexMapJson>,
+    #[serde(skip)]
+    pub buffer: String,
 }
 
 impl VttData {
     pub fn patch_ephemeral_state(&mut self, existing_data: &VttData) {
         self.mode = existing_data.mode.clone();
         self.node_name = existing_data.node_name.clone();
+        self.cache = existing_data.cache.clone();
     }
 
     pub fn is_player(&self) -> bool {

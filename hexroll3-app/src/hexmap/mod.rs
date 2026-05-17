@@ -49,9 +49,11 @@ pub use hex_dial::MenuIconLock;
 pub use daynight::HexMapTime;
 pub use daynight::ToggleDayNight;
 
+pub use sync::ChunkedMap;
 pub use sync::DoorState;
 pub use sync::HexState;
 pub use sync::MapMessage;
+pub use sync::MapMessageCacheType;
 
 pub use editor::MapEditor;
 pub use editor::PenType;

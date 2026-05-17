@@ -32,7 +32,10 @@ use crate::{
         SpawnVfx, SpawnVfxBroadcast,
     },
     dice::DiceRollResolved,
-    hexmap::{HexMapTime, HexState, HexmapTheme, MapMessage, elements::MainCamera},
+    hexmap::{
+        HexMapTime, HexState, HexmapTheme, MapMessage,
+        elements::{HexMapData, MainCamera},
+    },
     hud::DiceMessage,
     shared::{
         camera::{CameraControl, camera_callback},
@@ -128,10 +131,12 @@ fn on_broadcast_state_to_peer(
     trigger: On<SendFullStateToPeer>,
     tokens: Query<(&Transform, &Token)>,
     vtt_data: Res<VttData>,
+    map_data: Res<HexMapData>,
     drawings: Query<&BattlemapUserDrawing, Without<BattlemapUserDrawingInProgress>>,
     theme: Res<HexmapTheme>,
     hexmap_time: Single<&HexMapTime>,
     mut socket: ResMut<NetworkContext>,
+    cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     let peer = trigger.event().peer;
     debug!("Sending state to connecting peer: {}", peer);
@@ -150,6 +155,43 @@ fn on_broadcast_state_to_peer(
         });
         send_token_message(&mut socket, peer, msg);
     }
+
+    // NOTE: Serverless player nodes
+    {
+        let raw = serde_json::to_string(map_data.cache.as_ref().unwrap())
+            .expect("Failed to convert JSON object to string");
+        let chunkomatic = Chunkomatic::from_string(raw);
+        chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
+            let msg = crate::hexmap::MapMessage::Cache(
+                crate::hexmap::MapMessageCacheType::ChunkedHexMap(crate::hexmap::ChunkedMap {
+                    chunk: chunk.to_string(),
+                    part: chunk_index + 1,
+                    total: total_chunks,
+                }),
+            );
+            send_hex_message(&mut socket, peer, msg);
+        });
+    }
+    // NOTE: Serverless player nodes
+    {
+        for (key, json) in cache.jsons.iter() {
+            let chunkomatic = Chunkomatic::from_string(json.clone());
+            chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
+                let msg = crate::hexmap::MapMessage::Cache(
+                    crate::hexmap::MapMessageCacheType::ChunkedBattleMap(
+                        key.clone(),
+                        crate::hexmap::ChunkedMap {
+                            chunk: chunk.to_string(),
+                            part: chunk_index + 1,
+                            total: total_chunks,
+                        },
+                    ),
+                );
+                send_hex_message(&mut socket, peer, msg);
+            });
+        }
+    }
+
     for (coords, state) in vtt_data.revealed.iter() {
         let msg = MapMessage::HexStateChange(HexState {
             coords: *coords,
@@ -419,5 +461,29 @@ pub fn on_frame_players_camera(
             camera_scale: o.scale,
         };
         broadcast_camera_message(socket, msg);
+    }
+}
+
+pub struct Chunkomatic {
+    raw: String,
+}
+
+impl Chunkomatic {
+    pub fn from_string(raw: String) -> Self {
+        Self { raw }
+    }
+    pub fn chunkify<F>(&self, mut callback: F)
+    where
+        F: FnMut(&str, usize, usize),
+    {
+        let chunk_size = 5 * 1024; // 5 KB
+        let total_chunks = (self.raw.len() + chunk_size - 1) / chunk_size; // Calculate total number of chunks
+
+        for chunk_index in 0..total_chunks {
+            let start = chunk_index * chunk_size;
+            let end = std::cmp::min(start + chunk_size, self.raw.len());
+            let chunk = &self.raw[start..end];
+            callback(chunk, chunk_index, total_chunks); // yield to callback
+        }
     }
 }

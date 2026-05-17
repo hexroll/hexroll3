@@ -142,15 +142,6 @@ pub fn on_connect(
     mut next_state: ResMut<NextState<NetworkingConnection>>,
     socket: Option<ResMut<NetworkContext>>,
 ) {
-    let is_standalone_sandbox = user_settings.local.unwrap_or(false);
-    if is_standalone_sandbox {
-        commands.trigger(ShowTransientUserMessage {
-            text: "VTT for standalone sandboxes is coming soon..".to_string(),
-            special: None,
-            keep_alive: None,
-        });
-        return;
-    }
     if let Some(sandbox_uid) = &user_settings.sandbox {
         if *state == NetworkingConnection::Disconnected {
             let socket = bevy_matchbox::matchbox_socket::WebRtcSocketBuilder::new(&format!(
@@ -364,6 +355,7 @@ pub fn receive_control_messages(
 pub fn broadcast_state_to_new_peers(
     mut commands: Commands,
     mut socket: Option<ResMut<NetworkContext>>,
+    state: Res<State<NetworkingState>>,
     vtt_data: Res<VttData>,
 ) {
     let socket = if socket.is_some() {
@@ -386,10 +378,12 @@ pub fn broadcast_state_to_new_peers(
         return;
     }
     if let Ok(peers) = socket.socket.try_update_peers() {
-        for (peer, state) in peers {
-            debug!("{peer}: {state:?}");
-            if state == PeerState::Connected {
-                commands.trigger(SendFullStateToPeer { peer });
+        if state.get() == &NetworkingState::Initialized {
+            for (peer, state) in peers {
+                debug!("{peer}: {state:?}");
+                if state == PeerState::Connected {
+                    commands.trigger(SendFullStateToPeer { peer });
+                }
             }
         }
     }

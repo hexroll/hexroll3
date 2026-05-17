@@ -30,15 +30,34 @@ use crate::{
     battlemaps::DoorData,
     clients::controller::{PostMapLoadedOp, RequestMapFromBackend},
     hexmap::elements::HexEntity,
-    shared::vtt::{HexRevealState, VttData},
+    shared::{
+        settings::UserSettings,
+        vtt::{HexRevealState, VttData},
+    },
 };
 use avian3d::prelude::ColliderDisabled;
 use bevy::{platform::collections::HashSet, prelude::*};
 
-use super::{LoadHexmapTheme, ToggleDayNight, daynight::DayNight};
+use super::{
+    HexMapJson, LoadHexmapTheme, ToggleDayNight, daynight::DayNight, elements::HexMapData,
+};
+
+#[derive(Serialize, Deserialize, Event, Clone)]
+pub struct ChunkedMap {
+    pub chunk: String,
+    pub part: usize,
+    pub total: usize,
+}
+
+#[derive(Serialize, Deserialize, Event, Clone)]
+pub enum MapMessageCacheType {
+    ChunkedHexMap(ChunkedMap),
+    ChunkedBattleMap(String, ChunkedMap),
+}
 
 #[derive(Serialize, Deserialize, Event, Clone)]
 pub enum MapMessage {
+    Cache(MapMessageCacheType),
     HexStateChange(HexState),
     DoorStateChange(DoorState),
     OpenedDoors(HashSet<String>),
@@ -66,9 +85,60 @@ pub fn on_map_message(
     mut vtt_data: ResMut<VttData>,
     hexes: Query<(Entity, &HexEntity)>,
     mut doors: Query<(Entity, &DoorData)>,
+    //
+    map_data: ResMut<HexMapData>,
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
+    visible_hexes: Query<(Entity, &HexEntity), With<HexEntity>>,
+    user_settings: Res<UserSettings>,
 ) {
     match trigger.event() {
+        MapMessage::Cache(cache_type) => match cache_type {
+            MapMessageCacheType::ChunkedHexMap(chunk_data) => {
+                debug!("Player receiving cached map chunk");
+                if chunk_data.part == 1 {
+                    vtt_data.buffer = "".to_string();
+                }
+                vtt_data.buffer.push_str(&chunk_data.chunk);
+
+                if chunk_data.part == chunk_data.total {
+                    debug!("Player chunked map is complete");
+                    if let Ok(map_data) = serde_json::from_str::<HexMapJson>(&vtt_data.buffer)
+                    {
+                        vtt_data.cache = Some(map_data);
+                        commands.trigger(RequestMapFromBackend {
+                            post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                        });
+                    }
+                }
+            }
+            MapMessageCacheType::ChunkedBattleMap(key, chunk_data) => {
+                debug!("Player receiving cached battlemap map chunk");
+                let buffer_key = format!("{}_buffer", key);
+                if chunk_data.part == 1 {
+                    cache.jsons.insert(buffer_key.clone(), "".to_string());
+                }
+
+                cache
+                    .jsons
+                    .get_mut(&buffer_key)
+                    .unwrap()
+                    .push_str(&chunk_data.chunk);
+
+                if chunk_data.part == chunk_data.total {
+                    debug!("Player chunked battle map is complete");
+                    let buffer = cache.jsons.remove(&buffer_key).unwrap();
+                    cache.jsons.insert(key.clone(), buffer);
+                    visible_hexes.iter().for_each(|(e, h)| {
+                        if let Some(revealed_hex) = map_data.hexes.get(&h.hex) {
+                            if revealed_hex.uid.as_str() == key {
+                                commands.entity(e).despawn();
+                            }
+                        }
+                    });
+                    vtt_data.invalidate_map = true;
+                }
+            }
+        },
         MapMessage::HexStateChange(hex_message) => {
             if let Some(reveal_state) = hex_message.state {
                 if !hex_message.is_ocean {
@@ -126,9 +196,11 @@ pub fn on_map_message(
             }
         }
         MapMessage::ReloadMap(hex_uid) => {
-            commands.trigger(RequestMapFromBackend {
-                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
-            });
+            if !user_settings.local.unwrap_or(false) {
+                commands.trigger(RequestMapFromBackend {
+                    post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                });
+            }
             if let Some(hex_uid) = hex_uid {
                 cache.invalidate_json(&hex_uid);
             }

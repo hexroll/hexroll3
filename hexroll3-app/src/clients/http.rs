@@ -179,7 +179,9 @@ pub fn request_vtt_session(
 pub fn request_hex_map(
     trigger: On<RemoteBackendEvent<RequestMapFromBackend>>,
     mut http_agent: ResMut<HttpAgent>,
-    mut http_tasks: ResMut<AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp)>>,
+    mut http_tasks: ResMut<
+        AsyncBackendTasks<String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>,
+    >,
     assets: Res<HexMapResources>,
     tiles: Res<HexMapTileMaterials>,
     user_settings: Res<UserSettings>,
@@ -213,15 +215,16 @@ pub fn request_hex_map(
             if let Ok(map) = serde_json::from_str::<HexMapJson>(&data) {
                 (
                     Some(prepare_hex_map_data(
-                        map,
+                        map.clone(),
                         curved_mesh_tile_set.clone(),
                         tiles.clone(),
                         scale_calculator,
                     )),
                     post_map_loaded_op.clone(),
+                    Some(map),
                 )
             } else {
-                (None, post_map_loaded_op.clone())
+                (None, post_map_loaded_op.clone(), None)
             }
         },
     );
