@@ -14,6 +14,7 @@ serde.workspace = true
 serde_json.workspace = true
 rand.workspace = true
 bevy.workspace = true
+fs_extra.workspace = true
 
 hexroll3-scroll = { path = "../hexroll3-scroll" }
 hexroll3-cartographer = { path = "../hexroll3-cartographer" }
