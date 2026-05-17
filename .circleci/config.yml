@@ -204,20 +204,20 @@ workflows:
       - build-linux:
           filters:
             tags:
-              only: /^linux.*/
+              only: [/^linux.*/, /^alpha.*/]
             branches:
               ignore: /.*/
 
       - build-macos:
          filters:
            tags:
-             only: /^alpha.*/
+             only: [/^macos.*/, /^alpha.*/]
            branches:
              ignore: /.*/
 
       - build-windows:
           filters:
             tags:
-              only: /^alpha.*/
+              only: [/^windows.*/, /^alpha.*/]
             branches:
               ignore: /.*/
