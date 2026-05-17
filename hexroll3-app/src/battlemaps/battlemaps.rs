@@ -34,7 +34,7 @@ use bevy::prelude::*;
 use hexx::Hex;
 
 use crate::battlemaps::BattlemapsRuler;
-use crate::hexmap::elements::DungeonUnderlayer;
+use crate::hexmap::elements::{DungeonUnderlayer, HexMapToolState};
 use crate::shared::AppState;
 use crate::shared::labels::RulerLabelMarker;
 use crate::shared::settings::Config;
@@ -91,7 +91,7 @@ impl Plugin for BattlemapsPlugin {
             .add_systems(Update, draw_ruler.before(ruler_label_zoom_fader))
             .add_systems(Update, (area_labels_zoom_fader, token_labels_zoom_fader, ruler_label_zoom_fader))
             .add_systems(Update, (
-                trigger_battlemaps_requests_when_visible.run_if(in_state(AppState::Live)),
+                trigger_battlemaps_requests_when_visible.run_if(in_state(AppState::Live)).run_if(not(in_state(HexMapToolState::Edit))),
                 despawn_battlemaps_when_timer_expire).after(update_hex_map_tiles))
             .add_systems(Update, schedule_despawn_battlemaps_when_out_of_range.after(trigger_battlemaps_requests_when_visible))
             .add_systems(Update, battlemap_grid_aliasing_fader)
