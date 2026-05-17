@@ -71,6 +71,7 @@ impl Plugin for CameraPlugin {
             .add_systems(OnExit(AppState::Intro), setup)
             .add_systems(OnEnter(AppState::Live), center_on_map)
             .add_systems(Update, detect_camera_control)
+            .add_systems(Update, limit_camera)
             .add_systems(OnEnter(HexMapState::Suspended), suspend_camera)
             .add_systems(OnExit(HexMapState::Suspended), resume_camera)
             .add_observer(tween_camera);
@@ -384,5 +385,25 @@ impl CameraZoomRestrictor for EditorCam {
             max_size_per_pixel: 40.0,
             ..Default::default()
         };
+    }
+}
+
+pub fn limit_camera(camera: Single<(&mut Transform, &Projection), With<MainCamera>>) {
+    let (mut t, p) = camera.into_inner();
+
+    if let Projection::Orthographic(o) = p {
+        let m = 75000.0 / o.scale.sqrt().sqrt();
+        if t.translation.x > m {
+            t.translation.x = m;
+        }
+        if t.translation.z > m {
+            t.translation.z = m;
+        }
+        if t.translation.x < -m {
+            t.translation.x = -m;
+        }
+        if t.translation.z < -m {
+            t.translation.z = -m;
+        }
     }
 }
