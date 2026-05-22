@@ -159,7 +159,7 @@ Character {
     DescriptionInscript ~ "{{Extension.Inscript}}"
     DescriptionPostscript ~ "{{Extension.Postscript}}"
     Description! ~ <%
-      <strong>{{Name.Full}}</strong>.
+      <strong>{{Name.EditableFull}}</strong>.
       {{DescriptionInscript}}
       {{capitalize(Gender.PronounSubject)}} {{Gender.Possession}} {{Appearance}}
       (<em>{{State}}</em>). {{InThePocket.Details}}

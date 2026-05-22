@@ -294,7 +294,7 @@ NPC (Character) {
     Icon = "user"
   }
   Description! ~ <%
-    <strong>{{Name.Full}}</strong>, a level {{Level}} {{Class}}.{{note_button(uuid)}}
+    <strong>{{Name.EditableFull}}</strong>, a level {{Level}} {{Class}}.{{note_button(uuid)}}
     {{DescriptionInscript}}
     {{capitalize(Gender.PronounSubject)}} {{Gender.Possession}} {{Appearance}}
     (<em>{{State}}</em>). {{InThePocket.Details}}

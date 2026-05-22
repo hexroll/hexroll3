@@ -38,6 +38,7 @@ use bevy_editor_cam::prelude::EditorCam;
 
 use super::{
     ContentMode, PAGE_HEIGHT_PORTRAIT, PAGE_WIDTH_LANDSCAPE,
+    header::EditableTitleInput,
     page::{ContentCamera, ContentPage},
 };
 
@@ -59,9 +60,12 @@ fn detect_esc_from_split(
     keyboard: Res<ButtonInput<KeyCode>>,
     camera: Single<&EditorCam>,
     mut next_content_mode: ResMut<NextState<ContentMode>>,
+    any_editables: Query<&EditableTitleInput>,
 ) {
     if keyboard.just_pressed(KeyCode::Escape) {
-        next_content_mode.set(ContentMode::MapOnly);
+        if any_editables.is_empty() {
+            next_content_mode.set(ContentMode::MapOnly);
+        }
     }
     match &camera.current_motion {
         bevy_editor_cam::prelude::motion::CurrentMotion::UserControlled {

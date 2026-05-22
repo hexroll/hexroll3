@@ -72,6 +72,7 @@ pub struct EntityRenderingCompleted {
 pub struct EditableAttributeParams {
     pub attr_name: String,
     pub attr_entity: Option<String>,
+    pub cache_entity: Option<String>,
     pub is_a_map_label: bool,
     pub in_settlement: Option<String>,
 }
@@ -116,3 +117,6 @@ impl ContentDarkMode {
 
 #[derive(Component)]
 pub struct NpcAnchor(String);
+
+#[derive(Component)]
+pub struct EditableProxy;

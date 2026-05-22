@@ -1470,5 +1470,6 @@ FirstAndLastName (Name) {
     * Zouche
   ]
   Full! = <{{First}} {{Last}}>
+  EditableFull! ~ <%<span class="editable" data-attr="First" data-entity="{{uuid}}" data-cache-entity="{{parent_uid}}">{{First}}</span> <span class="editable" data-attr="Last" data-entity="{{uuid}}" data-cache-entity="{{parent_uid}}">{{Last}}</span>%>
   InitialQ = "{{first(Last)}}"
 }

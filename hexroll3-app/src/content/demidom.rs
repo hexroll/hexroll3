@@ -58,16 +58,17 @@ use crate::{
 };
 
 use super::{
-    EditableAttributeParams, NpcAnchor, ThemeBackgroundColor, clipboard::CopyOnRightClick,
-    header::EditableTitleInput, spoiler::ContentIsSpoiler,
+    EditableAttributeParams, EditableProxy, NpcAnchor, ThemeBackgroundColor,
+    clipboard::CopyOnRightClick, header::EditableTitleInput, spoiler::ContentIsSpoiler,
 };
 
 #[derive(Clone, Debug)]
 pub enum DemidomContextAttachment {
-    EditableAttribute(String, Option<String>),
+    EditableAttribute(String, Option<String>, Option<String>),
     DataSettlement(String),
     DataMapLabel,
     Rerollable(bool),
+    Link,
 }
 
 #[derive(Clone, Debug)]
@@ -265,13 +266,6 @@ impl DemidomRenderContext {
             spoilers: self.spoilers,
             attachments: self.attachments.clone(),
         }
-    }
-    pub fn with_attachments(
-        mut self,
-        attr_name: &Option<Vec<DemidomContextAttachment>>,
-    ) -> Self {
-        self.attachments = attr_name.clone();
-        self
     }
     pub fn scope(&mut self) -> Self {
         DemidomRenderContext {
@@ -1128,12 +1122,17 @@ pub fn render_demidom(
                     Color::srgb_u8(0, 0, 0),
                     font.clone(),
                 );
+                let mut cascaded_context = context.cascade(g);
+                cascaded_context
+                    .attachments
+                    .get_or_insert_with(Vec::new)
+                    .push(DemidomContextAttachment::Link);
+
                 for c in children_to_render {
                     if let Some(v) = render_demidom(
                         &mut commands,
                         demidom.clone(),
-                        // TODO: Do we really need to cascade the context here?
-                        &mut context.cascade(g),
+                        &mut cascaded_context,
                         font.clone(),
                         c,
                     ) {
@@ -1198,14 +1197,20 @@ pub fn render_demidom(
                             let mut params = None;
                             let mut is_a_map_label = false;
                             let mut in_settlement = None;
+                            let mut in_link = false;
 
                             for attachment in attachments {
                                 match attachment {
                                     DemidomContextAttachment::EditableAttribute(
                                         attr,
                                         entity,
+                                        cache_entity,
                                     ) => {
-                                        params.get_or_insert((attr.clone(), entity.clone()));
+                                        params.get_or_insert((
+                                            attr.clone(),
+                                            entity.clone(),
+                                            cache_entity.clone(),
+                                        ));
                                     }
                                     DemidomContextAttachment::DataMapLabel => {
                                         is_a_map_label = true;
@@ -1216,38 +1221,67 @@ pub fn render_demidom(
                                     DemidomContextAttachment::Rerollable(rerollable) => {
                                         ret.rerollable = *rerollable;
                                     }
+                                    DemidomContextAttachment::Link => {
+                                        in_link = true;
+                                    }
                                 }
                             }
 
                             let font = font.clone();
                             let text_color = context.theme.text_color;
 
-                            if let Some(params) = params {
+                            if let Some(params) = params
+                                && !in_link
+                            {
                                 commands.entity(context.parent)
                                     .custom_pointer_on_hover(SystemCursorIcon::Text)
                                     .observe(
-                                move |trigger: On<Pointer<Click>>, mut commands: Commands, children: Query<&Children>, existing: Query<&EditableTitleInput>| {
+                                        move |trigger: On<Pointer<Click>>,
+                                            mut commands: Commands,
+                                            parents: Query<&ChildOf>,
+                                            children: Query<&Children>,
+                                            existing: Query<Entity, (With<EditableTitleInput>,
+                                                                     Without<EditableProxy>)>,
+                                            proxies: Query<Entity, With<EditableProxy>>,
+                                            computed: Query<&ComputedNode>| {
                                     if !existing.is_empty() {
-                                        return;
+                                        for e in existing.iter() {
+                                            if parents.get(e).unwrap().0 == trigger.entity {
+                                                return;
+                                            }
+                                            commands.entity(e).try_despawn();
+                                        }
+                                        for p in proxies.iter() {
+                                            commands
+                                                .entity(p)
+                                                .insert(Visibility::Inherited)
+                                                .remove::<EditableProxy>();
+                                        }
                                     }
 
                                     let mut input_buffer = TextInputBuffer::default();
 
                                     input_buffer
                                         .editor
-                                        .insert_string(&cloned_text.clone(), None);
+                                        .insert_string(&cloned_text.trim(), None);
 
+                                    let mut width = 0.0;
                                     for child in children.iter_descendants(trigger.entity) {
-                                        commands.entity(child).despawn();
+                                        if let Ok(computed_node) = computed.get(child) {
+                                            width += computed_node.content_size.x;
+                                        }
+                                        commands.entity(child).insert(Visibility::Hidden).insert(EditableProxy);
                                     }
 
                                     commands.spawn((
                                         EditableTitleInput(EditableAttributeParams {
                                             attr_name: params.0.clone(),
                                             attr_entity: params.1.clone(),
+                                            cache_entity: params.2.clone(),
                                             is_a_map_label,
                                             in_settlement: in_settlement.clone(),
                                         }),
+                                        TextColor(text_color.clone()),
                                         TextInputNode {
                                             mode: TextInputMode::SingleLine,
                                             clear_on_submit: false,
@@ -1265,8 +1299,11 @@ pub fn render_demidom(
                                             ..default()
                                         },
                                         Node {
-                                            width: Val::VMax(50.0),
-                                            height: Val::Px(font.size * 1.333333 + 5.0),
+                                            position_type: PositionType::Absolute,
+                                            top: Val::Px(0.0),
+                                            left: Val::Px(0.0),
+                                            width: Val::Px(width),
+                                            height: Val::Px(font.size * 1.333333+2.0),
                                             border: UiRect::bottom(Val::Px(1.0)),
                                             ..default()
                                         },
@@ -1334,13 +1371,18 @@ pub fn render_demidom(
                             ))
                             .insert(ChildOf(context.parent))
                             .id();
+                        let mut sub_context = context.cascade(g);
+                        sub_context
+                            .attachments
+                            .get_or_insert_with(Vec::new)
+                            .extend_from_slice(
+                                &attributes.attachments.as_ref().unwrap_or(&Vec::new()),
+                            );
                         for c in children_to_render {
                             if let Some(v) = render_demidom(
                                 &mut commands,
                                 demidom.clone(),
-                                &mut context
-                                    .cascade(g)
-                                    .with_attachments(&attributes.attachments),
+                                &mut sub_context,
                                 font.clone(),
                                 c,
                             ) {
@@ -1352,6 +1394,62 @@ pub fn render_demidom(
                     }
                 }
                 if let Some(id) = &attributes.class {
+                    if id == "editable" {
+                        let uid_for_mock_anchor =
+                            attributes.attachments.as_ref().and_then(|attachments| {
+                                attachments
+                                    .iter()
+                                    .filter_map(|attachment| {
+                                        if let DemidomContextAttachment::EditableAttribute(
+                                            _,
+                                            maybe_uid,
+                                            _,
+                                        ) = attachment
+                                        {
+                                            maybe_uid.clone()
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .last()
+                            });
+                        let mut g = commands.spawn((
+                            Name::new("Editable"),
+                            Node {
+                                position_type: PositionType::Relative,
+                                display: Display::Flex,
+                                ..default()
+                            },
+                            BorderRadius::all(Val::Px(2.0)),
+                            BackgroundColor(Color::srgba(0.1, 0.0, 0.05, 0.1)),
+                            ChildOf(context.parent),
+                        ));
+                        if let Some(d) = uid_for_mock_anchor {
+                            g.insert(NpcAnchor(d));
+                        }
+                        let g = g.id();
+
+                        let mut sub_context = context.cascade(g);
+                        sub_context
+                            .attachments
+                            .get_or_insert_with(Vec::new)
+                            .extend_from_slice(
+                                &attributes.attachments.as_ref().unwrap_or(&Vec::new()),
+                            );
+                        for c in children_to_render {
+                            if let Some(v) = render_demidom(
+                                &mut commands,
+                                demidom.clone(),
+                                &mut sub_context,
+                                font.clone(),
+                                c,
+                            ) {
+                                ret.propagate(v);
+                            }
+                        }
+                        return Some(ret);
+                    }
+
                     if id == "hpmarks" {
                         return Some(ret);
                     }
@@ -1976,6 +2074,7 @@ impl TreeSink for Sink {
                 let mut attachments: Vec<DemidomContextAttachment> = Vec::new();
                 let mut maybe_editable_attr = None;
                 let mut maybe_editable_attr_entity = None;
+                let mut maybe_editable_cache_entity = None;
                 for attr in attrs {
                     if &*attr.name.local == "id" {
                         attributes.id = Some(attr.value.to_string());
@@ -1995,6 +2094,9 @@ impl TreeSink for Sink {
                     if &*attr.name.local == "data-entity" {
                         maybe_editable_attr_entity = Some(attr.value.to_string());
                     }
+                    if &*attr.name.local == "data-cache-entity" {
+                        maybe_editable_cache_entity = Some(attr.value.to_string());
+                    }
                     if &*attr.name.local == "data-settlement" {
                         attachments.push(DemidomContextAttachment::DataSettlement(
                             attr.value.to_string(),
@@ -2008,6 +2110,7 @@ impl TreeSink for Sink {
                     attachments.push(DemidomContextAttachment::EditableAttribute(
                         editable_attr,
                         maybe_editable_attr_entity,
+                        maybe_editable_cache_entity,
                     ));
                 }
                 attributes.attachments = if attachments.is_empty() {

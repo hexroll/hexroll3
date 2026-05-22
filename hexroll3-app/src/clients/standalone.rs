@@ -978,6 +978,9 @@ pub fn rename_entity_standalone(
     let params = event.params.clone();
     let uid = event.entity_uid.clone();
     let value = sanitize_renaming_value(&event.value);
+    if value.is_empty() {
+        return;
+    }
     let instance = sandbox.instance.clone();
     let index = sandbox.index.clone();
 
@@ -1000,7 +1003,35 @@ pub fn rename_entity_standalone(
                     error!("{}", tx_err);
                     return None;
                 }
-                search_index.terms.remove(&uid);
+
+                let cache_uid = params
+                    .cache_entity
+                    .as_ref()
+                    .unwrap_or_else(|| params.attr_entity.as_ref().unwrap_or(&uid));
+
+                // NOTE: We're doing some acrobatics to selectivly clear the term
+                // from the index cache. Alternatively we could have just
+                // cleared the entire cache using `search_index.terms.clear();`
+                if let Ok(cache_uid) = instance
+                    .repo
+                    .inspect(|tx| {
+                        let entity = tx.fetch(cache_uid)?;
+                        if let Some(index_ref) =
+                            entity.get("$IndexRef").and_then(|v| v.as_array())
+                        {
+                            if let Some(first_index) = index_ref.iter().next() {
+                                if let Some(index_str) = first_index.as_str() {
+                                    return Ok(index_str.to_string());
+                                }
+                            }
+                        }
+                        Err(anyhow::anyhow!("Unable to get the index ref uid"))
+                    })
+                    .map_err(|err| error!("Index cache: {}", err.to_string()))
+                {
+                    search_index.terms.remove(&cache_uid);
+                }
+
                 Some(RenamingResponse(uid.clone(), params.clone()))
             },
         )
@@ -1011,7 +1042,7 @@ pub fn rename_entity_standalone(
 pub fn sanitize_renaming_value(input: &str) -> String {
     input
         .chars()
-        .filter(|&c| c.is_ascii_alphabetic() || c == ' ' || c == '\'' || c == '-')
+        .filter(|&c| c.is_alphabetic() || c == ' ' || c == '\'' || c == '-')
         .take(80)
         .collect()
 }

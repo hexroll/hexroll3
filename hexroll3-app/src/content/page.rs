@@ -62,11 +62,12 @@ use crate::{
 };
 
 use super::{
-    ContentDarkMode, ContentMode, EntityRenderingCompleted, NpcAnchor, ScrollToAnchor,
+    ContentDarkMode, ContentMode, EditableProxy, EntityRenderingCompleted, NpcAnchor,
+    ScrollToAnchor,
     clipboard::CopyOnRightClick,
     context::ContentContext,
     demidom::*,
-    header::{make_header_bundle, update_header_buttons_state},
+    header::{EditableTitleInput, make_header_bundle, update_header_buttons_state},
     viewport::get_split_content_metrics,
 };
 
@@ -673,5 +674,29 @@ fn on_render_entity_content(
             map_coords: resp.coords,
             fetch_reason: why.clone(),
         })
+    }
+}
+
+fn detect_esc_from_editable(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut next_content_mode: ResMut<NextState<ContentMode>>,
+    any_editables: Query<Entity, (With<EditableTitleInput>, Without<EditableProxy>)>,
+    proxies: Query<Entity, With<EditableProxy>>,
+    mut commands: Commands,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        if any_editables.is_empty() {
+            next_content_mode.set(ContentMode::MapOnly);
+        } else {
+            for p in proxies.iter() {
+                commands
+                    .entity(p)
+                    .insert(Visibility::Inherited)
+                    .remove::<EditableProxy>();
+            }
+            any_editables
+                .iter()
+                .for_each(|e| commands.entity(e).try_despawn());
+        }
     }
 }
