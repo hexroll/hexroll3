@@ -29,7 +29,8 @@ This should open up the testbed where you can generate your first sandbox:
 
 Hexroll is built using:
 
-* **Bevy**
+* **Bevy** 
+* **redb**
 * **Bevy crates:** Modified versions of `avian3d`, `bevy_editor_cam`, `bevy_simple_scroll_view`, `bevy_mod_billboard`, and `bevy_tweening` and the official versions of `bevy_mod_outline`, `bevy_matchbox`, `bevy_rich_text3d`, `hexx`, `bevy_ui_text_input`, `bevy_vector_shapes`, `bevy_seedling`, `bevy_hanabi`, `bevy-inspector-egui`
 * **Other core crates:** `serde`, `serde_json`, `rand`, `cosmic-text`, `bincode`, `ureq`, `html5ever`, `lamport`, `lyon`, `regex`, `smallvec`, `chrono`, `ron`, `dirs`, and `anyhow`
 
