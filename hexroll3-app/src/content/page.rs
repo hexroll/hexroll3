@@ -45,7 +45,7 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages},
         view::Hdr,
     },
-    window::{CursorIcon, PrimaryWindow, SystemCursorIcon},
+    window::{CursorGrabMode, CursorOptions, PrimaryWindow, SystemCursorIcon},
 };
 use bevy_simple_scroll_view::{ScrollTarget, ScrollView, ScrollableContent};
 use bevy_tweening::lens::UiBackgroundColorLens;
@@ -616,6 +616,7 @@ fn on_render_entity_content(
     app_config: Res<Config>,
     window: Single<Entity, With<PrimaryWindow>>,
     reroller: Single<Entity, With<super::header::RerollButtonMarker>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     let Some(content_assets) = content_assets else {
         return;
@@ -640,12 +641,15 @@ fn on_render_entity_content(
 
     next_content_mode.set(ContentMode::SplitScreen);
 
-    commands
-        .entity(*window)
-        .insert(CursorIcon::System(SystemCursorIcon::Default));
+    cursor_controller.done(&mut commands, *window);
 
     // NOTE: If this is just a content refresh, no need to continue.
     if *why == FetchEntityReason::Refresh {
+        if let Some(anchor) = &trigger.anchor {
+            commands.trigger(ScrollToAnchor {
+                anchor: anchor.clone(),
+            });
+        }
         return;
     }
 

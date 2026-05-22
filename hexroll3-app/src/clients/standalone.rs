@@ -68,6 +68,7 @@ use crate::{
         vtt::LoadVttState,
     },
 };
+use crate::{content::context::ContentContext, shared::widgets::cursor::CursorController};
 
 use super::NodeBackendEvent;
 use super::{
@@ -165,10 +166,9 @@ pub fn append_feature_standalone(
     effects: Res<EffectSystems>,
     mut async_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
     window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
-    commands
-        .entity(*window)
-        .insert(CursorIcon::System(SystemCursorIcon::Progress));
+    cursor_controller.loading(&mut commands, *window);
 
     let sid = sandbox.instance.sid.clone().unwrap().clone();
     let event = trigger.event().0.clone();
@@ -298,41 +298,45 @@ pub fn fetch_hex_standalone(
     sandbox: Res<StandaloneSandbox>,
     mut commands: Commands,
     window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
+    mut async_tasks: ResMut<
+        AsyncBackendTasks<String, (ContentPageModel, FetchEntityReason, Option<String>)>,
+    >,
 ) {
     let uid = trigger.event().0.uid.clone();
     let why = trigger.event().0.why.clone();
-
-    commands
-        .entity(*window)
-        .insert(CursorIcon::System(SystemCursorIcon::Progress));
-
+    cursor_controller.loading(&mut commands, *window);
     let anchor = trigger.event().0.anchor.clone();
-    let instance = &sandbox.instance;
-    let Ok(mut blueprint) = instance.blueprint.lock() else {
-        error!("Error trying to lock the sandbox blueprint");
-        return;
-    };
-    match instance.repo.inspect(|tx| {
-        let e = tx.load(&uid)?;
-        let (header_html, body_html) =
-            render_entity_html(instance, &mut blueprint, tx, &e.value)?;
-        let (data, why, anchor) = (
-            ContentPageModel::from_entity_html(&uid, &(header_html + &body_html)),
-            why.clone(),
-            anchor.clone(),
-        );
-
-        commands.trigger(RenderEntityContent {
-            uid: uid.to_string(),
-            data,
-            anchor,
-            why,
-        });
-        Ok(())
-    }) {
-        Ok(_) => {}
-        Err(e) => error!("{:?}", e),
-    }
+    let instance = sandbox.instance.clone();
+    if async_tasks
+        .spawn_standalone(
+            uid.clone(),
+            move || -> Option<(ContentPageModel, FetchEntityReason, Option<String>)> {
+                let Ok(mut blueprint) = instance.blueprint.try_lock() else {
+                    error!("Error trying to lock the sandbox blueprint");
+                    return None;
+                };
+                match instance.repo.inspect(|tx| {
+                    let e = tx.load(&uid)?;
+                    let (header_html, body_html) =
+                        render_entity_html(&instance, &mut blueprint, tx, &e.value)?;
+                    let ret = (
+                        ContentPageModel::from_entity_html(&uid, &(header_html + &body_html)),
+                        why.clone(),
+                        anchor.clone(),
+                    );
+                    Ok(ret)
+                }) {
+                    Ok(r) => Some(r),
+                    Err(e) => {
+                        error!("{:?}", e);
+                        None
+                    }
+                }
+            },
+        )
+        .is_err()
+    {}
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -716,6 +720,7 @@ pub fn request_hex_action_standlone(
     let Some(topic) = event.topic.clone() else {
         return;
     };
+    cursor_controller.loading(&mut commands, *window);
     if my_tasks
         .spawn_standalone((sid, "action".to_string()), move || -> Option<String> {
             let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();

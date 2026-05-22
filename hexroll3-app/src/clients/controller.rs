@@ -28,7 +28,7 @@ use std::{path::PathBuf, time::Duration};
 use bevy_tweening::{Tween, lens::TransformScaleLens};
 use serde::{Deserialize, Serialize};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use serde_json::Value;
 
 use crate::{
@@ -54,6 +54,7 @@ use crate::{
         camera::GimbalshotCameraMovement,
         settings::{AppSettings, CONFIG_DIR, UserSettings},
         vtt::{LoadVttState, VttData},
+        widgets::cursor::CursorController,
     },
     tokens::Token,
     vtt::sync::{Chunkomatic, SyncMapForPeers},
@@ -294,8 +295,11 @@ pub fn receive_appended_feature(
     mut http_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
     hexes: Query<(Entity, &HexEntity)>,
     content_mode: Res<State<ContentMode>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     http_tasks.poll_responses(|_, data| {
+        cursor_controller.done(&mut commands, *window);
         if let Some(data) = data {
             if let Ok(parsed_data) = serde_json::from_str::<Value>(&data.0) {
                 if let Some(hex_coords) = data.1 {
@@ -481,6 +485,8 @@ pub struct PerformHexMapActionInBackend {
 pub fn receive_hex_action_results(
     mut commands: Commands,
     mut http_tasks: ResMut<AsyncBackendTasks<(String, String), String>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     http_tasks.poll_responses(|key, data| {
         if data.is_some() {
@@ -490,8 +496,10 @@ pub fn receive_hex_action_results(
 
             commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(Some(key.1.clone()))));
         }
+        cursor_controller.done(&mut commands, *window);
     });
 }
+
 
 #[derive(Event)]
 pub struct RenderEntityContent {
