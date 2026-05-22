@@ -55,7 +55,7 @@ pub fn render_entity_html(
     obj: &serde_json::Value,
 ) -> anyhow::Result<(String, String)> {
     let mut env = Environment::new();
-    prepare_renderer(&mut env, instance);
+    prepare_renderer(&mut env, instance, Some(blueprint));
     if let Some(class_spec) = obj["class"]
         .as_str()
         .and_then(|name| instance.resolve_class(blueprint, &name))
@@ -93,7 +93,7 @@ pub fn render_entity<T: ReadOnlyLoader>(
     let env = {
         let mut env = Environment::new();
         env.set_undefined_behavior(minijinja::UndefinedBehavior::Chainable);
-        prepare_renderer(&mut env, instance);
+        prepare_renderer(&mut env, instance, Some(blueprint));
         env
     };
     recursive_entity_renderer(

@@ -35,11 +35,17 @@ use std::{
 #[derive(Clone)]
 pub struct Repository {
     pub db: Option<Arc<Mutex<redb::Database>>>,
+    pub savepoints: Arc<Mutex<Vec<Savepoint>>>,
+    write_lock: Arc<Mutex<()>>,
 }
 
 impl Repository {
     pub fn new() -> Self {
-        Repository { db: None }
+        Repository {
+            db: None,
+            savepoints: Arc::new(Mutex::new(Vec::new())),
+            write_lock: Arc::new(Mutex::new(())),
+        }
     }
 
     pub fn create(&mut self, filename: &str) -> Result<&mut Self> {
@@ -76,18 +82,50 @@ impl Repository {
         }
     }
 
-    pub fn mutate<F, R>(&self, mut f: F) -> Result<R>
+    pub fn rollback(&mut self) -> Result<()> {
+        if let Some(sp) = self
+            .savepoints
+            .try_lock()
+            .map_err(|_| anyhow!("Unable to secure the savepoints lock"))?
+            .pop()
+        {
+            self.restore(&sp)?;
+        }
+        Ok(())
+    }
+
+    pub fn mutate<F, R>(&self, f: F) -> Result<R>
     where
         F: FnMut(&mut ReadWriteTransaction) -> Result<R>,
     {
+        self.mutate_ex(true, f)
+    }
+
+    pub fn mutate_ex<F, R>(&self, keep_a_savepoint: bool, mut f: F) -> Result<R>
+    where
+        F: FnMut(&mut ReadWriteTransaction) -> Result<R>,
+    {
+        let _guard = self.write_lock.lock().unwrap();
+
         let tx = self
             .db
             .as_ref()
             .ok_or_else(|| anyhow!("Database not initialized"))?
-            .lock()
+            .try_lock()
             .map_err(|_| anyhow!("Failed to acquire lock"))?
             .begin_write()
             .map_err(|_| anyhow!("Failed to begin write transaction"))?;
+
+        if keep_a_savepoint {
+            let sp = tx
+                .ephemeral_savepoint()
+                .map_err(|_| anyhow!("Unable to obtain a savepoint"))?;
+            self.savepoints
+                .try_lock()
+                .map_err(|_| anyhow!("Unable to secure the savepoints lock"))?
+                .push(sp);
+        }
+
         const TABLE: redb::TableDefinition<String, JsonValue> =
             redb::TableDefinition::new("sandbox");
 
@@ -110,7 +148,7 @@ impl Repository {
             .db
             .as_ref()
             .ok_or_else(|| anyhow!("Database not initialized"))?
-            .lock()
+            .try_lock()
             .map_err(|_| anyhow!("Failed to acquire lock"))?
             .begin_write()
             .map_err(|_| anyhow!("Failed to begin write transaction"))?;
@@ -122,7 +160,7 @@ impl Repository {
             .db
             .as_ref()
             .ok_or_else(|| anyhow!("Database not initialized"))?
-            .lock()
+            .try_lock()
             .map_err(|_| anyhow!("Failed to acquire lock"))?
             .begin_write()
             .map_err(|_| anyhow!("Failed to begin write transaction"))?;

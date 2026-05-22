@@ -29,12 +29,20 @@ use minijinja::Environment;
 use rand::SeedableRng;
 use std::{
     cmp::max,
+    cmp::min,
     collections::{HashMap, HashSet},
 };
 
-use crate::{instance::SandboxInstance, repository::ReadOnlyLoader};
+use crate::{
+    instance::{SandboxBlueprint, SandboxInstance},
+    repository::ReadOnlyLoader,
+};
 
-pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
+pub fn prepare_renderer(
+    env: &mut Environment,
+    instance: &SandboxInstance,
+    blueprint: Option<&SandboxBlueprint>,
+) {
     env.add_filter("bulletize", func_bulletize);
     env.add_filter("count_identical", func_count_identical);
 
@@ -50,11 +58,13 @@ pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
     env.add_function("length", func_length);
     env.add_function("list_to_obj", func_list_to_obj);
     env.add_function("max", func_max);
+    env.add_function("min", func_min);
     env.add_function("maybe", func_maybe);
     env.add_function("maybe2", func_maybe2);
     env.add_function("plural", func_plural);
     env.add_function("plural_with_count", func_plural_with_count);
     env.add_function("round", func_round);
+    env.add_function("iround", func_iround);
     env.add_function("sandbox", func_sandbox(instance));
     env.add_function("sortby", func_sortby);
     env.add_function("dice", func_unstable_dice);
@@ -70,10 +80,20 @@ pub fn prepare_renderer(env: &mut Environment, instance: &SandboxInstance) {
     env.add_function("dice_roller", func_dice_roller);
     env.add_function("nobrackets", func_nobrackets);
     env.add_function("opposite", func_opposite);
-
+    env.add_function("begin_spoiler", func_begin_spoiler);
+    env.add_function("end_spoiler", func_end_spoiler);
+    env.add_function("signed_modifier", func_signed_modifier);
+    env.add_function("contains", func_contains);
+    env.add_function("unique_join", func_unique_join);
+    env.add_function("join", func_join);
+    if let Some(blueprint) = blueprint {
+        let globals = blueprint.globals.clone();
+        env.add_function(
+            "stable_shuffle_pick",
+            func_stable_shuffle_pick(globals),
+        );
+    }
     // unimplemented
-    env.add_function("begin_spoiler", func_nop_0);
-    env.add_function("end_spoiler", func_nop_0);
     env.add_function("note_button", func_nop_1);
     env.add_function("note_container", func_nop_1);
 }
@@ -358,35 +378,29 @@ fn func_maybe2(
 
 fn func_sandbox(
     instance: &SandboxInstance,
-) -> impl Fn() -> Result<String, minijinja::Error> + 'static
-// where
-//     'a: 'static,
-{
+) -> impl Fn() -> Result<String, minijinja::Error> + 'static {
     let sid = instance.sid.clone().unwrap_or_default();
     move || -> Result<String, minijinja::Error> {
         Ok(format!("/inspect/{}", sid))
     }
 }
 
+fn func_iround(value: f32, _dec: f32) -> Result<i32, minijinja::Error> {
+    let y = (value * 100.0).round() / 100.0;
+    Ok(y as i32)
+}
+
 fn func_round(value: f32, _dec: f32) -> Result<f32, minijinja::Error> {
     let y = (value * 100.0).round() / 100.0;
-    if false {
-        return Err(minijinja::Error::new(
-            minijinja::ErrorKind::UndefinedError,
-            "",
-        ));
-    }
     Ok(y)
 }
 
 fn func_max(a: i32, b: i32) -> Result<i32, minijinja::Error> {
-    if false {
-        return Err(minijinja::Error::new(
-            minijinja::ErrorKind::UndefinedError,
-            "",
-        ));
-    }
     Ok(max(a, b))
+}
+
+fn func_min(a: i32, b: i32) -> Result<i32, minijinja::Error> {
+    Ok(min(a, b))
 }
 
 fn func_opposite(v: &str) -> &'static str {
@@ -476,14 +490,26 @@ fn func_if_plural_else(
     }
 }
 
-fn func_sum(l: minijinja::value::ViaDeserialize<serde_json::Value>) -> f64 {
+fn func_sum(
+    maybe_array: minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<f64, minijinja::Error> {
     let mut sum = 0.0;
-    for v in l.as_array().unwrap() {
-        if let Ok(a) = v.as_str().unwrap().trim().parse::<f64>() {
-            sum += a;
+    let Some(to_sum) = maybe_array.as_array() else {
+        return Err(minijinja::Error::new(
+            minijinja::ErrorKind::UndefinedError,
+            "",
+        ));
+    };
+    for val in to_sum {
+        if let Some(val_as_str) = val.as_str() {
+            if let Ok(parsed_val) = val_as_str.trim().parse::<f64>() {
+                sum += parsed_val;
+            }
+        } else if let Some(val) = val.as_f64() {
+            sum += val;
         }
     }
-    sum
+    Ok(sum)
 }
 
 fn func_unique(
@@ -581,8 +607,85 @@ fn func_toc(
     }
 }
 
-fn func_nop_0() -> Result<String, minijinja::Error> {
-    Ok(String::new())
+fn func_stable_shuffle_pick<'a>(
+    globals: HashMap<String, serde_json::Value>,
+) -> impl Fn(&str, &str, usize) -> Result<minijinja::value::Value, minijinja::Error>
+where
+    'a: 'static,
+{
+    move |uuid: &str,
+          varname: &str,
+          count: usize|
+          -> Result<minijinja::value::Value, minijinja::Error> {
+        let Some(arr) = globals.get(varname).and_then(|v| v.as_array()) else {
+            return Ok(minijinja::value::Value::from_serialize(
+                serde_json::json!([]),
+            ));
+        };
+        let count = count.min(arr.len());
+        let mut indices: Vec<usize> = (0..arr.len()).collect();
+        let seed = string_to_seed(uuid);
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        use rand::seq::SliceRandom;
+        indices.shuffle(&mut rng);
+        let result: Vec<&serde_json::Value> =
+            indices[..count].iter().map(|&i| &arr[i]).collect();
+        Ok(minijinja::value::Value::from_serialize(&result))
+    }
+}
+
+fn func_join(
+    v: minijinja::value::ViaDeserialize<serde_json::Value>,
+    sep: &str,
+) -> Result<String, minijinja::Error> {
+    if let Some(arr) = v.as_array() {
+        let parts: Vec<&str> = arr.iter().filter_map(|i| i.as_str()).collect();
+        return Ok(parts.join(sep));
+    }
+    Err(minijinja::Error::new(
+        minijinja::ErrorKind::UndefinedError,
+        "join: first argument must be an array of strings",
+    ))
+}
+
+fn func_unique_join(
+    v: minijinja::value::ViaDeserialize<serde_json::Value>,
+) -> Result<String, minijinja::Error> {
+    let mut count_map = std::collections::BTreeMap::new();
+    if let Some(arr) = v.as_array() {
+        for item in arr {
+            if let Some(s) = item.as_str() {
+                *count_map.entry(s.to_string()).or_insert(0) += 1;
+            }
+        }
+    }
+    let parts: Vec<String> = count_map
+        .into_iter()
+        .map(|(key, count)| {
+            if count > 1 {
+                format!("{} &times; {}", count, key)
+            } else {
+                key
+            }
+        })
+        .collect();
+    Ok(parts.join(", "))
+}
+
+fn func_contains(full: &str, search: &str) -> bool {
+    full.contains(search)
+}
+
+fn func_signed_modifier(v: i32) -> String {
+    format!("{:+}", v)
+}
+
+fn func_begin_spoiler() -> Result<String, minijinja::Error> {
+    Ok("<span class='spoiler'>".to_string())
+}
+
+fn func_end_spoiler() -> Result<String, minijinja::Error> {
+    Ok("</span>".to_string())
 }
 
 fn func_nop_1(

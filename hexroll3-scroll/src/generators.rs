@@ -248,6 +248,29 @@ pub fn unroll(
     Ok(parent_uid.to_string())
 }
 
+/// Remove an entity from the sandbox, cleaning up all owner references
+/// and unrolling it from its parent.
+///
+/// This is equivalent to calling `unroll` with no injectors.
+///
+/// # Arguments
+/// * `builder` - A reference to the sandbox builder holding the sandbox instance
+/// * `blueprint` - The sandbox blueprint
+/// * `tx` - A read/write transaction
+/// * `uid` - The uid of the entity to remove
+///
+/// # Returns
+/// The parent uid of the removed entity, or an empty string if the entity
+/// did not exist.
+pub fn remove(
+    builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
+    tx: &mut ReadWriteTransaction,
+    uid: &str,
+) -> Result<String> {
+    unroll(builder, blueprint, tx, uid, None)
+}
+
 /// Reroll an existing entity, with an optional class override, returning the
 /// new entity's new uid.
 ///

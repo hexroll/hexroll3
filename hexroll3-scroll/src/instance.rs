@@ -53,7 +53,7 @@ pub struct SandboxBuilder<'a> {
 impl<'a> SandboxBuilder<'a> {
     pub fn from_instance(instance: &'a SandboxInstance) -> Self {
         let mut env = Environment::new();
-        prepare_renderer(&mut env, instance);
+        prepare_renderer(&mut env, instance, None);
         SandboxBuilder {
             sandbox: instance,
             randomizer: Randomizer::new(),

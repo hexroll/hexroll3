@@ -13,7 +13,7 @@ mod renderer {
     fn render(template: &str) -> String {
         let mut env = Environment::new();
         let instance = SandboxInstance::new();
-        prepare_renderer(&mut env, &instance);
+        prepare_renderer(&mut env, &instance, None);
         env.add_template("test", template).unwrap();
         let tmpl = env.get_template("test").unwrap();
         tmpl.render(serde_json::json!({})).unwrap()
