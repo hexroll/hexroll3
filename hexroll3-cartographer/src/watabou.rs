@@ -199,12 +199,12 @@ pub fn populate_city_map(
                 .cmp(&a.value["shops"].as_array().unwrap().len())
         });
 
-        if relevant_map_districts.len() < relevant_district_entities.len()
-            && !partial
-        {
-            return anyhow::Result::Err(anyhow::anyhow!(
-                "Number of map districts is lower than number of district entities"
-            ));
+        if relevant_map_districts.len() < relevant_district_entities.len() {
+            if let Some(largest) = map_districts.first() {
+                while relevant_map_districts.len() < relevant_district_entities.len() {
+                    relevant_map_districts.push(largest);
+                }
+            }
         }
 
         for (entity_district, map_district) in relevant_district_entities

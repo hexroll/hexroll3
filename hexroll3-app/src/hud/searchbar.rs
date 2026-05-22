@@ -258,7 +258,7 @@ fn populate_search_results_panel(
                             },
                             Pickable {
                                 is_hoverable: true,
-                                should_block_lower: false,
+                                should_block_lower: true,
                             },
                         ))
                         .with_children(|c| {
@@ -276,7 +276,7 @@ fn populate_search_results_panel(
                                 },
                                 Pickable {
                                     is_hoverable: true,
-                                    should_block_lower: false,
+                                    should_block_lower: true,
                                 },
                             ));
                             c.spawn((
@@ -293,7 +293,7 @@ fn populate_search_results_panel(
                                 },
                                 Pickable {
                                     is_hoverable: true,
-                                    should_block_lower: false,
+                                    should_block_lower: true,
                                 },
                             ));
                         });
@@ -310,7 +310,7 @@ fn populate_search_results_panel(
                             },
                             Pickable {
                                 is_hoverable: true,
-                                should_block_lower: false,
+                                should_block_lower: true,
                             },
                         ));
                     })

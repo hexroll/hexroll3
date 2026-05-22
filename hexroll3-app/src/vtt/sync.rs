@@ -41,6 +41,7 @@ use crate::{
         camera::{CameraControl, camera_callback},
         input::InputMode,
         labels::LabelToken,
+        settings::UserSettings,
         vtt::{HexRevealState, StoreVttState, VttData},
     },
     tokens::{Token, TokenMessage, TokenUpdateMessage},
@@ -137,6 +138,7 @@ fn on_broadcast_state_to_peer(
     hexmap_time: Single<&HexMapTime>,
     mut socket: ResMut<NetworkContext>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
+    user_settings: Res<UserSettings>,
 ) {
     let peer = trigger.event().peer;
     debug!("Sending state to connecting peer: {}", peer);
@@ -156,30 +158,15 @@ fn on_broadcast_state_to_peer(
         send_token_message(&mut socket, peer, msg);
     }
 
-    // NOTE: Serverless player nodes
-    {
-        let raw = serde_json::to_string(map_data.cache.as_ref().unwrap())
-            .expect("Failed to convert JSON object to string");
-        let chunkomatic = Chunkomatic::from_string(raw);
-        chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
-            let msg = crate::hexmap::MapMessage::Cache(
-                crate::hexmap::MapMessageCacheType::ChunkedHexMap(crate::hexmap::ChunkedMap {
-                    chunk: chunk.to_string(),
-                    part: chunk_index + 1,
-                    total: total_chunks,
-                }),
-            );
-            send_hex_message(&mut socket, peer, msg);
-        });
-    }
-    // NOTE: Serverless player nodes
-    {
-        for (key, json) in cache.jsons.iter() {
-            let chunkomatic = Chunkomatic::from_string(json.clone());
+    if user_settings.local.unwrap_or(false) {
+        // NOTE: Serverless map sync
+        if let Some(map_data_cache) = map_data.cache.as_ref() {
+            let raw = serde_json::to_string(map_data_cache)
+                .expect("Failed to convert JSON object to string");
+            let chunkomatic = Chunkomatic::from_string(raw);
             chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
                 let msg = crate::hexmap::MapMessage::Cache(
-                    crate::hexmap::MapMessageCacheType::ChunkedBattleMap(
-                        key.clone(),
+                    crate::hexmap::MapMessageCacheType::ChunkedHexMap(
                         crate::hexmap::ChunkedMap {
                             chunk: chunk.to_string(),
                             part: chunk_index + 1,
@@ -189,6 +176,25 @@ fn on_broadcast_state_to_peer(
                 );
                 send_hex_message(&mut socket, peer, msg);
             });
+        }
+        // NOTE: Serverless cache sync
+        {
+            for (key, json) in cache.jsons.iter() {
+                let chunkomatic = Chunkomatic::from_string(json.clone());
+                chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
+                    let msg = crate::hexmap::MapMessage::Cache(
+                        crate::hexmap::MapMessageCacheType::ChunkedBattleMap(
+                            key.clone(),
+                            crate::hexmap::ChunkedMap {
+                                chunk: chunk.to_string(),
+                                part: chunk_index + 1,
+                                total: total_chunks,
+                            },
+                        ),
+                    );
+                    send_hex_message(&mut socket, peer, msg);
+                });
+            }
         }
     }
 

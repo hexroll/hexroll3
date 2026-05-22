@@ -45,7 +45,7 @@ use crate::{
         HexMapJson, MapMessage,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
-            HexMapData, HexToInvalidateMarker,
+            HexMapData, HexToInvalidateMarker, RemoveSandboxEntity,
         },
         update_hex_map_tiles,
     },
@@ -63,7 +63,7 @@ use crate::{
 use super::{
     NodeBackendEvent, RemoteBackendEvent, StandaloneBackendEvent,
     model::{FetchEntityReason, RerollEntity, SandboxMode, SearchResponse},
-    standalone::StandaloneSandbox,
+    standalone::{RemoveResponse, StandaloneSandbox},
 };
 
 pub struct ApiControllerPlugin;
@@ -74,6 +74,7 @@ impl Plugin for ApiControllerPlugin {
             .add_observer(backend_router::<RequestSandboxFromBackend>)
             .add_observer(backend_router::<FetchEntityFromStorage>)
             .add_observer(backend_router::<AppendSandboxEntity>)
+            .add_observer(backend_router::<RemoveSandboxEntity>)
             .add_observer(backend_router::<RequestMapFromBackend>)
             .add_observer(backend_router::<LoadVttState>)
             .add_observer(backend_router::<RequestDungeonFromBackend>)
@@ -109,6 +110,8 @@ impl Plugin for ApiControllerPlugin {
             .register_api_callback::<_, String, SearchResponse>(receive_search_results)
             // Hex Map Action
             .register_api_callback::<_, (String,String), String>(receive_hex_action_results)
+            // Remove entity
+            .register_api_callback::<_, String, RemoveResponse>(receive_remove_entity_results)
             // ---------------------------------------------------------------------------------------------
             // <--
             ;
@@ -278,7 +281,7 @@ pub fn receive_renaming_result(
                 debug!("received renaming result - refreshing entity");
                 commands.trigger(FetchEntityFromStorage {
                     uid: data.0,
-                    anchor: None,
+                    anchor: data.1.attr_entity.clone(),
                     why: FetchEntityReason::Refresh,
                 });
             }
@@ -493,13 +496,28 @@ pub fn receive_hex_action_results(
             commands.trigger(RequestMapFromBackend {
                 post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
             });
-
             commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(Some(key.1.clone()))));
         }
         cursor_controller.done(&mut commands, *window);
     });
 }
 
+pub fn receive_remove_entity_results(
+    mut commands: Commands,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, RemoveResponse>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
+) {
+    http_tasks.poll_responses(|_key, data| {
+        if data.is_some() {
+            commands.trigger(RequestMapFromBackend {
+                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+            });
+            commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
+        }
+        cursor_controller.done(&mut commands, *window);
+    });
+}
 
 #[derive(Event)]
 pub struct RenderEntityContent {

@@ -74,7 +74,7 @@ use hexroll3_app::{
         settings::{self, UserSettings},
         spawnq::SpawnQueuePlugin,
         tweens::SharedTweensPlugin,
-        widgets::{list::ListPlugin, modal::ModalPlugin},
+        widgets::{cursor::CursorController, list::ListPlugin, modal::ModalPlugin},
     },
     tokens::TokensPlugin,
     vtt::VttPlugin,
@@ -112,6 +112,7 @@ fn main() {
             std::time::Duration::from_millis(200),
         ),
     });
+    app.insert_resource(CursorController::default());
     app.insert_resource(user_settings)
         .insert_resource(settings::Config::default())
         .register_type::<AppSettings>()

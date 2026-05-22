@@ -29,7 +29,7 @@ use bevy::{
     platform::collections::{HashMap, HashSet},
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, block_on, futures_lite::future},
-    window::{CursorIcon, PrimaryWindow, SystemCursorIcon},
+    window::{CursorGrabMode, CursorIcon, CursorOptions, PrimaryWindow, SystemCursorIcon},
 };
 use hexroll3_cartographer::dungeons::map_data_providers;
 use hexx::*;
@@ -52,7 +52,7 @@ use crate::{
     shared::{
         vtt::*,
         widgets::{
-            cursor::{PointerExclusivityIsPreferred, TooltipOnHover},
+            cursor::{PointerExclusivityIsPreferred, PointerOnHover, TooltipOnHover},
             link::ContentHoverLink,
             modal::{DiscreteAppState, ModalState},
         },
@@ -133,6 +133,54 @@ pub struct MapEditor {
     pub selected_feature: HexFeature,
 }
 
+fn get_feature_ratio_for_realm_type(realm_type: &str, feature_type: HexFeature) -> f32 {
+    if realm_type == "RealmTypeKingdom" {
+        return match feature_type {
+            HexFeature::Dungeon => 0.5,
+            HexFeature::Residency => 0.4,
+            HexFeature::Village => 0.3,
+            HexFeature::Inn => 0.2,
+            HexFeature::Town => 0.2,
+            HexFeature::City => 0.1,
+            _ => 0.0,
+        };
+    }
+    if realm_type == "RealmTypeEmpire" {
+        return match feature_type {
+            HexFeature::Dungeon => 0.8,
+            HexFeature::Residency => 0.8,
+            HexFeature::Village => 0.5,
+            HexFeature::Inn => 0.3,
+            HexFeature::Town => 0.3,
+            HexFeature::City => 0.2,
+            _ => 0.0,
+        };
+    }
+    if realm_type == "RealmTypeLands" {
+        return match feature_type {
+            HexFeature::Dungeon => 0.8,
+            HexFeature::Residency => 0.3,
+            HexFeature::Village => 0.5,
+            HexFeature::Inn => 0.2,
+            HexFeature::Town => 0.1,
+            HexFeature::City => 0.05,
+            _ => 0.0,
+        };
+    }
+    if realm_type == "RealmTypeDuchy" {
+        return match feature_type {
+            HexFeature::Dungeon => 0.5,
+            HexFeature::Residency => 0.4,
+            HexFeature::Village => 0.4,
+            HexFeature::Inn => 0.2,
+            HexFeature::Town => 0.1,
+            HexFeature::City => 0.05,
+            _ => 0.0,
+        };
+    }
+    return 0.0;
+}
+
 pub fn random_neighboring_hexes(coords: Hex) -> Vec<Hex> {
     const TARGET: usize = 3;
 
@@ -182,6 +230,8 @@ pub fn draw_tiles(
                         generated: false,
                         pool_id: 0,
                         uid: "<uid>".to_string(),
+                        realm_uid: None,
+                        region_uid: None,
                         hex_type: terrain_type.clone(),
                         hex_tile_material: get_tile_material(
                             coord,
@@ -487,6 +537,8 @@ fn extend_seeds(
                         generated: false,
                         pool_id,
                         uid: "<uid>".to_string(),
+                        realm_uid: None,
+                        region_uid: None,
                         hex_type: terrain_type.clone(),
                         hex_tile_material: get_tile_material(
                             *coord,
@@ -1156,42 +1208,45 @@ fn create_drawing_hud(
             .with_children(|c| {
                 c.spawn_empty().spawn_knob(
                     HexFeature::Dungeon,
-                    0.5,
+                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Dungeon),
                     "icons/icon-dungeon.ktx2",
                     "",
                     &asset_server,
                 );
                 c.spawn_empty().spawn_knob(
                     HexFeature::City,
-                    0.1,
+                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::City),
                     "icons/icon-city.ktx2",
                     "",
                     &asset_server,
                 );
                 c.spawn_empty().spawn_knob(
                     HexFeature::Town,
-                    0.2,
+                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Town),
                     "icons/icon-town.ktx2",
                     "",
                     &asset_server,
                 );
                 c.spawn_empty().spawn_knob(
                     HexFeature::Village,
-                    0.3,
+                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Village),
                     "icons/icon-village.ktx2",
                     "",
                     &asset_server,
                 );
                 c.spawn_empty().spawn_knob(
                     HexFeature::Inn,
-                    0.2,
+                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Inn),
                     "icons/icon-inn.ktx2",
                     "",
                     &asset_server,
                 );
                 c.spawn_empty().spawn_knob(
                     HexFeature::Residency,
-                    0.4,
+                    get_feature_ratio_for_realm_type(
+                        &editor.realm_type,
+                        HexFeature::Residency,
+                    ),
                     "icons/icon-dwelling.ktx2",
                     "",
                     &asset_server,
@@ -1707,14 +1762,15 @@ fn generate_hex_map(
                                     &mut hex_map,
                                     &r.0,
                                 )?;
-                                hex_map.stage_trails(tx)?;
                             }
                         }
                     }
                 }
+                hex_map.stage_trails(tx)?;
 
                 Ok(())
             })
+            .map_err(|err| error!("{}", err.to_string()))
             .is_err()
         {
             return None;
@@ -1974,32 +2030,46 @@ impl GeneratorKnob for EntityCommands<'_> {
                     });
             },
         )
+        .custom_pointer_on_hover(SystemCursorIcon::EwResize)
         .observe(
             |trigger: On<Pointer<DragStart>>,
              mut commands: Commands,
-             window: Single<Entity, With<PrimaryWindow>>| {
+             window: Single<(Entity, &Window), With<PrimaryWindow>>| {
+                let current_pos: Vec2 = window.1.cursor_position().unwrap();
                 commands
                     .entity(trigger.entity)
-                    .try_insert(PointerExclusivityIsPreferred);
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::EwResize));
+                    .try_insert(PointerExclusivityIsPreferred)
+                    .try_insert(GrabbedMousePosition(current_pos));
+                commands.entity(window.0).insert(CursorOptions {
+                    visible: false,
+                    grab_mode: CursorGrabMode::None,
+                    hit_test: true,
+                });
             },
         )
         .observe(
             |trigger: On<Pointer<DragEnd>>,
              mut commands: Commands,
-             window: Single<Entity, With<PrimaryWindow>>| {
+             pos: Query<&GrabbedMousePosition>,
+             mut window: Single<(Entity, &mut Window), With<PrimaryWindow>>| {
+                if let Ok(pos) = pos.get(trigger.entity) {
+                    window.1.set_cursor_position(Some(pos.0));
+                }
                 commands
                     .entity(trigger.entity)
                     .try_remove::<PointerExclusivityIsPreferred>();
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::Default));
+                commands.entity(window.0).insert(CursorOptions {
+                    visible: true,
+                    grab_mode: CursorGrabMode::None,
+                    hit_test: true,
+                });
             },
         )
     }
 }
+
+#[derive(Component)]
+struct GrabbedMousePosition(Vec2);
 
 pub fn exponential_graph_value(x: f32) -> f32 {
     let x = x.clamp(0.0, 27.0);

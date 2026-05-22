@@ -29,7 +29,7 @@ use hexroll3_cartographer::dungeons::map_data_providers;
 use serde_json::json;
 
 use bevy::prelude::*;
-use bevy::window::{CursorIcon, PrimaryWindow, SystemCursorIcon};
+use bevy::window::PrimaryWindow;
 
 use hexroll3_cartographer::{
     dungeons::{prep_cave_map, prep_dungeon_map, prepare_dungeon_data},
@@ -52,12 +52,12 @@ use crate::{
         RequestVillageFromBackend, VillageMapConstructs,
     },
     clients::controller::RenamingResponse,
-    content::{ContentPageModel, RenameSandboxEntity},
+    content::{ContentMode, ContentPageModel, RenameSandboxEntity},
     hexmap::{
         HexMapJson, HexMapTileMaterials, HexmapTheme,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexMapData, HexMapResources,
-            hexx_to_hexroll_coords,
+            RemoveSandboxEntity, hexx_to_hexroll_coords,
         },
         prepare_hex_map_data,
     },
@@ -71,11 +71,12 @@ use crate::{
 use crate::{content::context::ContentContext, shared::widgets::cursor::CursorController};
 
 use super::NodeBackendEvent;
+use super::model::FetchEntityReason;
 use super::{
     StandaloneBackendEvent,
     controller::{
         ClientState, FeatureUidResponse, PerformHexMapActionInBackend, PostMapLoadedOp,
-        PostMapLoadedOpPrefix, RenderEntityContent, RequestMapFromBackend, RequestMapResult,
+        PostMapLoadedOpPrefix, RequestMapFromBackend, RequestMapResult,
         RequestSandboxFromBackend, SearchEntitiesInBackend,
     },
     http::LoadStateResponse,
@@ -90,6 +91,7 @@ impl Plugin for StandaloneClientPlugin {
             .add_observer(request_sandbox_standalone)
             .add_observer(fetch_hex_standalone)
             .add_observer(append_feature_standalone)
+            .add_observer(remove_entity_standalone)
             .add_observer(request_hex_map_standalone)
             .add_observer(load_vtt_state_standalone)
             .add_observer(request_dungeon_map_standalone)
@@ -104,6 +106,8 @@ impl Plugin for StandaloneClientPlugin {
             .add_observer(request_dungeon_map_for_standalone_player_node)
             .add_observer(request_city_map_for_standalone_player_node)
             .add_observer(request_village_map_for_standalone_player_node)
+            // NOTE: Rollback support
+            .add_systems(Update, handle_user_triggered_rollback.run_if(resource_exists::<StandaloneSandbox>))
             // <--
             ;
     }
@@ -244,42 +248,73 @@ pub fn append_feature_standalone(
                         hex_map.stage_trails(tx)?;
                     }
                 }
+                {
+                    let rerolls = tx.load("rerolls").unwrap().clone();
+                    {
+                        let rerolls = json!({"entities" :[]});
+                        tx.emplace_and_save("rerolls", rerolls)?;
+                    }
+                    for r in rerolls["entities"].as_array().unwrap() {
+                        let uid = r.as_str().unwrap();
+                        let is_entity_alive_since_reroll_consistency_isnt_guaranteed =
+                            tx.load(uid).is_ok();
+                        if is_entity_alive_since_reroll_consistency_isnt_guaranteed {
+                            reroll(&builder, &mut blueprint, tx, uid, None)?;
+                        }
+                    }
+                }
 
                 Ok(uid.clone())
             }) {
-                Ok(uid) => {
-                    builder
-                        .sandbox
-                        .repo
-                        .mutate(|tx| {
-                            {
-                                let rerolls = tx.load("rerolls").unwrap().clone();
-                                {
-                                    let rerolls = json!({"entities" :[]});
-                                    tx.emplace_and_save("rerolls", rerolls)?;
-                                }
-                                for r in rerolls["entities"].as_array().unwrap() {
-                                    let uid = r.as_str().unwrap();
-                                    let is_entity_alive_since_reroll_consistency_isnt_guaranteed = tx.load(uid).is_ok();
-                                    if is_entity_alive_since_reroll_consistency_isnt_guaranteed  {
-                                        reroll(&builder, &mut blueprint, tx, uid, None)?;
-                                    }
-                                }
-                            }
-                            Ok(())
-                        }).unwrap_or_else(|e| {
-                            error!("{:?}", e)
-                        });
-                    Some(FeatureUidResponse(
-                        format!("{{ \"uuid\":\"{}\" }}", uid),
-                        coords,
-                        if send_coords {
-                            None
-                        } else {
-                            Some(hex_uid.clone())
-                        },
-                    ))
+                Ok(uid) => Some(FeatureUidResponse(
+                    format!("{{ \"uuid\":\"{}\" }}", uid),
+                    coords,
+                    if send_coords {
+                        None
+                    } else {
+                        Some(hex_uid.clone())
+                    },
+                )),
+                Err(e) => {
+                    error!("{}", e.to_string());
+                    None
                 }
+            }
+        })
+        .is_err()
+    {
+        // Error
+    }
+}
+
+pub struct RemoveResponse;
+// ---------------------------------------------------------------------------------------------------------
+pub fn remove_entity_standalone(
+    trigger: On<StandaloneBackendEvent<RemoveSandboxEntity>>,
+    sandbox: Res<StandaloneSandbox>,
+    mut commands: Commands,
+    mut async_tasks: ResMut<AsyncBackendTasks<String, RemoveResponse>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
+) {
+    cursor_controller.loading(&mut commands, *window);
+
+    let event = trigger.event().0.clone();
+    let instance = sandbox.instance.clone();
+
+    if async_tasks
+        .spawn_standalone(event.uid.clone(), move || -> Option<RemoveResponse> {
+            let builder = SandboxBuilder::from_instance(&instance);
+            let Ok(mut blueprint) = builder.sandbox.blueprint.try_lock() else {
+                error!("Unable to obtain blueprint lock when removing entity");
+                return None;
+            };
+
+            match builder.sandbox.repo.mutate(|tx| {
+                remove(&builder, &mut blueprint, tx, &event.uid)?;
+                Ok(())
+            }) {
+                Ok(_) => Some(RemoveResponse),
                 Err(e) => {
                     error!("{}", e.to_string());
                     None
@@ -530,7 +565,7 @@ pub fn request_village_standalone(
     let instance = &sandbox.instance;
     let repo = instance.repo.clone();
     let task = move || -> Option<(BattleMapConstructs, String)> {
-        repo.mutate(|tx| {
+        repo.inspect(|tx| {
             let city_hex = tx.retrieve(&event.uid)?;
             let city_map = tx.retrieve(city_hex.value["Settlement"].uuid_as_str())?;
             let ret = {
@@ -577,7 +612,7 @@ pub fn request_dungeon_map_standalone(
     let instance = &sandbox.instance;
     let repo = instance.repo.clone();
     let task = move || -> Option<(BattleMapConstructs, String)> {
-        repo.mutate(|tx| {
+        repo.mutate_ex(false, |tx| {
             let data = prepare_dungeon_data(tx, &event.uid)?;
 
             Ok(if data.contains("areas") {
@@ -706,8 +741,10 @@ pub fn request_hex_action_standlone(
     sandbox: Res<StandaloneSandbox>,
     mut my_tasks: ResMut<AsyncBackendTasks<(String, String), String>>,
     map: Res<HexMapData>,
+    mut commands: Commands,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
-    let sid = sandbox.instance.sid.clone().unwrap().clone();
     let event = trigger.event().0.clone();
     let mut instance = sandbox.instance.clone();
     let Some(hex_coords) = map.coords.get(&event.uid) else {
@@ -722,33 +759,36 @@ pub fn request_hex_action_standlone(
     };
     cursor_controller.loading(&mut commands, *window);
     if my_tasks
-        .spawn_standalone((sid, "action".to_string()), move || -> Option<String> {
-            let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
-            hex_map.reconstruct(&mut instance);
+        .spawn_standalone(
+            (hex_uid.clone(), "action".to_string()),
+            move || -> Option<String> {
+                let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
+                hex_map.reconstruct(&mut instance);
 
-            let builder = SandboxBuilder::from_instance(&instance);
+                let builder = SandboxBuilder::from_instance(&instance);
 
-            if let Ok(()) = builder.sandbox.repo.mutate(|tx| {
-                if event.action == "draw" && topic == "river" {
-                    hex_map.draw_river(tx, &builder.randomizer, start, hex_uid.clone())?;
-                }
-                if event.action == "draw" && topic == "trails" {
-                    hex_map.stage_trails(tx)?;
-                }
-                if event.action == "clear" && topic == "river" {
-                    hex_map.clear_river(tx, &builder.randomizer, &hex_uid)?;
-                }
-                if event.action == "clear" && topic == "trails" {
-                    hex_map.fix_trails(tx, &hex_uid)?;
-                }
+                if let Ok(()) = builder.sandbox.repo.mutate(|tx| {
+                    if event.action == "draw" && topic == "river" {
+                        hex_map.draw_river(tx, &builder.randomizer, start, hex_uid.clone())?;
+                    }
+                    if event.action == "draw" && topic == "trails" {
+                        hex_map.stage_trails(tx)?;
+                    }
+                    if event.action == "clear" && topic == "river" {
+                        hex_map.clear_river(tx, &builder.randomizer, &hex_uid)?;
+                    }
+                    if event.action == "clear" && topic == "trails" {
+                        hex_map.fix_trails(tx, &hex_uid)?;
+                    }
 
-                Ok(())
-            }) {
-                Some("".to_string())
-            } else {
-                None
-            }
-        })
+                    Ok(())
+                }) {
+                    Some("".to_string())
+                } else {
+                    None
+                }
+            },
+        )
         .is_err()
     {}
 }
@@ -1214,6 +1254,37 @@ pub fn request_village_map_for_standalone_player_node(
             commands
                 .entity(trigger.0.hex)
                 .reset_battlemap_loading_state();
+        }
+    }
+}
+
+pub fn handle_user_triggered_rollback(
+    mut sandbox: ResMut<StandaloneSandbox>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    mut content_context: ResMut<ContentContext>,
+    mut next_content_mode: ResMut<NextState<ContentMode>>,
+) {
+    if keyboard.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
+        && keyboard.just_pressed(KeyCode::KeyZ)
+    {
+        if sandbox
+            .instance
+            .repo
+            .rollback()
+            .map_err(|e| error!("Rollback failed: {}", e.to_string()))
+            .is_ok()
+        {
+            // NOTE: We could be invalidating a bunch of stuff so lets clear
+            // any trace of potentially non-existing entities.
+            next_content_mode.set(ContentMode::MapOnly);
+            content_context.history.clear();
+            content_context.fistory.clear();
+            content_context.current_entity_uid = None;
+            content_context.current_hex_uid = None;
+            commands.trigger(RequestMapFromBackend {
+                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+            });
         }
     }
 }

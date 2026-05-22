@@ -28,7 +28,7 @@ use hexx::*;
 
 use crate::{
     clients::{controller::PerformHexMapActionInBackend, model::RerollEntity},
-    hexmap::elements::{AppendSandboxEntity, HexMapData},
+    hexmap::elements::{AppendSandboxEntity, HexMapData, RemoveSandboxEntity},
     shared::{
         settings::UserSettings,
         vtt::VttData,
@@ -697,11 +697,7 @@ fn dial_menu_trash_menu() -> impl Fn(
                           mut next_state: ResMut<NextState<HexMapToolState>>,
                           map_data: Res<HexMapData>| {
                         if let Some(uid) = map_data.get_selected_uid() {
-                            commands.trigger(PerformHexMapActionInBackend {
-                                uid: uid,
-                                action: "remove".into(),
-                                topic: None,
-                            });
+                            commands.trigger(RemoveSandboxEntity { uid: uid });
                         }
                         next_state.set(HexMapToolState::Selection);
                     },
@@ -714,7 +710,15 @@ fn dial_menu_trash_menu() -> impl Fn(
                     8,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Region,
-                    placeholder_click_handler(),
+                    move |_: On<Pointer<Click>>,
+                          mut commands: Commands,
+                          mut next_state: ResMut<NextState<HexMapToolState>>,
+                          map_data: Res<HexMapData>| {
+                        if let Some(uid) = map_data.get_selected_region_uid() {
+                            commands.trigger(RemoveSandboxEntity { uid: uid });
+                        }
+                        next_state.set(HexMapToolState::Selection);
+                    },
                     &dial_assets,
                     "Remove this region",
                 )
@@ -724,7 +728,15 @@ fn dial_menu_trash_menu() -> impl Fn(
                     6,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Realm,
-                    placeholder_click_handler(),
+                    move |_: On<Pointer<Click>>,
+                          mut commands: Commands,
+                          mut next_state: ResMut<NextState<HexMapToolState>>,
+                          map_data: Res<HexMapData>| {
+                        if let Some(uid) = map_data.get_selected_realm_uid() {
+                            commands.trigger(RemoveSandboxEntity { uid: uid });
+                        }
+                        next_state.set(HexMapToolState::Selection);
+                    },
                     &dial_assets,
                     "Remove this realm",
                 )

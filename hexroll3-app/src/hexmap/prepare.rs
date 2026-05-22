@@ -173,6 +173,8 @@ pub fn prepare_hex_map_data(
                 coords,
                 PreparedHexTile {
                     uid: h.uuid.clone(),
+                    realm_uid: h.realm.clone(),
+                    region_uid: h.region.clone(),
                     generated: true,
                     pool_id: 0,
                     hex_type: h.hex_type.clone(),

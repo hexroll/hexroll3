@@ -53,10 +53,15 @@ impl HexMap {
 
     pub fn reconstruct(&mut self, instance: &mut SandboxInstance) {
         if let Some(sid) = instance.sid() {
-            let _ = instance.repo.inspect(|tx| {
-                self.reconstruct_in_transaction(&sid, tx)?;
-                Ok(())
-            });
+            let _ = instance
+                .repo
+                .inspect(|tx| {
+                    self.reconstruct_in_transaction(&sid, tx)?;
+                    Ok(())
+                })
+                .map_err(|e| {
+                    println!("Error in reconstructing map: {}", e.to_string())
+                });
         }
     }
 

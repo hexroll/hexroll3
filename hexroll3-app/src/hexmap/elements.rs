@@ -83,6 +83,8 @@ pub struct ScaleHudMarker;
 #[derive(Debug)]
 pub struct PreparedHexTile {
     pub uid: String,
+    pub realm_uid: Option<String>,
+    pub region_uid: Option<String>,
     pub hex_type: TerrainType,
     pub hex_tile_material: Handle<TileMaterial>,
     pub partial_hex_tile_material: Handle<TileMaterial>,
@@ -181,6 +183,18 @@ impl HexMapData {
         self.selected
             .and_then(|selected| self.hexes.get(&selected))
             .map(|hex_data| hex_data.uid.clone())
+    }
+    pub fn get_selected_realm_uid(&self) -> Option<String> {
+        self.selected
+            .and_then(|selected| self.hexes.get(&selected))
+            .map(|hex_data| hex_data.realm_uid.clone())
+            .and_then(|v| v)
+    }
+    pub fn get_selected_region_uid(&self) -> Option<String> {
+        self.selected
+            .and_then(|selected| self.hexes.get(&selected))
+            .map(|hex_data| hex_data.region_uid.clone())
+            .and_then(|v| v)
     }
     pub fn get_selected_uid_and_class(&self) -> Option<(String, String)> {
         self.selected
@@ -290,6 +304,11 @@ pub struct AppendSandboxEntity {
     pub attr: String,
     pub what: String,
     pub send_coords: bool,
+}
+
+#[derive(Event, Clone)]
+pub struct RemoveSandboxEntity {
+    pub uid: String,
 }
 
 #[derive(Component)]
