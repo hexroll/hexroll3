@@ -29,7 +29,7 @@ use bevy::prelude::*;
 
 use bevy::{
     color::color_difference::EuclideanDistance,
-    window::{CursorIcon, PrimaryWindow, SystemCursorIcon},
+    window::{PrimaryWindow, SystemCursorIcon},
 };
 
 use bevy_tweening::lens::UiBackgroundColorLens;
@@ -37,7 +37,7 @@ use bevy_tweening::lens::UiBackgroundColorLens;
 use crate::content::ThemeBackgroundColor;
 
 use super::buttons::MenuButtonDisabled;
-use super::cursor::PointerExclusivityIsPreferred;
+use super::cursor::{CursorController, PointerExclusivityIsPreferred};
 
 pub trait ContentHoverLink {
     fn hover_effect(&mut self) -> &mut Self;
@@ -60,16 +60,19 @@ impl ContentHoverLink for EntityCommands<'_> {
                   window: Single<Entity, With<PrimaryWindow>>,
                   button_disabled: Query<&MenuButtonDisabled>,
                   bg: Query<&BackgroundColor>,
-                  exclusivity: Query<&PointerExclusivityIsPreferred>| {
+                  exclusivity: Query<&PointerExclusivityIsPreferred>,
+                  mut cursor_controller: ResMut<CursorController>| {
                 if button_disabled.contains(trigger.entity) {
                     return;
                 }
                 if !exclusivity.is_empty() && check_for_exclusivity {
                     return;
                 }
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::Pointer));
+                cursor_controller.set_cursor(
+                    &mut commands,
+                    *window,
+                    SystemCursorIcon::Pointer,
+                );
                 if let Ok(current_bg) = bg.get(trigger.entity) {
                     let target_color = Color::srgb_u8(223, 40, 109);
                     let distance = target_color.distance(&current_bg.0);
@@ -105,10 +108,13 @@ impl ContentHoverLink for EntityCommands<'_> {
              mut link_text: Query<(Entity, &mut TextColor, &OriginalTextColor)>,
              window: Single<Entity, With<PrimaryWindow>>,
              bg: Query<&BackgroundColor>,
-             theme_bg: Query<&ThemeBackgroundColor>| {
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::Default));
+             theme_bg: Query<&ThemeBackgroundColor>,
+             mut cursor_controller: ResMut<CursorController>| {
+                cursor_controller.set_cursor(
+                    &mut commands,
+                    *window,
+                    SystemCursorIcon::Default,
+                );
                 if let (Ok(current_bg), Ok(theme_bg)) =
                     (bg.get(trigger.entity), theme_bg.get(trigger.entity))
                 {

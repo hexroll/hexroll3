@@ -41,6 +41,41 @@ use crate::hexmap::elements::MainCamera;
 // to events.
 pub struct PointerExclusivityIsPreferred;
 
+#[derive(Resource, Default)]
+pub struct CursorController {
+    loading_counter: u32,
+    intent: SystemCursorIcon,
+}
+
+impl CursorController {
+    pub fn set_cursor(
+        &mut self,
+        commands: &mut Commands,
+        window: Entity,
+        icon: SystemCursorIcon,
+    ) {
+        self.intent = icon;
+        self.actuate(commands, window);
+    }
+    pub fn loading(&mut self, commands: &mut Commands, window: Entity) {
+        self.loading_counter += 1;
+        commands
+            .entity(window)
+            .insert(CursorIcon::System(SystemCursorIcon::Progress));
+    }
+    pub fn done(&mut self, commands: &mut Commands, window: Entity) {
+        self.loading_counter = self.loading_counter.saturating_sub(1);
+        self.actuate(commands, window);
+    }
+    fn actuate(&self, commands: &mut Commands, window: Entity) {
+        if self.loading_counter == 0 {
+            commands
+                .entity(window)
+                .insert(CursorIcon::System(self.intent));
+        }
+    }
+}
+
 pub trait PointerOnHover {
     fn pointer_on_hover(&mut self) -> &mut Self;
     fn custom_pointer_on_hover(&mut self, cursor_icon: SystemCursorIcon) -> &mut Self;
@@ -59,19 +94,21 @@ impl PointerOnHover for EntityCommands<'_> {
         self.observe(
             move |_: On<Pointer<Over>>,
                   mut commands: Commands,
-                  window: Single<Entity, With<PrimaryWindow>>| {
-                commands
-                    .entity(*window)
-                    .try_insert(CursorIcon::System(cursor_icon));
+                  window: Single<Entity, With<PrimaryWindow>>,
+                  mut cursor_controller: ResMut<CursorController>| {
+                cursor_controller.set_cursor(&mut commands, *window, cursor_icon);
             },
         );
         self.observe(
             move |_: On<Pointer<Out>>,
                   mut commands: Commands,
-                  window: Single<Entity, With<PrimaryWindow>>| {
-                commands
-                    .entity(*window)
-                    .try_insert(CursorIcon::System(SystemCursorIcon::Default));
+                  window: Single<Entity, With<PrimaryWindow>>,
+                  mut cursor_controller: ResMut<CursorController>| {
+                cursor_controller.set_cursor(
+                    &mut commands,
+                    *window,
+                    SystemCursorIcon::Default,
+                );
             },
         );
         self

@@ -41,7 +41,7 @@ use bevy::{
     },
     platform::collections::HashMap,
     prelude::*,
-    window::{CursorIcon, PrimaryWindow, SystemCursorIcon},
+    window::{PrimaryWindow, SystemCursorIcon},
 };
 
 use bevy_tweening::{Animator, lens::TransformScaleLens};
@@ -56,7 +56,10 @@ use crate::{
     shared::widgets::cursor::TooltipOnHover,
 };
 
-use super::super::{dragging::DraggingMotionDetector, tweens::StandardMaterialOpacityLens};
+use super::{
+    super::{dragging::DraggingMotionDetector, tweens::StandardMaterialOpacityLens},
+    cursor::CursorController,
+};
 
 pub struct DialPlugin;
 impl Plugin for DialPlugin {
@@ -393,13 +396,15 @@ fn on_despawn_dial(
     }
 }
 
-fn mouse_over()
--> impl Fn(On<Pointer<Over>>, Commands, Single<Entity, With<PrimaryWindow>>, Query<&Children>)
-{
-    move |trigger, mut commands, window, children| {
-        commands
-            .entity(*window)
-            .insert(CursorIcon::System(SystemCursorIcon::Pointer));
+fn mouse_over() -> impl Fn(
+    On<Pointer<Over>>,
+    Commands,
+    Single<Entity, With<PrimaryWindow>>,
+    Query<&Children>,
+    ResMut<CursorController>,
+) {
+    move |trigger, mut commands, window, children, mut cursor_controller| {
+        cursor_controller.set_cursor(&mut commands, *window, SystemCursorIcon::Pointer);
         children
             .iter_descendants(trigger.original_event_target())
             .for_each(|entity| {
@@ -418,12 +423,15 @@ fn mouse_over()
     }
 }
 
-fn mouse_out()
--> impl Fn(On<Pointer<Out>>, Commands, Single<Entity, With<PrimaryWindow>>, Query<&Children>) {
-    move |trigger, mut commands, window, children| {
-        commands
-            .entity(*window)
-            .insert(CursorIcon::System(SystemCursorIcon::Default));
+fn mouse_out() -> impl Fn(
+    On<Pointer<Out>>,
+    Commands,
+    Single<Entity, With<PrimaryWindow>>,
+    Query<&Children>,
+    ResMut<CursorController>,
+) {
+    move |trigger, mut commands, window, children, mut cursor_controller| {
+        cursor_controller.set_cursor(&mut commands, *window, SystemCursorIcon::Default);
         children
             .iter_descendants(trigger.original_event_target())
             .for_each(|entity| {

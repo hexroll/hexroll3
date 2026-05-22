@@ -28,9 +28,11 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use bevy::ecs::{lifecycle::HookContext, world::DeferredWorld};
-use bevy::window::{CursorIcon, PrimaryWindow, SystemCursorIcon};
+use bevy::window::{PrimaryWindow, SystemCursorIcon};
 
 use crate::shared::tweens::{UiImageNodeAlphaLens, UiTransformScaleLens};
+
+use super::cursor::CursorController;
 
 #[derive(Component, PartialEq, Default)]
 #[component(on_insert = on_menu_button_disabled)]
@@ -112,14 +114,17 @@ impl MenuButtonEffects for EntityCommands<'_> {
              mut commands: Commands,
              button_disabled: Query<&MenuButtonDisabled>,
              children: Query<&Children>,
-             window: Single<Entity, With<PrimaryWindow>>| {
+             window: Single<Entity, With<PrimaryWindow>>,
+             mut cursor_controller: ResMut<CursorController>| {
                 trigger.propagate(false);
                 if button_disabled.contains(trigger.entity) {
                     return;
                 }
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::Pointer));
+                cursor_controller.set_cursor(
+                    &mut commands,
+                    *window,
+                    SystemCursorIcon::Pointer,
+                );
                 children
                     .iter_descendants(trigger.original_event_target())
                     .for_each(|entity| {
@@ -142,14 +147,18 @@ impl MenuButtonEffects for EntityCommands<'_> {
              mut commands: Commands,
              button_disabled: Query<&MenuButtonDisabled>,
              children: Query<&Children>,
-             window: Single<Entity, With<PrimaryWindow>>| {
+             window: Single<Entity, With<PrimaryWindow>>,
+
+             mut cursor_controller: ResMut<CursorController>| {
                 trigger.propagate(false);
                 if button_disabled.contains(trigger.entity) {
                     return;
                 }
-                commands
-                    .entity(*window)
-                    .insert(CursorIcon::System(SystemCursorIcon::Default));
+                cursor_controller.set_cursor(
+                    &mut commands,
+                    *window,
+                    SystemCursorIcon::Default,
+                );
                 children
                     .iter_descendants(trigger.entity)
                     .for_each(|entity| {
