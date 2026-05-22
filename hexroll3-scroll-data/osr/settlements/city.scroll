@@ -226,7 +226,7 @@ City(Settlement) {
   <header%
     <div hidden id="doc-title"> {{capitalize(Title)}} from {{Realm}}</div>
     <h4 id="title">
-    <span id="editable-title" data-attr="NamePart" data-map-label="true">{{NamePart}}</span>
+    <span id="editable-title" data-attr="NamePart" data-map-label="true">{{title(NamePart)}}</span>
     {{Breadcrumbs}}
     </h4>
   %header>

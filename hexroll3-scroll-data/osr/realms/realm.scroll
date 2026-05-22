@@ -145,7 +145,7 @@ RuledRealm (Realm){
       Is there anyone in the {{RealmType.Title | lower}} who knows {{RealmType.Ruler.NPC.Gender.PronounPossessive}}
       very dark secret?
 
-    * A sickening blight sweeps the {{decap(RealmType.Title)}}, currently decimating the rural
+    * A sickening blight sweeps the {{RealmType.Title | lower}}, currently decimating the rural
       population. The cause of the sickness is unknown, but those in power are
       desperate for answers – and heroes.
 

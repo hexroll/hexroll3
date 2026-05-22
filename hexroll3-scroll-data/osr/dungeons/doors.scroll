@@ -157,9 +157,9 @@ DungeonDoorLocked {
         Sigil = &Sigil
         DoorShape = &DoorShape
         DoorMaterial = &DoorMaterial
-        Ref = &Ref
+        Ref = *Ref
         DungeonUUID = &DungeonUUID
-        DoorAreaUUID = &AreaUUID
+        DoorAreaUUID = *AreaUUID
         Active = <%
           <strong>key (<span class='alchemy'>{{Sigil.Symbol}}</span>)</strong> to unlock {{begin_spoiler()}}
           the {{DoorShape}} {{DoorMaterial}} door
@@ -344,8 +344,8 @@ DungeonSecretDoorPassphrase {
     PassphraseNoun = &Noun
     PassphraseLanguage = &Language
     PassphraseForm = &Form
-    PassphraseRef = &Ref
-    PassphraseRefUUID = &AreaUUID
+    PassphraseRef = *Ref
+    PassphraseRefUUID = *AreaUUID
     PassphraseDoorPosition = &Wall
     Active = <% The words <strong>"{{title(PassphraseAdj)}} {{title(PassphraseNoun)}}"</strong> in {{PassphraseLanguage}} {{PassphraseForm}}.
             {{begin_spoiler()}}It is the passphrase for the secret door in <a href="{{sandbox()}}/location/{{PassphraseRefUUID}}">area {{PassphraseRef}}</a> (to the {{PassphraseDoorPosition}}){{end_spoiler()}}%>
@@ -382,8 +382,8 @@ DungeonSecretDoorLever {
 
   Lever ? DungeonDoorLever {
     LeverType = &Type
-    LeverRef = &Ref
-    LeverRefUUID = &AreaUUID
+    LeverRef = *Ref
+    LeverRefUUID = *AreaUUID
     LeverDoorPosition = &Wall
     Active = <%
     <strong>{{LeverType}} lever</strong> that can open the secret door in

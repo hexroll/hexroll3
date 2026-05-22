@@ -315,12 +315,10 @@ Tavern(Populated) {
   %>
 
   $IndexRef @ IndexedEntity {
-    Render = "Name"
     Details = "{{capitalize(TavernLocation)}}"
     Link = &uuid
     Type = "location"
-    Full = ""
-    Search = "{{Full}}"
+    Render = "Title"
     Icon = "beer-mug-empty"
   }
 

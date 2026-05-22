@@ -123,7 +123,7 @@ DeliveryQuest(Quest) {
         {{QuestFolk.Gender.Possession}} a {{QuestObject}}
         {{QuestFolk.Gender.PronounSubject}} would like delivered
         {%if QuestDestination.SettlementName and QuestDestination.SettlementName%}to
-        {{capitalize(QuestDestination.SettlementName)}}{%endif%}
+        {{capitalize(QuestDestination.SettlementName)}}{%endif%}.
     ]
   }
 }
