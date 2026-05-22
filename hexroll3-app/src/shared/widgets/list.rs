@@ -205,6 +205,7 @@ pub fn handle_keyboard_events(
                             list.2.pos_y - global_transform.translation.y
                                 + panel_global_transform.translation.y,
                             list.2.max_scroll,
+                            false,
                         ));
                     }
                 }

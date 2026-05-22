@@ -2044,7 +2044,7 @@ dependencies = [
 [[package]]
 name = "bevy_simple_scroll_view"
 version = "0.4.0"
-source = "git+https://github.com/hexroll/bevy_simple_scroll_view?branch=hexroll#e45ac6888b50d8638f5ebbd95d5e539c1784d66f"
+source = "git+https://github.com/hexroll/bevy_simple_scroll_view?branch=hexroll#887d6681cb74a00c2446395f00eafb73891fa764"
 dependencies = [
  "bevy",
 ]

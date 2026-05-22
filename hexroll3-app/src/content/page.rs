@@ -57,7 +57,8 @@ use crate::{
         layers::{RENDER_LAYER_CONTENT_OFFSCREEN, RENDER_LAYER_CONTENT_ONSCREEN},
         settings::Config,
         tweens::UiImageNodeAlphaLens,
-        widgets::buttons::MenuButtonDisabled,
+        widgets::cursor::PointerOnHover,
+        widgets::{buttons::MenuButtonDisabled, cursor::CursorController},
     },
 };
 
@@ -86,6 +87,14 @@ impl Plugin for PageRendererPlugin {
         app.add_systems(
             Update,
             update_header_buttons_state.run_if(in_state(ContentMode::SplitScreen)),
+        );
+        app.add_systems(
+            Update,
+            set_grip_size.run_if(in_state(ContentMode::SplitScreen)),
+        );
+        app.add_systems(
+            Update,
+            detect_esc_from_editable.run_if(in_state(ContentMode::SplitScreen)),
         );
         app.add_systems(
             Update,
@@ -135,6 +144,18 @@ struct PageCamera;
 pub struct ContentPageModel {
     demidom: ContentDemidom,
 }
+
+#[derive(Component)]
+pub struct Scrollbar;
+
+#[derive(Component)]
+pub struct ScrollbarGrip;
+
+#[derive(Component)]
+pub struct ScrollbarGripDragging;
+
+#[derive(Component)]
+pub struct ScrollbarPrimingNeeded;
 
 impl ContentPageModel {
     pub fn from_entity_html(uid: &str, html: &str) -> Self {
@@ -218,12 +239,85 @@ fn setup_offscreen_node(
     mut viewport: Single<&mut ImageNode, With<ContentViewport>>,
 ) {
     let window_size = window.physical_size();
+    if window_size.x < 128 || window_size.y < 128 {
+        return;
+    }
     let (_, _, _, content_page_size) = get_split_content_metrics(window_size);
     let handle = images.add(create_render_target(&content_page_size));
     content_assets.render_target = handle.clone();
     offscreen.width = Val::Px(content_page_size.x as f32 * 0.8);
     page_cam.target = handle.clone().into();
     viewport.image = handle.clone();
+}
+
+struct GripMetrics {
+    grip_height_in_px: f32,
+    grip_movement_potential_in_px: f32,
+    grip_pos_to_scrollable_ratio: f32,
+}
+
+fn compute_grip_metrics(
+    scrollbar_height_in_px: f32,
+    scrollable_area_height_in_px: f32,
+    max_scroll: f32,
+) -> GripMetrics {
+    let ratio = scrollbar_height_in_px / scrollable_area_height_in_px;
+    let grip_height_in_px = scrollbar_height_in_px * ratio;
+    let grip_movement_potential_in_px = scrollbar_height_in_px - grip_height_in_px;
+    let grip_pos_to_scrollable_ratio = max_scroll / grip_movement_potential_in_px;
+    GripMetrics {
+        grip_height_in_px,
+        grip_movement_potential_in_px,
+        grip_pos_to_scrollable_ratio,
+    }
+}
+
+fn set_grip_size(
+    page: Single<
+        (
+            Entity,
+            &ScrollableContent,
+            Option<&ScrollTarget>,
+            &ComputedNode,
+            Option<&ScrollbarPrimingNeeded>,
+        ),
+        (
+            With<DemidomClipboardText>,
+            Without<Scrollbar>,
+            Without<ScrollbarGrip>,
+        ),
+    >,
+    mut node: Single<
+        &mut Node,
+        (
+            With<ScrollbarGrip>,
+            Without<Scrollbar>,
+            Without<ScrollbarGripDragging>,
+        ),
+    >,
+    computed_node: Single<&mut ComputedNode, (Without<ScrollbarGrip>, With<Scrollbar>)>,
+    mut commands: Commands,
+) {
+    let (e, page_scrollable, maybe_scroll_target, computed_node_inner, maybe_priming) = &*page;
+    let metrics = compute_grip_metrics(
+        computed_node.size.y,
+        computed_node_inner.size.y,
+        page_scrollable.max_scroll,
+    );
+
+    node.height = Val::Px(metrics.grip_height_in_px);
+
+    if let Some(scroll_target) = maybe_scroll_target {
+        if !scroll_target.set_by_scrollbar {
+            let node_pos_px =
+                -page_scrollable.pos_y * (1.0 / metrics.grip_pos_to_scrollable_ratio);
+            node.top = Val::Px(node_pos_px);
+        }
+    }
+    if maybe_priming.is_some() {
+        node.top = Val::Px(0.0);
+        commands.entity(*e).try_remove::<ScrollbarPrimingNeeded>();
+    }
 }
 
 fn setup(
@@ -341,8 +435,121 @@ fn setup(
                 },
                 RenderLayers::layer(RENDER_LAYER_CONTENT_ONSCREEN),
                 UiTargetCamera(cam),
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: true,
+                },
             ))
             .with_child(make_viewport_bundle(handle.clone()));
+
+            c.spawn((
+                Scrollbar,
+                Name::new("scrollbar"),
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(100.0),
+                    right: Val::Px(0.0),
+                    width: Val::Px(10.0),
+                    bottom: Val::Px(0.0),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
+                Pickable {
+                    should_block_lower: true,
+                    is_hoverable: true,
+                },
+            ))
+            .with_children(|c| {
+                c.spawn((
+                    ScrollbarGrip,
+                    Name::new("scrollbar_grip"),
+                    Node {
+                        position_type: PositionType::Absolute,
+                        top: Val::Px(0.0),
+                        left: Val::Px(0.0),
+                        width: Val::Px(10.0),
+                        height: Val::Px(44.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::BLACK),
+                    Pickable {
+                        should_block_lower: true,
+                        is_hoverable: true,
+                    },
+                ))
+                .custom_pointer_on_hover(SystemCursorIcon::Grab)
+                .observe(
+                    move |trigger: On<Pointer<DragStart>>,
+                          mut commands: Commands,
+                          window: Single<Entity, With<PrimaryWindow>>| {
+                        commands.entity(*window).insert(CursorOptions {
+                            visible: false,
+                            grab_mode: CursorGrabMode::None,
+                            hit_test: true,
+                        });
+                        commands
+                            .entity(trigger.entity)
+                            .try_insert(ScrollbarGripDragging);
+                    },
+                )
+                .observe(
+                    move |trigger: On<Pointer<DragEnd>>,
+                          mut commands: Commands,
+                          window: Single<Entity, With<PrimaryWindow>>| {
+                        commands.entity(*window).insert(CursorOptions {
+                            visible: true,
+                            grab_mode: CursorGrabMode::None,
+                            hit_test: true,
+                        });
+                        commands
+                            .entity(trigger.entity)
+                            .try_remove::<ScrollbarGripDragging>();
+                    },
+                )
+                .observe(
+                    move |trigger: On<Pointer<Drag>>,
+                          mut commands: Commands,
+                          mut nodes: Query<(&mut Node, &ChildOf)>,
+                          computed_nodes: Query<&ComputedNode>,
+                          mainpage: Single<Entity, With<ContentScroll>>,
+                          page: Single<
+                        (Entity, &ScrollableContent, &ComputedNode),
+                        With<DemidomClipboardText>,
+                    >| {
+                        let (page_entity, page_scrollable, computed_node_inner) = &*page;
+                        let y_offset = trigger.delta.y;
+                        let Ok((mut node, child_of)) = nodes.get_mut(trigger.entity) else {
+                            return;
+                        };
+                        let Ok(computed_node) = computed_nodes.get(child_of.0) else {
+                            return;
+                        };
+                        let Val::Px(curr) = node.top else {
+                            return;
+                        };
+                        commands.entity(*mainpage).insert(Interaction::None);
+
+                        let metrics = compute_grip_metrics(
+                            computed_node.size.y,
+                            computed_node_inner.size.y,
+                            page_scrollable.max_scroll,
+                        );
+
+                        let node_pos_px = (curr + y_offset)
+                            .max(0.0)
+                            .min(metrics.grip_movement_potential_in_px);
+
+                        node.top = Val::Px(node_pos_px);
+                        let mut target = ScrollTarget::from_value(
+                            -node_pos_px * metrics.grip_pos_to_scrollable_ratio,
+                            page_scrollable.max_scroll,
+                            true,
+                        );
+                        target.set_by_scrollbar = true;
+                        commands.entity(*page_entity).insert(target);
+                    },
+                );
+            });
         });
 }
 
@@ -362,7 +569,9 @@ fn swap_content_text_node(
         .entity(content_entity.0)
         .remove::<ChildOf>()
         .insert(ChildOf(*viewport_host))
+        .insert(ScrollbarPrimingNeeded)
         .remove::<ContentText>();
+
     // NOTE: we have to do this silly thing to make bevy_simple_scroll_view plugin
     // happy - as it will only set max_y after ComputedNode will change.
     content_entity.1.inverse_scale_factor = 1.0;
@@ -580,6 +789,7 @@ fn scroll_to_anchor_continous(
                 .insert(ScrollTarget::from_value(
                     page_scrollable.pos_y - tx.translation.y + gap,
                     page_scrollable.max_scroll,
+                    false,
                 ));
             commands.entity(cmd.0).try_despawn();
         }
