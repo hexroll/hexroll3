@@ -186,40 +186,12 @@ fn show_sandbox_options(
                         .width(Val::Px(360.0)),
                     )
                         .observe(|_: On<Pointer<Click>>,
-                                  mut user_settings: ResMut<UserSettings>,
-                                  mut next_state: ResMut<NextState<DiscreteAppState>>,
                                   modals: Query<Entity, With<ModalWindow>>,
                                   mut commands: Commands | {
-                                    let mut rng = rand::thread_rng();
-                                    let sandbox_id : String= (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
-                                    if let Ok(_) = roll_new_sandbox(&sandbox_id) {
-                                        user_settings.sandbox = Some(sandbox_id.clone());
-                                        user_settings.local=Some(true);
-                                        if let Some(existing) = user_settings
-                                            .sandboxes
-                                            .iter_mut()
-                                            .find(|s| s.sandbox.as_ref() == Some(&sandbox_id))
-                                        {
-                                            existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
-                                        } else {
-                                            user_settings.sandboxes.push(SandboxRef {
-                                                sandbox: Some(sandbox_id.clone()),
-                                                key: None,
-                                                last_used: Some(chrono::Utc::now().timestamp() as u64),
-                                                local: Some(true)
-                                            });
-                                        }
-                                        commands.trigger(StandaloneBackendEvent(RequestSandboxFromBackend {
-                                            sandbox_uid: sandbox_id.to_string(),
-                                            pairing_key: None,
-                                        }));
-                                        next_state.set(DiscreteAppState::Normal);
-                                        user_settings.save();
                                         for modal in modals.iter() {
                                             commands.entity(modal).try_despawn();
                                         }
-                                        commands.run_system_cached(show_new_sandbox_options);
-                                    }
+                                        commands.run_system_cached(show_edition_options);
                                 });
                     c.spawn_spacer();
                     c.spawn_text_button(
@@ -274,6 +246,79 @@ fn show_sandbox_options(
                         },
                     );
                 });
+            });
+        });
+}
+
+fn show_edition_options(
+    mut next_state: ResMut<NextState<DiscreteAppState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    next_state.set(DiscreteAppState::Modal);
+    commands
+        .spawn(modal_window("NewSandbox"))
+        .with_children(|c| {
+            c.spawn(text_centered("Choose your Edition"));
+            c.spawn_spacer();
+            c.spawn_row_with_wrap(AlignItems::Center, |c| {
+                let mut button = |edition_name: &str| {
+                    let edition_name = edition_name.to_string();
+                    c.spawn_text_button(
+                        TextButton::from_text(
+                            &edition_name,
+                            Button::from_image(asset_server.load(format!(
+                                "icons/icon-{}.ktx2",
+                                "earth"
+                            )))
+                            .button_size(Val::Px(60.0))
+                            .image_size(Val::Px(48.0))
+                            .border_radius(Val::Percent(20.0)),
+                        )
+                        .width(Val::Px(200.0)),
+                    )
+                    .observe(
+                        move |_: On<Pointer<Click>>,
+                              mut commands: Commands,
+                                  mut user_settings: ResMut<UserSettings>,
+                                  mut next_state: ResMut<NextState<DiscreteAppState>>,
+                              modals: Query<Entity, With<ModalWindow>>
+                            | {
+                                let mut rng = rand::thread_rng();
+                                let sandbox_id : String= (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
+                                if let Ok(_) = roll_new_sandbox(&sandbox_id, &edition_name).map_err(|err| error!("Error rolling new sandbox: {}",err.to_string())) {
+                                    user_settings.sandbox = Some(sandbox_id.clone());
+                                    user_settings.local=Some(true);
+                                    if let Some(existing) = user_settings
+                                        .sandboxes
+                                        .iter_mut()
+                                        .find(|s| s.sandbox.as_ref() == Some(&sandbox_id))
+                                    {
+                                        existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
+                                    } else {
+                                        user_settings.sandboxes.push(SandboxRef {
+                                            sandbox: Some(sandbox_id.clone()),
+                                            key: None,
+                                            last_used: Some(chrono::Utc::now().timestamp() as u64),
+                                            local: Some(true)
+                                        });
+                                    }
+                                    commands.trigger(StandaloneBackendEvent(RequestSandboxFromBackend {
+                                        sandbox_uid: sandbox_id.to_string(),
+                                        pairing_key: None,
+                                    }));
+                                    next_state.set(DiscreteAppState::Normal);
+                                    user_settings.save();
+                                    for modal in modals.iter() {
+                                        commands.entity(modal).try_despawn();
+                                    }
+                                    commands.run_system_cached(show_new_sandbox_options);
+                                }
+                        },
+                    );
+                };
+                button("osr");
+                button("o5e");
             });
         });
 }

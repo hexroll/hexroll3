@@ -40,11 +40,11 @@ pub fn main_scrolls_repo_path() -> PathBuf {
     UserSettings::assets_path().join("scrolls")
 }
 
-pub fn roll_new_sandbox(id: &str) -> Result<String> {
+pub fn roll_new_sandbox(id: &str, edition: &str) -> Result<String> {
     let mut instance = SandboxInstance::new();
     let filepath = UserSettings::sandbox_path(id);
 
-    let scrolls_repo_directory = main_scrolls_repo_path();
+    let scrolls_repo_directory = main_scrolls_repo_path().join(edition);
     let sandbox_scrolls_directory = UserSettings::sandbox_scrolls_path(id);
     let options = fs_extra::dir::CopyOptions {
         skip_exist: true,
