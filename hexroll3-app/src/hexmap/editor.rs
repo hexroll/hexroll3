@@ -49,6 +49,7 @@ use crate::{
         spawn::spawn_tile,
         tiles::{HexMapTileMaterials, TileMaterial},
     },
+    hud::ShowTransientUserMessage,
     shared::{
         vtt::*,
         widgets::{
@@ -1816,6 +1817,11 @@ fn poll_generation_tasks(
                 });
                 next_tool_state.set(HexMapToolState::Selection);
             } else {
+                commands.trigger(ShowTransientUserMessage {
+                    text: String::from("The stars were not aligned. Please try saving again."),
+                    special: None,
+                    keep_alive: None,
+                });
                 map.generating = false;
             }
             commands.entity(*spinner_node).try_despawn();
