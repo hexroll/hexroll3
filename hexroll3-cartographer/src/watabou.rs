@@ -201,7 +201,9 @@ pub fn populate_city_map(
 
         if relevant_map_districts.len() < relevant_district_entities.len() {
             if let Some(largest) = map_districts.first() {
-                while relevant_map_districts.len() < relevant_district_entities.len() {
+                while relevant_map_districts.len()
+                    < relevant_district_entities.len()
+                {
                     relevant_map_districts.push(largest);
                 }
             }
@@ -305,7 +307,7 @@ fn populate_city_entity(
     let mut maybe_index = None;
 
     if let Some(map_district) = map_district {
-        for _attempt in 0..10 {
+        for _attempt in 0..50 {
             let preindex = randomizer
                 .in_range(1, (map_district.buildings.len() - 1) as i32);
             let tmp_index = map_district.buildings[preindex as usize];
@@ -315,7 +317,7 @@ fn populate_city_entity(
             }
         }
     } else {
-        for _attempt in 0..10 {
+        for _attempt in 0..50 {
             let tmp_index =
                 randomizer.in_range(1, (buildings.len() - 1) as i32) as usize;
             if buildings[tmp_index].uid.is_none() {
@@ -324,6 +326,14 @@ fn populate_city_entity(
             }
         }
     }
+    if maybe_index.is_none() {
+        for (i, b) in buildings.iter().enumerate() {
+            if b.uid.is_none() {
+                maybe_index = Some(i);
+            }
+        }
+    }
+
     let Some(index) = maybe_index else {
         return Err(anyhow::anyhow!("Could not find building for entity"));
     };
