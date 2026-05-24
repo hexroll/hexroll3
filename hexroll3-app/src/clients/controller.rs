@@ -250,6 +250,8 @@ pub fn receive_hex(
     mut http_tasks: ResMut<
         AsyncBackendTasks<String, (ContentPageModel, FetchEntityReason, Option<String>)>,
     >,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     http_tasks.poll_responses(|uid, ret| {
         if let Some((data, why, anchor)) = ret {
@@ -259,6 +261,8 @@ pub fn receive_hex(
                 anchor,
                 why,
             });
+        } else {
+            cursor_controller.done(&mut commands, *window);
         }
     });
 }

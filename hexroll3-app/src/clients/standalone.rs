@@ -284,6 +284,7 @@ pub fn append_feature_standalone(
         .is_err()
     {
         // Error
+        cursor_controller.done(&mut commands, *window);
     }
 }
 
@@ -324,6 +325,7 @@ pub fn remove_entity_standalone(
         .is_err()
     {
         // Error
+        cursor_controller.done(&mut commands, *window);
     }
 }
 
@@ -371,7 +373,9 @@ pub fn fetch_hex_standalone(
             },
         )
         .is_err()
-    {}
+    {
+        cursor_controller.done(&mut commands, *window);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -790,7 +794,9 @@ pub fn request_hex_action_standlone(
             },
         )
         .is_err()
-    {}
+    {
+        cursor_controller.done(&mut commands, *window);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
