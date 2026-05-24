@@ -174,15 +174,15 @@ impl HexMap {
     ) -> anyhow::Result<()> {
         let mut settlements_backlog = Vec::new();
         for (_, hex_data) in self.map.iter() {
-            let mut hex = tx.retrieve(&hex_data.uid)?;
+            let hex = tx.load(&hex_data.uid)?;
 
-            let Some(coords) = Hex::from_entity(&hex.value) else {
+            let Some(coords) = Hex::from_entity(&hex) else {
                 return Err(anyhow::anyhow!("Error extracting hex coords"));
             };
 
             let coasts = self.get_unmapped_directions(&coords);
 
-            let Some(hex_obj) = hex.value.as_object_mut() else {
+            let Some(hex_obj) = hex.as_object_mut() else {
                 return Err(anyhow::anyhow!("Error treating hex as object"));
             };
 
@@ -219,7 +219,7 @@ impl HexMap {
                 settlements_backlog.push(hex_data.uid.clone());
             }
 
-            tx.store(&hex_data.uid, &hex.value)?;
+            tx.save(&hex_data.uid)?;
         }
 
         for uid in settlements_backlog {
