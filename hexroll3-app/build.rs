@@ -2,6 +2,8 @@
 extern crate embed_resource;
 
 fn main() {
+    println!("cargo:rerun-if-changed=icon.rc");
+    println!("cargo:rerun-if-changed=build.rs");
     let target = std::env::var("TARGET").unwrap();
     if target.contains("windows") {
         #[cfg(target_os = "windows")]
