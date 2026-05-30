@@ -55,7 +55,14 @@ impl ContentContext {
     }
 
     pub fn invalidate_last_history_entry(&mut self) {
-        self.history.pop();
+        if let Some(history_uid) = self.history.last()
+            && let Some(current_uid) = &self.current_entity_uid
+        {
+            if history_uid == current_uid {
+                self.history.pop();
+            }
+        }
+        self.current_entity_uid = None;
     }
 
     pub fn invalidate_forward_navigation(&mut self) {
