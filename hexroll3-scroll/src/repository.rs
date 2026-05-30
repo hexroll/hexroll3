@@ -395,9 +395,9 @@ where
 
 fn bytes_json(bytes: &[u8]) -> serde_json::Value {
     #[cfg(feature = "zstd")]
-    let cbor = {
+    let cbor: ciborium::Value = {
         let bytes = zstd::decode_all(bytes).unwrap();
-        ciborium::from_reader(bytes.as_slice()).unwrap();
+        ciborium::from_reader(bytes.as_slice()).unwrap()
     };
 
     #[cfg(not(feature = "zstd"))]
