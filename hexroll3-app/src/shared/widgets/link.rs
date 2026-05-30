@@ -27,6 +27,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+use bevy::window::CursorOptions;
 use bevy::{
     color::color_difference::EuclideanDistance,
     window::{PrimaryWindow, SystemCursorIcon},
@@ -57,7 +58,7 @@ impl ContentHoverLink for EntityCommands<'_> {
                   mut commands: Commands,
                   children: Query<&Children>,
                   mut link_text: Query<(Entity, &mut TextColor)>,
-                  window: Single<Entity, With<PrimaryWindow>>,
+                  window: Single<(Entity, &CursorOptions), With<PrimaryWindow>>,
                   button_disabled: Query<&MenuButtonDisabled>,
                   bg: Query<&BackgroundColor>,
                   exclusivity: Query<&PointerExclusivityIsPreferred>,
@@ -68,9 +69,12 @@ impl ContentHoverLink for EntityCommands<'_> {
                 if !exclusivity.is_empty() && check_for_exclusivity {
                     return;
                 }
+                if !window.1.visible {
+                    return;
+                }
                 cursor_controller.set_cursor(
                     &mut commands,
-                    *window,
+                    window.0,
                     SystemCursorIcon::Pointer,
                 );
                 if let Ok(current_bg) = bg.get(trigger.entity) {
