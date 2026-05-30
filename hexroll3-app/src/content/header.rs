@@ -92,6 +92,7 @@ pub fn make_header_bundle(
                 width: Val::Px(36.0),
                 height: Val::Px(100.0),
                 justify_content: JustifyContent::Center,
+                flex_shrink: 0.0,
                 ..default()
             },
             BackgroundColor(Color::srgb_u8(20, 20, 20)),
@@ -153,6 +154,8 @@ pub fn make_header_bundle(
         c.spawn((
             Name::new("ContentHeaderForward"),
             Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(0.0),
                 width: Val::Px(36.0),
                 height: Val::Px(100.0),
                 justify_content: JustifyContent::Center,
@@ -197,193 +200,201 @@ pub fn make_header_bundle(
             },
         );
         c.spawn((
-            Name::new("ContentSpoilersButton"),
+            Name::new("ContentButtons"),
+            BorderRadius::top_left(Val::Px(10.0)),
+            BackgroundColor(Color::srgb_u8(30, 30, 30).with_alpha(0.9)),
             Node {
                 position_type: PositionType::Absolute,
-                width: Val::Px(36.0),
+                width: Val::Px(36.0 * 4.0),
                 height: Val::Px(36.0),
-                right: Val::Px(48.0 * 3.0),
-                bottom: Val::Px(5.0),
-                justify_content: JustifyContent::Center,
+                right: Val::Px(36.0),
+                bottom: Val::Px(0.0),
+                margin: UiRect::bottom(Val::Px(5.0)),
+                justify_content: JustifyContent::SpaceEvenly,
                 ..default()
             },
-            MenuButtonSwitcherState::Idle,
         ))
-        .menu_button_hover_effect()
-        .observe(
-            |trigger: On<Pointer<Click>>,
-             mut content_stuff: ResMut<ContentContext>,
-             mut masks: Query<(&mut Node, &SpoilerMaskMarker)>,
-             state: Query<&MenuButtonSwitcherState>,
-             mut commands: Commands| {
-                let Ok(state) = state.get(trigger.entity) else {
-                    return;
-                };
+        .with_children(|c| {
+            c.spawn((
+                Name::new("ContentSpoilersButton"),
+                Node {
+                    width: Val::Px(36.0),
+                    height: Val::Px(36.0),
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                MenuButtonSwitcherState::Idle,
+            ))
+            .menu_button_hover_effect()
+            .observe(
+                |trigger: On<Pointer<Click>>,
+                 mut content_stuff: ResMut<ContentContext>,
+                 mut masks: Query<(&mut Node, &SpoilerMaskMarker)>,
+                 state: Query<&MenuButtonSwitcherState>,
+                 mut commands: Commands| {
+                    let Ok(state) = state.get(trigger.entity) else {
+                        return;
+                    };
 
-                // NOTE: Toggle state switch
-                // TODO: Can we make this generic?
-                if state.toggled() {
-                    content_stuff.spoilers = false;
-                    commands
-                        .entity(trigger.entity)
-                        .trigger(|entity| ToggleButtonSwitcher {
-                            entity,
-                            state: MenuButtonSwitcherState::Idle,
+                    // NOTE: Toggle state switch
+                    // TODO: Can we make this generic?
+                    if state.toggled() {
+                        content_stuff.spoilers = false;
+                        commands.entity(trigger.entity).trigger(|entity| {
+                            ToggleButtonSwitcher {
+                                entity,
+                                state: MenuButtonSwitcherState::Idle,
+                            }
                         });
-                } else {
-                    content_stuff.spoilers = true;
-                    commands
-                        .entity(trigger.entity)
-                        .trigger(|entity| ToggleButtonSwitcher {
-                            entity,
-                            state: MenuButtonSwitcherState::Toggled,
+                    } else {
+                        content_stuff.spoilers = true;
+                        commands.entity(trigger.entity).trigger(|entity| {
+                            ToggleButtonSwitcher {
+                                entity,
+                                state: MenuButtonSwitcherState::Toggled,
+                            }
                         });
-                }
+                    }
 
-                // NOTE: Toggle functionality
-                if content_stuff.spoilers {
-                    masks.iter_mut().for_each(|(mut node, _)| {
-                        node.display = Display::DEFAULT;
-                    });
-                } else {
-                    masks.iter_mut().for_each(|(mut node, _)| {
-                        node.display = Display::None;
-                    });
-                }
-            },
-        )
-        .menu_button_switch::<MaskIconNodeOff, MaskIconNodeOn>(
-            asset_server.load("icons/icon-mask-off.ktx2"),
-            asset_server.load("icons/icon-mask-on.ktx2"),
-            32.0,
-        );
-
-        c.spawn((
-            Name::new("ContentLockButton"),
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Px(36.0),
-                height: Val::Px(36.0),
-                right: Val::Px(48.0 * 2.0),
-                bottom: Val::Px(5.0),
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            MenuButtonSwitcherState::Idle,
-            LockButtonMarker,
-        ))
-        .menu_button_hover_effect()
-        .observe(
-            |trigger: On<Pointer<Click>>,
-             button_disabled: Query<&MenuButtonDisabled>,
-             mut content_stuff: ResMut<ContentContext>,
-             page_rollers: Query<(Entity, &RerollButtonMarker)>,
-             mut rollers: Query<(Entity, &mut Node, &RollerIcon)>,
-             state: Query<&MenuButtonSwitcherState>,
-             mut commands: Commands| {
-                if button_disabled.contains(trigger.entity) {
-                    return;
-                }
-                let Ok(state) = state.get(trigger.entity) else {
-                    return;
-                };
-
-                // NOTE: Toggle state switch
-                // TODO: Can we make this generic?
-                if state.toggled() {
-                    content_stuff.unlocked = false;
-                    commands
-                        .entity(trigger.entity)
-                        .trigger(|entity| ToggleButtonSwitcher {
-                            entity,
-                            state: MenuButtonSwitcherState::Idle,
+                    // NOTE: Toggle functionality
+                    if content_stuff.spoilers {
+                        masks.iter_mut().for_each(|(mut node, _)| {
+                            node.display = Display::DEFAULT;
                         });
-                } else {
-                    content_stuff.unlocked = true;
-                    commands
-                        .entity(trigger.entity)
-                        .trigger(|entity| ToggleButtonSwitcher {
-                            entity,
-                            state: MenuButtonSwitcherState::Toggled,
+                    } else {
+                        masks.iter_mut().for_each(|(mut node, _)| {
+                            node.display = Display::None;
                         });
-                }
+                    }
+                },
+            )
+            .menu_button_switch::<MaskIconNodeOff, MaskIconNodeOn>(
+                asset_server.load("icons/icon-mask-off.ktx2"),
+                asset_server.load("icons/icon-mask-on.ktx2"),
+                32.0,
+            );
 
-                // NOTE: Toggle functionality
-                if content_stuff.unlocked {
-                    rollers.iter_mut().for_each(|(e, mut node, _)| {
-                        node.display = Display::DEFAULT;
-                        commands.entity(e).insert(RollerIcon::Visible);
-                    });
-                    if content_stuff.rerollable {
-                        for (e, _) in page_rollers.iter() {
-                            commands.entity(e).remove::<MenuButtonDisabled>();
+            c.spawn((
+                Name::new("ContentLockButton"),
+                Node {
+                    width: Val::Px(36.0),
+                    height: Val::Px(36.0),
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                MenuButtonSwitcherState::Idle,
+                LockButtonMarker,
+            ))
+            .menu_button_hover_effect()
+            .observe(
+                |trigger: On<Pointer<Click>>,
+                 button_disabled: Query<&MenuButtonDisabled>,
+                 mut content_stuff: ResMut<ContentContext>,
+                 page_rollers: Query<(Entity, &RerollButtonMarker)>,
+                 mut rollers: Query<(Entity, &mut Node, &RollerIcon)>,
+                 state: Query<&MenuButtonSwitcherState>,
+                 mut commands: Commands| {
+                    if button_disabled.contains(trigger.entity) {
+                        return;
+                    }
+                    let Ok(state) = state.get(trigger.entity) else {
+                        return;
+                    };
+
+                    // NOTE: Toggle state switch
+                    // TODO: Can we make this generic?
+                    if state.toggled() {
+                        content_stuff.unlocked = false;
+                        commands.entity(trigger.entity).trigger(|entity| {
+                            ToggleButtonSwitcher {
+                                entity,
+                                state: MenuButtonSwitcherState::Idle,
+                            }
+                        });
+                    } else {
+                        content_stuff.unlocked = true;
+                        commands.entity(trigger.entity).trigger(|entity| {
+                            ToggleButtonSwitcher {
+                                entity,
+                                state: MenuButtonSwitcherState::Toggled,
+                            }
+                        });
+                    }
+
+                    // NOTE: Toggle functionality
+                    if content_stuff.unlocked {
+                        rollers.iter_mut().for_each(|(e, mut node, _)| {
+                            node.display = Display::DEFAULT;
+                            commands.entity(e).insert(RollerIcon::Visible);
+                        });
+                        if content_stuff.rerollable {
+                            for (e, _) in page_rollers.iter() {
+                                commands.entity(e).remove::<MenuButtonDisabled>();
+                            }
+                        }
+                    } else {
+                        rollers.iter_mut().for_each(|(e, mut node, _)| {
+                            node.display = Display::None;
+                            commands.entity(e).insert(RollerIcon::Hidden);
+                        });
+                        if content_stuff.rerollable {
+                            for (e, _) in page_rollers.iter() {
+                                commands.entity(e).insert(MenuButtonDisabled);
+                            }
                         }
                     }
-                } else {
-                    rollers.iter_mut().for_each(|(e, mut node, _)| {
-                        node.display = Display::None;
-                        commands.entity(e).insert(RollerIcon::Hidden);
-                    });
-                    if content_stuff.rerollable {
-                        for (e, _) in page_rollers.iter() {
-                            commands.entity(e).insert(MenuButtonDisabled);
-                        }
+                },
+            )
+            .menu_button_switch::<LockIconNodeLocked, LockIconNodeUnlocked>(
+                asset_server.load("icons/icon-locked.ktx2"),
+                asset_server.load("icons/icon-unlocked.ktx2"),
+                32.0,
+            );
+            c.spawn((
+                Name::new("ContentPageButton"),
+                Node {
+                    width: Val::Px(36.0),
+                    height: Val::Px(36.0),
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                RerollButtonMarker,
+                MenuButtonDisabled,
+            ))
+            .with_child((
+                Node {
+                    width: Val::Px(32.0),
+                    height: Val::Px(32.0),
+                    align_self: AlignSelf::Center,
+                    ..default()
+                },
+                ImageNode {
+                    color: Color::WHITE.with_alpha(0.1),
+                    image: asset_server.load("icons/icon-dice-256.ktx2"),
+                    flip_x: true,
+                    image_mode: NodeImageMode::Auto,
+                    ..default()
+                },
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: false,
+                },
+            ))
+            .menu_button_hover_effect()
+            .observe(
+                |trigger: On<Pointer<Click>>,
+                 button_disabled: Query<&MenuButtonDisabled>,
+                 content_stuff: Res<ContentContext>,
+                 mut commands: Commands| {
+                    if button_disabled.contains(trigger.entity) {
+                        return;
                     }
-                }
-            },
-        )
-        .menu_button_switch::<LockIconNodeLocked, LockIconNodeUnlocked>(
-            asset_server.load("icons/icon-locked.ktx2"),
-            asset_server.load("icons/icon-unlocked.ktx2"),
-            32.0,
-        );
-        c.spawn((
-            Name::new("ContentPageButton"),
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Px(36.0),
-                height: Val::Px(36.0),
-                right: Val::Px(48.0),
-                bottom: Val::Px(5.0),
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            RerollButtonMarker,
-            MenuButtonDisabled,
-        ))
-        .with_child((
-            Node {
-                width: Val::Px(32.0),
-                height: Val::Px(32.0),
-                align_self: AlignSelf::Center,
-                ..default()
-            },
-            ImageNode {
-                color: Color::WHITE.with_alpha(0.1),
-                image: asset_server.load("icons/icon-dice-256.ktx2"),
-                flip_x: true,
-                image_mode: NodeImageMode::Auto,
-                ..default()
-            },
-            Pickable {
-                should_block_lower: false,
-                is_hoverable: false,
-            },
-        ))
-        .menu_button_hover_effect()
-        .observe(
-            |trigger: On<Pointer<Click>>,
-             button_disabled: Query<&MenuButtonDisabled>,
-             content_stuff: Res<ContentContext>,
-             mut commands: Commands| {
-                if button_disabled.contains(trigger.entity) {
-                    return;
-                }
-                if let Some(uid) = &content_stuff.current_entity_uid {
-                    commands.trigger(RerollEntity::from_uid(uid.clone()));
-                }
-            },
-        );
+                    if let Some(uid) = &content_stuff.current_entity_uid {
+                        commands.trigger(RerollEntity::from_uid(uid.clone()));
+                    }
+                },
+            );
+        });
     });
 }
 

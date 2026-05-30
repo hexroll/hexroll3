@@ -318,7 +318,8 @@ fn make_link_node_bundle(
         Node {
             position_type: PositionType::Relative,
             display: Display::Flex,
-            flex_wrap: FlexWrap::Wrap,
+            flex_wrap: FlexWrap::NoWrap,
+            flex_shrink: 0.0,
             margin: UiRect {
                 left: Val::Px(0.0),
                 right: Val::Px(0.0),
@@ -1529,7 +1530,7 @@ pub fn render_demidom(
                                 Name::new("HeaderBreadcrumbs"),
                                 Node {
                                     width: Val::Percent(100.0),
-                                    flex_wrap: FlexWrap::Wrap,
+                                    flex_wrap: FlexWrap::NoWrap,
 
                                     ..default()
                                 },
