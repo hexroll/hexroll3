@@ -285,6 +285,34 @@ pub fn prepare_hex_map_data(
         })
         .collect();
 
+    let realm_borderlines: Vec<(Mesh, StandardMaterial)> = realms
+        .iter()
+        .flat_map(|(k, v)| {
+            let color = color_from_uid(k);
+            let layout = layout.clone();
+            group_by_islands(v, &hexes)
+                .into_iter()
+                .map(move |island| {
+                    let polygon_points = make_polygon(&layout, &island);
+                    let outline: Vec<lyon::math::Point> = polygon_points
+                        .iter()
+                        .map(|v| lyon::math::Point::new(v.x, v.y))
+                        .collect();
+                    let mesh = make_mesh_from_outline(&outline, 12.0);
+                    let material = StandardMaterial {
+                        unlit: true,
+                        base_color: color,
+                        alpha_mode: AlphaMode::Blend,
+                        double_sided: true,
+                        cull_mode: None,
+                        ..default()
+                    };
+                    (mesh, material)
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
     let poi_labels: Vec<LazySpawn<(String, Vec2)>> = map
         .map
         .iter()
@@ -321,6 +349,7 @@ pub fn prepare_hex_map_data(
         region_labels,
         realm_labels,
         poi_labels,
+        realm_borderlines,
         cursor: None,
         selected: None,
         generating: false,
@@ -388,11 +417,15 @@ pub fn post_map_loaded_handler(
     visible_hexes: Query<Entity, With<HexEntity>>,
     map_data: Res<HexMapData>,
     all_labels: Query<Entity, With<MapLabel>>,
+    all_borderlines: Query<Entity, With<RealmBorderline>>,
     mut camera: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
     mut next_hex_map_updater_state: ResMut<NextState<HexMapSpawnerState>>,
 ) {
     // FIXME: despawning all labels might be an overkill - we need a better solution
     all_labels.iter().for_each(|e| commands.entity(e).despawn());
+    all_borderlines
+        .iter()
+        .for_each(|e| commands.entity(e).despawn());
     match trigger.event() {
         PostMapLoadedOp::None => {}
         PostMapLoadedOp::Initialize(_) => {
@@ -428,6 +461,7 @@ pub fn post_map_loaded_handler_prefix(
     visible_hexes: Query<Entity, With<HexEntity>>,
     all_labels: Query<Entity, With<MapLabel>>,
     all_tokens: Query<Entity, With<Token>>,
+    all_borderlines: Query<Entity, With<RealmBorderline>>,
 ) {
     match &trigger.event().post_map_op {
         PostMapLoadedOp::Initialize(sandbox_mode) => {
@@ -438,6 +472,9 @@ pub fn post_map_loaded_handler_prefix(
             }
             all_tokens.iter().for_each(|e| commands.entity(e).despawn());
             all_labels.iter().for_each(|e| commands.entity(e).despawn());
+            all_borderlines
+                .iter()
+                .for_each(|e| commands.entity(e).despawn());
             visible_hexes
                 .iter()
                 .for_each(|e| commands.entity(e).despawn());
@@ -487,4 +524,16 @@ pub fn group_by_islands(
 
 fn biggest_island(hex_list: &Vec<Hex>, hexes: &HashMap<Hex, PreparedHexTile>) -> Vec<Hex> {
     group_by_islands(hex_list, hexes).last().unwrap().clone()
+}
+
+fn color_from_uid(uid: &str) -> Color {
+    let hash = uid
+        .bytes()
+        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+
+    let hue = (hash & 0xFFFF) as f32 / 65535.0 * 360.0;
+    let saturation = 0.75;
+    let lightness = 0.50;
+
+    Color::hsl(hue, saturation, lightness)
 }

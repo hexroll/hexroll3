@@ -27,7 +27,9 @@
 use bevy::{anti_alias::fxaa::Fxaa, prelude::*};
 
 use crate::{
-    hexmap::elements::{HexMapData, HexMapResources, HexMapSpawnerState, MainCamera},
+    hexmap::elements::{
+        HexMapData, HexMapResources, HexMapSpawnerState, MainCamera, RealmBorderline,
+    },
     shared::layers::{HEIGHT_OF_POI_LABELS, HEIGHT_OF_REALM_LABELS, HEIGHT_OF_REGION_LABELS},
 };
 
@@ -78,9 +80,13 @@ fn despawn_labels(
     _trigger: On<DespawnLabels>,
     mut commands: Commands,
     query: Query<Entity, With<MapLabel>>,
+    borderlines: Query<Entity, With<RealmBorderline>>,
     mut map_data: ResMut<HexMapData>,
 ) {
     for e in query.iter() {
+        commands.entity(e).despawn();
+    }
+    for e in borderlines.iter() {
         commands.entity(e).despawn();
     }
     map_data.realm_labels.iter_mut().for_each(|l| l.reset());

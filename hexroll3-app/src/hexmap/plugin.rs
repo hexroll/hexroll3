@@ -55,6 +55,7 @@ use super::spawn::OceanMarker;
 use super::sync::on_map_message;
 use super::themes::{TileSetThemes, TileSetThemesAssetLoader};
 use super::{
+    borderlines::spawn_realm_borderlines,
     daynight::{DayNightPlugin, HexMapTime},
     editor::MapEditorPlugin,
     elements::{
@@ -129,6 +130,10 @@ impl Plugin for HexMap {
                     .run_if(not(in_state(HexMapState::Suspended))),
             )
             .add_systems(Update, control_lod_feature_visibility)
+            .add_systems(
+                Update,
+                spawn_realm_borderlines.run_if(in_state(HexMapSpawnerState::Enabled)),
+            )
             .add_systems(Update, hex_map_zoom_fader.run_if(in_state(AppState::Live)))
             .add_observer(post_map_loaded_handler_prefix)
             .add_observer(post_map_loaded_handler)

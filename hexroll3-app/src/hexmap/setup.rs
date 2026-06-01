@@ -169,6 +169,13 @@ pub fn setup(
         ..default()
     });
 
+    let selection_marker_material = standard_materials.add(StandardMaterial {
+        unlit: true,
+        base_color: Color::srgb_u8(255, 255, 255),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
+
     let selection_hidden_material = standard_materials.add(StandardMaterial {
         unlit: true,
         base_color: Color::srgba_u8(255, 0, 0, 0),
@@ -198,6 +205,16 @@ pub fn setup(
         SelectionEntity,
         Mesh3d(selection_mesh.clone()),
         MeshMaterial3d(selection_visible_material.clone()),
+        Transform::from_xyz(0.0, HEIGHT_OF_SELECTION_HEX, 0.0),
+    ));
+
+    let marker_mesh = meshes.add(make_mesh_from_outline(&temp, 15.0));
+    commands.spawn((
+        Name::new("HexMarker"),
+        HexMarkerEntity,
+        Visibility::Hidden,
+        Mesh3d(marker_mesh.clone()),
+        MeshMaterial3d(selection_marker_material.clone()),
         Transform::from_xyz(0.0, HEIGHT_OF_SELECTION_HEX, 0.0),
     ));
 

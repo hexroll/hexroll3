@@ -177,6 +177,7 @@ pub struct HexMapData {
     pub region_labels: Vec<LazySpawn<(String, Vec2, f32)>>,
     pub realm_labels: Vec<LazySpawn<(String, Vec2, f32)>>,
     pub poi_labels: Vec<LazySpawn<(String, Vec2)>>,
+    pub realm_borderlines: Vec<(Mesh, StandardMaterial)>,
     pub cursor: Option<Vec3>,
     pub selected: Option<Hex>,
     pub generating: bool,
@@ -331,6 +332,12 @@ pub struct RevealedOceanHex(pub Hex);
 
 #[derive(Component)]
 pub struct SelectionEntity;
+
+#[derive(Component)]
+pub struct RealmBorderline;
+
+#[derive(Component)]
+pub struct HexMarkerEntity;
 
 #[derive(Component)]
 pub struct MapLabels;

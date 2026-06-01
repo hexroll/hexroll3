@@ -45,13 +45,15 @@ use crate::{
         HexMapJson, MapMessage,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
-            HexMapData, HexToInvalidateMarker, RemoveSandboxEntity,
+            HexMapData, HexMarkerEntity, HexToInvalidateMarker, RemoveSandboxEntity,
+            y_inverted_hexmap_layout,
         },
         reveal_hex, update_hex_map_tiles,
     },
     shared::{
         asynchttp::{ApiHandler, AsyncBackendTasks},
         camera::GimbalshotCameraMovement,
+        layers::HEIGHT_OF_HEX_MARKER,
         settings::{AppSettings, CONFIG_DIR, UserSettings},
         vtt::{LoadVttState, VttData},
         widgets::cursor::CursorController,
@@ -275,6 +277,8 @@ pub fn receive_hex(
     >,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
+    mut marker: Single<&mut Transform, With<HexMarkerEntity>>,
+    map_data: Res<HexMapData>,
 ) {
     http_tasks.poll_responses(|uid, ret| {
         if let Some((data, why, anchor)) = ret {
@@ -284,6 +288,13 @@ pub fn receive_hex(
                 anchor,
                 why,
             });
+            let layout = y_inverted_hexmap_layout();
+            if let Some(hex_coords) = map_data.coords.get(uid) {
+                let pos = layout.hex_to_world_pos(*hex_coords);
+                marker.translation.x = pos.x;
+                marker.translation.z = pos.y;
+                marker.translation.y = HEIGHT_OF_HEX_MARKER;
+            }
         } else {
             cursor_controller.done(&mut commands, *window);
         }

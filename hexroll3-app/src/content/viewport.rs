@@ -26,10 +26,10 @@
 use std::time::Duration;
 
 use crate::{
-    hexmap::elements::MainCamera,
+    hexmap::elements::{HexMarkerEntity, MainCamera},
     shared::{
-        AppState,
         tweens::{CameraViewportLens, UiNodeLens, UiNodeSizePos},
+        AppState,
     },
 };
 
@@ -37,9 +37,9 @@ use bevy::{camera::Viewport, prelude::*, window::PrimaryWindow};
 use bevy_editor_cam::prelude::EditorCam;
 
 use super::{
-    ContentMode, PAGE_HEIGHT_PORTRAIT, PAGE_WIDTH_LANDSCAPE,
     header::EditableTitleInput,
     page::{ContentCamera, ContentPage},
+    ContentMode, PAGE_HEIGHT_PORTRAIT, PAGE_WIDTH_LANDSCAPE,
 };
 
 pub struct ViewportControllerPlugin;
@@ -223,7 +223,9 @@ fn on_full_map(
         Single<(Entity, &mut Camera), With<ContentCamera>>,
         Single<Entity, With<ContentPage>>,
     )>,
+    marker: Single<Entity, With<HexMarkerEntity>>,
 ) {
+    commands.entity(*marker).insert(Visibility::Hidden);
     let window_size = window.physical_size();
     let (start_pos_node, start_size_node, end_pos_node, end_size_node) =
         get_split_content_metrics(window_size);
@@ -299,7 +301,9 @@ fn on_split_screen(
         Single<(Entity, &mut Camera), With<ContentCamera>>,
         Single<Entity, With<ContentPage>>,
     )>,
+    marker: Single<Entity, With<HexMarkerEntity>>,
 ) {
+    commands.entity(*marker).insert(Visibility::Inherited);
     let window_size = window.physical_size();
     let (start_pos_node, start_size_node, end_pos_node, end_size_node) =
         get_split_content_metrics(window_size);

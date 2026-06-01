@@ -23,23 +23,42 @@
 // for more information about commercial licensing terms.
 */
 
-//
-// let temp: Vec<lyon::math::Point> = polygon_points
-//     .iter()
-//     .map(|v| lyon::math::Point::new(v.x, v.y))
-//     .collect();
-// commands.spawn((
-//     Mesh3d(meshes.add(make_mesh_from_outline(&temp))),
-//     MeshMaterial3d(materials.add(StandardMaterial {
-//         unlit: true,
-//         base_color: Color::srgba_u8(
-//             rand::random::<u8>(),
-//             rand::random::<u8>(),
-//             rand::random::<u8>(),
-//             130,
-//         ),
-//         alpha_mode: AlphaMode::Blend,
-//         ..default()
-//     })),
-//     Transform::from_xyz(0.0, 200.0 + count, 0.0),
-// ));
+use bevy::{camera::visibility::RenderLayers, prelude::*};
+
+use crate::{
+    hexmap::elements::{HexMapData, HexMapResources, RealmBorderline},
+    shared::layers::{HEIGHT_OF_REALM_BORDERLINES, RENDER_LAYER_MAP_LOD_LOW},
+};
+
+pub fn spawn_realm_borderlines(
+    mut commands: Commands,
+    mut map_data: ResMut<HexMapData>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    assets: Res<HexMapResources>,
+) {
+    if map_data.realm_borderlines.is_empty() {
+        return;
+    }
+    let batch_size = map_data.realm_borderlines.len().min(5);
+    let batch: Vec<_> = map_data
+        .realm_borderlines
+        .drain(..batch_size)
+        .map(|(mesh, material)| {
+            (
+                RealmBorderline,
+                Name::new("RealmBorderline"),
+                Mesh3d(meshes.add(mesh)),
+                MeshMaterial3d(materials.add(material)),
+                RenderLayers::layer(RENDER_LAYER_MAP_LOD_LOW),
+                Transform::from_xyz(0.0, HEIGHT_OF_REALM_BORDERLINES, 0.0),
+                ChildOf(assets.labels_parent),
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: false,
+                },
+            )
+        })
+        .collect();
+    commands.spawn_batch(batch);
+}
