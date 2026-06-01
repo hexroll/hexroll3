@@ -50,8 +50,11 @@ use bevy::{
 use bevy_simple_scroll_view::{ScrollTarget, ScrollView, ScrollableContent};
 use bevy_tweening::lens::UiBackgroundColorLens;
 
+use hexx::EdgeDirection;
+
 use crate::{
     clients::{controller::RenderEntityContent, model::FetchEntityReason},
+    hexmap::elements::{FetchEntityFromStorage, HexMapData},
     shared::{
         AppState,
         layers::{RENDER_LAYER_CONTENT_OFFSCREEN, RENDER_LAYER_CONTENT_ONSCREEN},
@@ -95,6 +98,10 @@ impl Plugin for PageRendererPlugin {
         app.add_systems(
             Update,
             detect_esc_from_editable.run_if(in_state(ContentMode::SplitScreen)),
+        );
+        app.add_systems(
+            Update,
+            wasd_hex_navigation.run_if(in_state(ContentMode::SplitScreen)),
         );
         app.add_systems(
             Update,
@@ -914,4 +921,42 @@ fn detect_esc_from_editable(
                 .for_each(|e| commands.entity(e).try_despawn());
         }
     }
+}
+
+fn wasd_hex_navigation(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    content_context: Res<ContentContext>,
+    map_data: Res<HexMapData>,
+    mut commands: Commands,
+) {
+    let direction = if keyboard.just_pressed(KeyCode::KeyW) {
+        EdgeDirection::FLAT_SOUTH
+    } else if keyboard.just_pressed(KeyCode::KeyS) {
+        EdgeDirection::FLAT_NORTH
+    } else if keyboard.just_pressed(KeyCode::KeyA) {
+        EdgeDirection::FLAT_NORTH_WEST
+    } else if keyboard.just_pressed(KeyCode::KeyD) {
+        EdgeDirection::FLAT_NORTH_EAST
+    } else if keyboard.just_pressed(KeyCode::KeyQ) {
+        EdgeDirection::FLAT_SOUTH_WEST
+    } else if keyboard.just_pressed(KeyCode::KeyE) {
+        EdgeDirection::FLAT_SOUTH_EAST
+    } else {
+        return;
+    };
+    let Some(current_uid) = &content_context.current_hex_uid else {
+        return;
+    };
+    let Some(&current_hex) = map_data.coords.get(current_uid) else {
+        return;
+    };
+    let neighbor_hex = current_hex.neighbor(direction);
+    let Some(neighbor_tile) = map_data.hexes.get(&neighbor_hex) else {
+        return;
+    };
+    commands.trigger(FetchEntityFromStorage {
+        uid: neighbor_tile.uid.clone(),
+        anchor: None,
+        why: FetchEntityReason::SandboxLink,
+    });
 }
