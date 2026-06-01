@@ -117,6 +117,12 @@ pub fn setup(
         unlit: true,
         ..Default::default()
     });
+    let poi_labels_material = standard_materials.add(StandardMaterial {
+        base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone()),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..Default::default()
+    });
     let pins_material = standard_materials.add(StandardMaterial {
         base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone()),
         alpha_mode: AlphaMode::Blend,
@@ -221,6 +227,7 @@ pub fn setup(
         underworld_material,
         region_labels_material,
         realm_labels_material,
+        poi_labels_material,
         pins_material,
         dungeon_labels_material,
         token_labels_material,

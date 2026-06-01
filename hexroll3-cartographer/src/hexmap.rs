@@ -1139,7 +1139,7 @@ pub fn generate_hex_map_json(
                         {
                             if let Ok(set) = tx.retrieve(city.as_str().unwrap()) {
                                 v["feature"] = set.value["class"].clone();
-                                v["label"] = set.value["NamePart"].clone();
+                                v["label"] = title_case(set.value["NamePart"].as_str().unwrap_or("")).into();
                                 v["feature_uuid"] = city.clone();
                             }
                         }
@@ -1338,4 +1338,17 @@ pub fn apply_map_context(
         }
     }
     Ok(())
+}
+
+fn title_case(s: &str) -> String {
+    s.split_whitespace()
+        .map(|word| {
+            let mut c = word.chars();
+            match c.next() {
+                None => String::new(),
+                Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }

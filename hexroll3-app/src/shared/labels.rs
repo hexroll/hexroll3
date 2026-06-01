@@ -28,7 +28,7 @@ use bevy::{anti_alias::fxaa::Fxaa, prelude::*};
 
 use crate::{
     hexmap::elements::{HexMapData, HexMapResources, HexMapSpawnerState, MainCamera},
-    shared::layers::{HEIGHT_OF_REALM_LABELS, HEIGHT_OF_REGION_LABELS},
+    shared::layers::{HEIGHT_OF_POI_LABELS, HEIGHT_OF_REALM_LABELS, HEIGHT_OF_REGION_LABELS},
 };
 
 use bevy_rich_text3d::*;
@@ -69,9 +69,9 @@ pub struct DespawnLabels;
 
 #[derive(Component)]
 pub enum MapLabel {
-    // TODO: Settlement,
     Region,
     Realm,
+    Poi,
 }
 
 fn despawn_labels(
@@ -85,6 +85,7 @@ fn despawn_labels(
     }
     map_data.realm_labels.iter_mut().for_each(|l| l.reset());
     map_data.region_labels.iter_mut().for_each(|l| l.reset());
+    map_data.poi_labels.iter_mut().for_each(|l| l.reset());
 }
 
 fn spawn_labels(
@@ -177,7 +178,50 @@ fn spawn_labels(
         })
         .collect();
     commands.spawn_batch(collection);
+
+    let collection: Vec<_> = map_data
+        .poi_labels
+        .iter_mut()
+        .filter(|lazy_spawner| lazy_spawner.is_not_spawned())
+        .take(15)
+        .flat_map(|lazy_spawner| {
+            lazy_spawner.set_spawned();
+            let (label, pos) = &lazy_spawner.value;
+            vec![(
+                MapLabel::Poi,
+                Name::new(label.clone()),
+                Text3d::new(label.clone()),
+                Text3dBounds { width: 400.0 },
+                Text3dStyling {
+                    font: "Eczar".into(),
+                    size: 128.,
+                    align: TextAlign::Center,
+                    color: Srgba::new(0.95, 0.92, 0.87, 1.),
+                    stroke: Some(std::num::NonZero::new(20).unwrap()),
+                    stroke_color: Srgba::new(0.2, 0.2, 0.2, 0.8),
+                    stroke_join: StrokeJoin::Round,
+                    ..Default::default()
+                },
+                Mesh3d::default(),
+                MeshMaterial3d(assets.poi_labels_material.clone()),
+                Transform::from_xyz(pos.x, HEIGHT_OF_POI_LABELS, pos.y)
+                    .with_scale(Vec3::splat(0.9) * 0.15)
+                    .looking_at(Vec3::new(pos.x, 0.0, pos.y), Dir3::NEG_Z),
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: false,
+                },
+                ChildOf(assets.labels_parent.clone()),
+            )]
+        })
+        .collect();
+    commands.spawn_batch(collection);
 }
+
+const POI_LABEL_MIN_RANGE: f32 = 0.129;
+const POI_LABEL_MIN_START: f32 = 0.399;
+const POI_LABEL_MAX_START: f32 = 0.501;
+const POI_LABEL_MAX_RANGE: f32 = 0.899;
 
 const REGION_LABEL_MIN_RANGE: f32 = 0.416;
 const REGION_LABEL_MIN_START: f32 = 0.928;
@@ -198,6 +242,12 @@ fn labels_visibility(
     if let Projection::Orthographic(proj) = *camera_projection {
         camera_fxaa.enabled = proj.scale > REGION_LABEL_MIN_RANGE;
 
+        let poi_labels_opacity = if proj.scale < POI_LABEL_MIN_START {
+            ((POI_LABEL_MIN_START - proj.scale) / POI_LABEL_MIN_RANGE).clamp(0.0, 1.0)
+        } else {
+            ((proj.scale - POI_LABEL_MAX_START) / POI_LABEL_MAX_RANGE).clamp(0.0, 1.0)
+        };
+
         let region_labels_opacity = if proj.scale < REGION_LABEL_MIN_START {
             ((REGION_LABEL_MIN_START - proj.scale) / REGION_LABEL_MIN_RANGE).clamp(0.0, 1.0)
         } else {
@@ -210,6 +260,11 @@ fn labels_visibility(
             ((proj.scale - REALM_LABEL_MAX_START) / REALM_LABEL_MAX_RANGE).clamp(0.0, 1.0)
         };
 
+        materials
+            .get_mut(&assets.poi_labels_material)
+            .unwrap()
+            .base_color
+            .set_alpha(1.0 - poi_labels_opacity);
         materials
             .get_mut(&assets.region_labels_material)
             .unwrap()

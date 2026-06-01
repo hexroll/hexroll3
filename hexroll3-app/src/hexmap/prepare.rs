@@ -154,7 +154,11 @@ pub fn prepare_hex_map_data(
                     if trails.len() == 4 {
                         ret.push(get_curved_tile(trails[2] as i32, trails[3] as i32));
                     }
-                    if ret.is_empty() { None } else { Some(ret) }
+                    if ret.is_empty() {
+                        None
+                    } else {
+                        Some(ret)
+                    }
                 } else {
                     None
                 }
@@ -280,6 +284,34 @@ pub fn prepare_hex_map_data(
             ))
         })
         .collect();
+
+    let poi_labels: Vec<LazySpawn<(String, Vec2)>> = map
+        .map
+        .iter()
+        .filter_map(|h| {
+            let feature = h.feature.as_ref()?;
+            if !matches!(
+                feature,
+                HexFeature::City
+                    | HexFeature::Town
+                    | HexFeature::Village
+                    | HexFeature::Dungeon
+            ) {
+                return None;
+            }
+            let label = h.label.as_ref()?.clone();
+            // Only emit a label if the hex is present in the prepared map.
+            let hex_coords = {
+                let y = -h.y;
+                let x = h.x * 2 + (h.y.abs() % 2);
+                Hex::from_doubled_coordinates([x, y], DoubledHexMode::DoubledHeight)
+            };
+            preprocessed_hexes.get(&hex_coords)?;
+            let pos = layout.hex_to_world_pos(hex_coords);
+            Some(LazySpawn::from((label, Vec2::new(pos.x, -pos.y))))
+        })
+        .collect();
+
     HexMapData {
         cmin: Hex::ZERO,
         cmax: Hex::ZERO,
@@ -288,6 +320,7 @@ pub fn prepare_hex_map_data(
         coords: coords_by_uid,
         region_labels,
         realm_labels,
+        poi_labels,
         cursor: None,
         selected: None,
         generating: false,
