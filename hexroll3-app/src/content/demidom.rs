@@ -49,7 +49,9 @@ use crate::{
     clients::model::{FetchEntityReason, RerollEntity},
     content::ContentMode,
     dice::RollDice,
-    hexmap::elements::{AppendSandboxEntity, FetchEntityFromStorage, HexMapData},
+    hexmap::elements::{
+        AppendSandboxEntity, AppendSubject, FetchEntityFromStorage, HexMapData,
+    },
     shared::{
         camera::MapCoords,
         layers::HEIGHT_OF_TOKENS,
@@ -2444,11 +2446,12 @@ pub fn roller_click()
         if let Ok(link) = links.get(trigger.entity) {
             if link.is_appender {
                 commands.trigger(AppendSandboxEntity {
-                    hex_coords: map_data.coords.get(&link.uid).cloned(),
-                    hex_uid: link.uid.clone(),
+                    target: AppendSubject::Hex {
+                        uid: link.uid.clone(),
+                        coords: map_data.coords.get(&link.uid).cloned(),
+                    },
                     attr: link.attr.clone(),
                     what: link.class_override.clone(),
-                    send_coords: false,
                 });
             } else {
                 commands.trigger(RerollEntity::from_roller_attributes(link));

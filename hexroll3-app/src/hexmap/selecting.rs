@@ -32,8 +32,9 @@ use crate::{
     clients::model::FetchEntityReason,
     hexmap::{
         elements::{
-            AppendSandboxEntity, FetchEntityFromStorage, HexCoordsForFeature, HexMapData,
-            HexMapState, HexMask, MainCamera, MapVisibilityController, SelectionEntity,
+            AppendSandboxEntity, AppendSubject, FetchEntityFromStorage, HexCoordsForFeature,
+            HexMapData, HexMapState, HexMask, MainCamera, MapVisibilityController,
+            SelectionEntity,
         },
         revealing::reveal_hex_or_ocean,
     },
@@ -227,11 +228,11 @@ pub fn detect_click(
                                 } else {
                                     if let Some(sandbox_uid) = &user_settings.sandbox {
                                         commands.trigger(AppendSandboxEntity {
-                                            hex_coords: Some(coord.clone()),
-                                            hex_uid: sandbox_uid.clone(),
+                                            target: AppendSubject::Ocean {
+                                                coords: coord.clone(),
+                                            },
                                             attr: "ocean".to_string(),
                                             what: "OceanHex".to_string(),
-                                            send_coords: true,
                                         });
                                     }
                                 }

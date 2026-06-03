@@ -56,8 +56,8 @@ use crate::{
     hexmap::{
         HexMapJson, HexMapTileMaterials, HexmapTheme,
         elements::{
-            AppendSandboxEntity, FetchEntityFromStorage, HexMapData, HexMapResources,
-            HexMapToolState, RemoveSandboxEntity, hexx_to_hexroll_coords,
+            AppendSandboxEntity, AppendSubject, FetchEntityFromStorage, HexMapData,
+            HexMapResources, HexMapToolState, RemoveSandboxEntity, hexx_to_hexroll_coords,
         },
         prepare_hex_map_data,
     },
@@ -174,30 +174,43 @@ pub fn append_feature_standalone(
 ) {
     cursor_controller.loading(&mut commands, *window);
 
-    let sid = sandbox.instance.sid.clone().unwrap().clone();
+    let sid = sandbox.instance.sid.clone().unwrap();
     let event = trigger.event().0.clone();
-    if let Some(hex_coords) = trigger.0.hex_coords {
-        commands
-            .spawn_empty()
-            .insert(RollNewFeatureEffect(hex_coords));
-        commands.run_system(effects.roll_feature_effect);
 
-        if trigger.0.send_coords {}
-    }
-
-    let coords = event.hex_coords.clone();
-    let hex_uid = if event.attr == "ocean" {
-        sandbox.instance.sid.clone().unwrap()
-    } else {
-        event.hex_uid.clone()
+    // NOTE: Resolve the target into the three pieces the backend needs:
+    // hex_uid: the entity to append onto
+    // maybe_coords: hex coordinates to stamp onto the new entity if any
+    // maybe_building_index: building slot to stamp onto the new entity if any
+    // fetch_uid: the UID to open in the content panel after appending
+    //            (None means use the new entity's own UID)
+    let (hex_uid, maybe_coords, maybe_building_index, fetch_uid) = match &event.target {
+        AppendSubject::Hex { uid, coords } => {
+            if let Some(coords) = coords {
+                commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+                commands.run_system(effects.roll_feature_effect);
+            }
+            (uid.clone(), *coords, None, Some(uid.clone()))
+        }
+        AppendSubject::Ocean { coords } => {
+            commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+            commands.run_system(effects.roll_feature_effect);
+            (
+                sandbox.instance.sid.clone().unwrap(),
+                Some(*coords),
+                None,
+                None,
+            )
+        }
+        AppendSubject::SettlementDistrict {
+            district_uid,
+            building_index,
+        } => (district_uid.clone(), None, Some(*building_index), None),
     };
-    let send_coords = event.send_coords;
 
     let mut instance = sandbox.instance.clone();
 
     if async_tasks
         .spawn_standalone(sid, move || -> Option<FeatureUidResponse> {
-            let _what = event.what.clone();
             let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
             hex_map.reconstruct(&mut instance);
 
@@ -214,51 +227,60 @@ pub fn append_feature_standalone(
                     &mut blueprint,
                     &mut tx,
                     &hex_uid,
-                    &event.attr.clone(),
-                    Some(&event.what.clone()),
+                    &event.attr,
+                    Some(&event.what),
                     1,
                 )?;
                 let Some(uid) = uids.first() else {
                     return Err(anyhow::anyhow!("Something went wrong with appending"));
                 };
-                let entity = {
-                    let entity = tx.load(&uid)?;
-                    let tmp = entity.clone();
-                    if let Some(coords) = coords
-                        && event.send_coords
-                    {
-                        let (x, y) = hexx_to_hexroll_coords(&coords);
-                        entity["$coords"]["x"] = x.into();
-                        entity["$coords"]["y"] = y.into();
-                        tx.save(&uid)?;
-                    }
-                    tmp
-                };
 
-                if let Some(on_roll) = entity.get("$on_roll") {
+                // Stamp hex coordinates onto the new entity if provided.
+                if let Some(coords) = maybe_coords {
+                    let entity = tx.load(&uid)?;
+                    let (x, y) = hexx_to_hexroll_coords(&coords);
+                    entity["$coords"]["x"] = x.into();
+                    entity["$coords"]["y"] = y.into();
+                    tx.save(&uid)?;
+                }
+
+                // Stamp building index onto the new entity for settlement district appends.
+                if let Some(building_index) = maybe_building_index {
+                    let entity = tx.load(&uid)?;
+                    entity["building_index"] = building_index.into();
+                    tx.save(&uid)?;
+
+                    // Refresh the settlement map so the new entity occupies its building slot.
+                    let district = tx.load(&hex_uid)?.clone();
+                    let rendered =
+                        render_entity(&builder.sandbox, &mut blueprint, tx, &district, true)?;
+                    let setuid = rendered["SettlementUUID"].as_str().unwrap().to_string();
+                    hexroll3_cartographer::watabou::refresh_city_map(
+                        tx,
+                        &builder.randomizer,
+                        &setuid,
+                    )?;
+                }
+
+                if let Some(on_roll) = tx.load(&uid)?.clone().get("$on_roll") {
                     if on_roll == "roll_settlement_map" {
                         let builder = SandboxBuilder::from_instance(&instance);
                         hexroll3_cartographer::watabou::map_settlement(
                             tx,
                             &builder.randomizer,
                             &mut hex_map,
-                            &event.hex_uid.clone(),
+                            &hex_uid,
                         )?;
-
                         hex_map.stage_trails(tx)?;
                     }
                 }
+
                 {
                     let rerolls = tx.load("rerolls").unwrap().clone();
-                    {
-                        let rerolls = json!({"entities" :[]});
-                        tx.emplace_and_save("rerolls", rerolls)?;
-                    }
+                    tx.emplace_and_save("rerolls", json!({"entities": []}))?;
                     for r in rerolls["entities"].as_array().unwrap() {
                         let uid = r.as_str().unwrap();
-                        let is_entity_alive_since_reroll_consistency_isnt_guaranteed =
-                            tx.load(uid).is_ok();
-                        if is_entity_alive_since_reroll_consistency_isnt_guaranteed {
+                        if tx.load(uid).is_ok() {
                             reroll(&builder, &mut blueprint, tx, uid, None)?;
                         }
                     }
@@ -268,12 +290,8 @@ pub fn append_feature_standalone(
             }) {
                 Ok(uid) => Some(FeatureUidResponse(
                     format!("{{ \"uuid\":\"{}\" }}", uid),
-                    coords,
-                    if send_coords {
-                        None
-                    } else {
-                        Some(hex_uid.clone())
-                    },
+                    maybe_coords,
+                    fetch_uid.clone(),
                 )),
                 Err(e) => {
                     error!("{}", e.to_string());
@@ -283,7 +301,6 @@ pub fn append_feature_standalone(
         })
         .is_err()
     {
-        // Error
         cursor_controller.done(&mut commands, *window);
     }
 }
@@ -312,7 +329,23 @@ pub fn remove_entity_standalone(
             };
 
             match builder.sandbox.repo.mutate(|tx| {
+                let maybe_settlement_related = {
+                    let entity = tx.load(&event.uid)?.clone();
+                    let rendered =
+                        render_entity(&builder.sandbox, &mut blueprint, tx, &entity, true)?;
+                    rendered["SettlementUUID"]
+                        .as_str()
+                        .and_then(|v| Some(v.to_string()))
+                };
                 remove(&builder, &mut blueprint, tx, &event.uid)?;
+
+                if let Some(setuid) = maybe_settlement_related {
+                    hexroll3_cartographer::watabou::refresh_city_map(
+                        tx,
+                        &builder.randomizer,
+                        &setuid,
+                    )?;
+                }
                 Ok(())
             }) {
                 Ok(_) => Some(RemoveResponse),
@@ -487,16 +520,21 @@ fn retrieve_settlement_map_data(
     let mut pois = Vec::new();
     for d in ds {
         let d_data = tx.retrieve(d.as_str().unwrap())?;
-        let t_uid = d_data.value["Tavern"][0].as_str().unwrap();
-        let t_data = tx.retrieve(t_uid)?;
-        pois.push(PointOfInterest {
-            coords: Coords { x: 0.0, y: 0.0 },
-            title: t_data.value["Title"].as_str().unwrap().to_string(),
-            uuid: t_uid.to_string(),
-            building: t_data.value["building_index"]
-                .as_i64()
-                .map(|i: i64| i as i32),
-        });
+        if d_data.value["Tavern"]
+            .as_array()
+            .is_some_and(|v| !v.is_empty())
+        {
+            let t_uid = d_data.value["Tavern"][0].as_str().unwrap();
+            let t_data = tx.retrieve(t_uid)?;
+            pois.push(PointOfInterest {
+                coords: Coords { x: 0.0, y: 0.0 },
+                title: t_data.value["Title"].as_str().unwrap().to_string(),
+                uuid: t_uid.to_string(),
+                building: t_data.value["building_index"]
+                    .as_i64()
+                    .map(|i: i64| i as i32),
+            });
+        }
         for s in d_data.value["shops"].as_array().unwrap() {
             let s_data = tx.retrieve(s.as_str().unwrap())?;
             pois.push(PointOfInterest {

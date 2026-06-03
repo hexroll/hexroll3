@@ -39,6 +39,7 @@ mod effects;
 mod helpers;
 mod ruler;
 mod settlement;
+mod settlement_dial;
 mod village;
 mod wall;
 
@@ -107,6 +108,8 @@ pub use battlemap_dial::BattlemapDialProvider;
 pub use battlemap_dial::BattlemapSelection;
 pub use battlemap_dial::BattlemapSelectionFinalizing;
 pub use battlemap_dial::dial_menu_layers_menu;
+
+pub use settlement_dial::SettlementDialProvider;
 
 pub use ruler::BattlemapsRuler;
 pub use ruler::RulerDragData;

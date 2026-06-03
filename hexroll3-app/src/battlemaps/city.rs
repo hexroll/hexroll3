@@ -38,11 +38,15 @@ use crate::{
             make_mesh_from_outline2,
         },
         layers::HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT,
+        snapshot::ReleaseScreenSnapshot,
         widgets::cursor::{PointerOnHover, TooltipOnHover},
     },
 };
 
-use super::{BattlemapFeatureUtils, helpers::*, settlement::*};
+use super::{
+    BattlemapFeatureUtils, SettlementDialProvider, helpers::*, settlement::*,
+    settlement_dial::SpawnSettlementDial,
+};
 
 use hexroll3_cartographer::watabou::json::*;
 
@@ -71,23 +75,16 @@ fn on_spawn_city_map(
     gltfs: Res<Assets<Gltf>>,
 ) {
     let city_constructs = &trigger.event().data;
-    let (tx, angle, _offset) =
-        if let Some((angle, offset)) = map
-            .coords
-            .get(&trigger.event().hex_uid)
-            .and_then(|coords| map.hexes.get(coords))
-            .map(|hex_data| hex_data.metadata.feature_angle_and_offset())
-        {
-            (
-                Transform::from_rotation(Quat::from_rotation_y(angle)).transform_point(
-                    Vec3::new(0.0, HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT, offset),
-                ),
-                angle,
-                offset,
-            )
-        } else {
-            return;
-        };
+    let Some((angle, offset)) = map
+        .coords
+        .get(&trigger.event().hex_uid)
+        .and_then(|coords| map.hexes.get(coords))
+        .map(|hex_data| hex_data.metadata.feature_angle_and_offset())
+    else {
+        return;
+    };
+    let tx = Transform::from_rotation(Quat::from_rotation_y(angle))
+        .transform_point(Vec3::new(0.0, HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT, offset));
 
     let tower = meshes.add(create_3d_disc(7.5, 0.0, 10));
 
@@ -101,29 +98,55 @@ fn on_spawn_city_map(
                 .with_scale(Vec3::new(0.10, 0.20, 0.10)),
         )
         .with_children(|mut commands| {
-            for (building_mesh, uid) in city_constructs.buildings.iter() {
+            let hex_entity = trigger.hex_uid.clone();
+            for b in city_constructs.buildings.iter() {
                 let mut building = commands.spawn((
-                    Mesh3d(meshes.add(building_mesh.clone())),
-                    MeshMaterial3d(if uid.is_some() {
+                    Mesh3d(meshes.add(b.mesh.clone())),
+                    MeshMaterial3d(if b.entity_uid.is_some() {
                         settlement_map_resources.building_highlight_material.clone()
                     } else {
                         settlement_map_resources.building_material.clone()
                     }),
                     Transform::from_xyz(0.0, -1.1, 0.0),
                 ));
-                if let Some(uid) = uid {
-                    let cuid = uid.clone();
+                if let Some(entity_uid) = &b.entity_uid {
+                    let cuid = entity_uid.clone();
                     building.pointer_on_hover();
-
-                    if let Some(label) = city_constructs.poi_labels.get(uid) {
+                    let hex_entity = hex_entity.clone();
+                    building.settlement_dial_provider(SpawnSettlementDial {
+                        district_uid: "".into(),
+                        building_index: 0,
+                        hex_entity,
+                        pos: Vec3::ZERO,
+                        building_uid: Some(cuid.clone()),
+                    });
+                    if let Some(label) = city_constructs.poi_labels.get(entity_uid) {
                         building.tooltip_on_hover(label, 0.1);
                     }
-                    building.observe(move |_: On<Pointer<Click>>, mut commands: Commands| {
-                        commands.trigger(crate::hexmap::elements::FetchEntityFromStorage {
-                            uid: cuid.clone(),
-                            anchor: None,
-                            why: crate::clients::model::FetchEntityReason::SandboxLink,
-                        });
+                    building.observe(
+                        move |trigger: On<Pointer<Click>>, mut commands: Commands| {
+                            if trigger.event().button == PointerButton::Secondary {
+                                return;
+                            }
+                            commands.trigger(
+                                crate::hexmap::elements::FetchEntityFromStorage {
+                                    uid: cuid.clone(),
+                                    anchor: None,
+                                    why: crate::clients::model::FetchEntityReason::SandboxLink,
+                                },
+                            );
+                        },
+                    );
+                } else if let Some(district_uid) = &b.district_uid {
+                    let district_uid = district_uid.clone();
+                    let building_index = b.building_index;
+                    let hex_entity = hex_entity.clone();
+                    building.settlement_dial_provider(SpawnSettlementDial {
+                        district_uid,
+                        building_index,
+                        hex_entity,
+                        pos: Vec3::ZERO,
+                        building_uid: None,
                     });
                 }
             }
@@ -178,14 +201,22 @@ fn on_spawn_city_map(
     if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
         entity.mark_battlemap_as_ready();
         entity.add_child(parent_node);
+        commands.trigger(ReleaseScreenSnapshot);
     } else {
         commands.entity(parent_node).despawn();
     }
 }
 
+pub struct CityBuilding {
+    pub mesh: Mesh,
+    pub entity_uid: Option<String>,
+    pub district_uid: Option<String>,
+    pub building_index: i32,
+}
+
 pub struct CityMapConstructs {
     base: SettlementMapConstructs,
-    buildings: Vec<(Mesh, Option<String>)>,
+    buildings: Vec<CityBuilding>,
     building_outlines: Vec<Mesh>,
     river: Option<Mesh>,
     water: Vec<Mesh>,
@@ -237,7 +268,7 @@ impl CityMapConstructs {
         let mut walls = Vec::new();
         let mut towers: Vec<bevy::math::Vec2> = Vec::new();
 
-        let mut buildings: Vec<(Mesh, Option<String>)> = Vec::new();
+        let mut buildings: Vec<CityBuilding> = Vec::new();
         let mut building_outlines: Vec<Mesh> = Vec::new();
         let mut offset = 0.0;
 
@@ -335,8 +366,14 @@ impl CityMapConstructs {
                             .iter()
                             .map(|p| lyon::math::Point::new(p[0] as f32, p[1] as f32))
                             .collect();
-                        let uid = proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
-                        buildings.push((make_filled_mesh_from_outline(&polygon), uid));
+                        let entity_uid =
+                            proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
+                        buildings.push(CityBuilding {
+                            mesh: make_filled_mesh_from_outline(&polygon),
+                            entity_uid,
+                            district_uid: c.district_uid.clone(),
+                            building_index: i as i32,
+                        });
                         building_outlines.push(make_mesh_from_outline(&polygon, 2.0));
                     }
                 }

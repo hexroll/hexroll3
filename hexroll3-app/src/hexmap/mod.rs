@@ -26,6 +26,7 @@
 pub mod elements;
 pub mod plugin;
 
+use bevy::ecs::component::Component;
 pub use prepare::prepare_hex_map_data;
 
 pub use spawn::ExpensiveHex;
@@ -44,7 +45,6 @@ pub use data::HexMapJson;
 pub use data::TerrainType;
 
 pub use hex_dial::LockableDialButton;
-pub use hex_dial::MenuIconLock;
 
 pub use daynight::HexMapTime;
 pub use daynight::ToggleDayNight;
@@ -85,3 +85,27 @@ mod spawn;
 mod sync;
 mod themes;
 mod tiles;
+
+#[derive(Default, PartialEq, Component, Clone)]
+pub enum SandboxLock {
+    #[default]
+    On,
+    Off,
+}
+
+impl SandboxLock {
+    #[inline]
+    pub fn on(&self) -> bool {
+        match self {
+            SandboxLock::On => true,
+            SandboxLock::Off => false,
+        }
+    }
+    #[inline]
+    pub fn off(&self) -> bool {
+        match self {
+            SandboxLock::On => false,
+            SandboxLock::Off => true,
+        }
+    }
+}

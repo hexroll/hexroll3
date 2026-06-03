@@ -156,7 +156,7 @@ pub fn spawn_tile<T>(
         ))
         .with_children(|mut c| {
             c.spawn_empty()
-                .battlemap_dial_provider()
+                .battlemap_dial_provider(true)
                 .insert(Name::new("HexFeature"))
                 .insert(Transform::from_xyz(
                     0.0,

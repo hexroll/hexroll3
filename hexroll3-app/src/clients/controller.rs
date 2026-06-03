@@ -47,7 +47,7 @@ use crate::{
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
             HexMapData, HexMarkerEntity, HexRevealPattern, HexToInvalidateMarker,
-            RemoveSandboxEntity, y_inverted_hexmap_layout,
+            HexToInvalidatePostLoadMarker, RemoveSandboxEntity, y_inverted_hexmap_layout,
         },
         reveal_hex, update_hex_map_tiles,
     },
@@ -208,6 +208,7 @@ pub fn receive_hex_map(
     callbacks: Res<HexEntityCallbacks>,
     vtt_data: ResMut<crate::shared::vtt::VttData>,
     user_settings: Res<UserSettings>,
+    invalidate: Query<(Entity, &HexToInvalidatePostLoadMarker)>,
 ) {
     http_tasks.poll_responses(|_, data| {
         if let Some((data, post_map_loaded_op, json_obj)) = data {
@@ -255,9 +256,15 @@ pub fn receive_hex_map(
                 } else {
                     None
                 };
+                for (e, hex_to_invalidate) in invalidate.iter() {
+                    data.force_refresh
+                        .push(*data.coords.get(&hex_to_invalidate.0).unwrap());
+                    commands.entity(e).try_despawn();
+                }
                 commands.insert_resource(data);
                 commands.run_system(callbacks.invalidate);
                 commands.trigger(post_map_loaded_op);
+
                 if let Some((hex, uid)) = maybe_hex {
                     commands.run_system_cached_with(reveal_hex, hex);
                     commands.trigger(FetchEntityFromStorage {

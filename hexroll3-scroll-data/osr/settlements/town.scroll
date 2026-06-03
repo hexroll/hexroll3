@@ -171,3 +171,91 @@ TownShops {
  ]
 }
 
+ShopPlaceholder(SettlementLocation) {
+  $on_reroll = "remap_in_settlement"
+  x_coords = 0
+  y_coords = 0
+  HexLink? = :Settlement.HexLink
+
+  Title = "Placeholder"
+
+  Details? ~ <%
+    Unlock this page to roll any one of the following:
+    <ul>
+        <li>{{reroller(uuid, "AnimalPound", True)}} AnimalPound </li>
+        <li>{{reroller(uuid, "AnimalSupplies", True)}} AnimalSupplies </li>
+        <li>{{reroller(uuid, "ArmorWeapons", True)}} ArmorWeapons </li>
+        <li>{{reroller(uuid, "Bakery", True)}} Bakery </li>
+        <li>{{reroller(uuid, "Barber", True)}} Barber </li>
+        <li>{{reroller(uuid, "Barracks", True)}} Barracks </li>
+        <li>{{reroller(uuid, "Bathhouse", True)}} Bathhouse </li>
+        <li>{{reroller(uuid, "Blacksmith", True)}} Blacksmith </li>
+        <li>{{reroller(uuid, "Bookstore", True)}} Bookstore </li>
+        <li>{{reroller(uuid, "Brewery", True)}} Brewery </li>
+        <li>{{reroller(uuid, "Brothel", True)}} Brothel </li>
+        <li>{{reroller(uuid, "Bunkhouse", True)}} Bunkhouse </li>
+        <li>{{reroller(uuid, "Butchery", True)}} Butchery </li>
+        <li>{{reroller(uuid, "Carpenter", True)}} Carpenter </li>
+        <li>{{reroller(uuid, "Clothing", True)}} Clothing </li>
+        <li>{{reroller(uuid, "Cobbler", True)}} Cobbler </li>
+        <li>{{reroller(uuid, "Craft", True)}} Craft </li>
+        <li>{{reroller(uuid, "Daycare", True)}} Daycare </li>
+        <li>{{reroller(uuid, "Distillery", True)}} Distillery </li>
+        <li>{{reroller(uuid, "FishMarket", True)}} FishMarket </li>
+        <li>{{reroller(uuid, "Flower", True)}} Flower </li>
+        <li>{{reroller(uuid, "FortuneTeller", True)}} FortuneTeller </li>
+        <li>{{reroller(uuid, "GameShop", True)}} GameShop </li>
+        <li>{{reroller(uuid, "GeneralGoods", True)}} GeneralGoods </li>
+        <li>{{reroller(uuid, "GlassBlower", True)}} GlassBlower </li>
+        <li>{{reroller(uuid, "Grocer", True)}} Grocer </li>
+        <li>{{reroller(uuid, "Hatter", True)}} Hatter </li>
+        <li>{{reroller(uuid, "Herbalist", True)}} Herbalist </li>
+        <li>{{reroller(uuid, "Jeweler", True)}} Jeweler </li>
+        <li>{{reroller(uuid, "Lawyer", True)}} Lawyer </li>
+        <li>{{reroller(uuid, "Leatherworker", True)}} Leatherworker </li>
+        <li>{{reroller(uuid, "Library", True)}} Library </li>
+        <li>{{reroller(uuid, "Liquor", True)}} Liquor </li>
+        <li>{{reroller(uuid, "Matchmaker", True)}} Matchmaker </li>
+        <li>{{reroller(uuid, "Mill", True)}} Mill </li>
+        <li>{{reroller(uuid, "Mortician", True)}} Mortician </li>
+        <li>{{reroller(uuid, "Music", True)}} Music </li>
+        <li>{{reroller(uuid, "Occult", True)}} Occult </li>
+        <li>{{reroller(uuid, "PetShop", True)}} PetShop </li>
+        <li>{{reroller(uuid, "Physician", True)}} Physician </li>
+        <li>{{reroller(uuid, "PostOffice", True)}} PostOffice </li>
+        <li>{{reroller(uuid, "PrintingPress", True)}} PrintingPress </li>
+        <li>{{reroller(uuid, "Prison", True)}} Prison </li>
+        <li>{{reroller(uuid, "Registry", True)}} Registry </li>
+        <li>{{reroller(uuid, "Salon", True)}} Salon </li>
+        <li>{{reroller(uuid, "School", True)}} School </li>
+        <li>{{reroller(uuid, "Smokehouse", True)}} Smokehouse </li>
+        <li>{{reroller(uuid, "Spice", True)}} Spice </li>
+        <li>{{reroller(uuid, "Stables", True)}} Stables </li>
+        <li>{{reroller(uuid, "Tailor", True)}} Tailor </li>
+        <li>{{reroller(uuid, "Tanner", True)}} Tanner </li>
+        <li>{{reroller(uuid, "TinWorker", True)}} TinWorker </li>
+        <li>{{reroller(uuid, "Tinkerer", True)}} Tinkerer </li>
+        <li>{{reroller(uuid, "TradePost", True)}} TradePost </li>
+        <li>{{reroller(uuid, "VehicleMaker", True)}} VehicleMaker </li>
+        <li>{{reroller(uuid, "Veterinarian", True)}} Veterinarian </li>
+        <li>{{reroller(uuid, "Weaver", True)}} Weaver </li>
+        <li>{{reroller(uuid, "Witch", True)}} Witch </li>
+    </ul>
+  %>
+
+  <metadata%
+    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="2"> </a>
+  %metadata>
+  <header%
+    <div hidden id="doc-title">{{Title}} in {{capitalize(SettlementName)}}</div>
+    <h4 id="title">
+    <div id="editable-title-container"><span id="editable-title" data-attr="Title">{{Title}}</span> </div>
+    {{Breadcrumbs}}
+    </h4>
+  %header>
+
+  <body%
+  {{Details}}
+  %body>
+
+}

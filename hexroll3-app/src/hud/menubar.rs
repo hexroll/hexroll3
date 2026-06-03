@@ -27,12 +27,19 @@ use bevy::prelude::*;
 
 use crate::{
     dialogs::OpenSandboxOptionsModal,
-    hexmap::{LockableDialButton, MenuIconLock},
+    hexmap::{LockableDialButton, SandboxLock},
     hud::drawer::AutoDrawer,
     shared::{
         AppState,
         tweens::MenuIconMarginLensConfig,
-        widgets::{buttons::MenuButtonEffects, cursor::TooltipOnHover, dial::DialButtonState},
+        widgets::{
+            buttons::{
+                MenuButtonEffects, MenuButtonSwitcher, Switch, ToggleButtonSwitcherEx,
+                ToggleResourceWrapper,
+            },
+            cursor::TooltipOnHover,
+            dial::DialButtonState,
+        },
     },
     vtt::network::{NetworkingConnection, on_click_vtt},
 };
@@ -49,6 +56,11 @@ impl Plugin for MenuBarPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Live), setup)
             .add_systems(Update, update_daynight_toggle)
+            .add_systems(
+                Update,
+                update_lock_state
+                    .run_if(resource_changed::<ToggleResourceWrapper<SandboxLock>>),
+            )
             .add_systems(
                 OnEnter(NetworkingConnection::Connected),
                 enable_connect_button,
@@ -122,63 +134,25 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .menu_button_hover_effect()
                 .observe(on_show_toggles(p));
             c.spawn(create_menu_icon_frame_bundle())
-                .with_children(|c| {
-                    c.spawn(create_menu_icon_bundle(
-                        &asset_server,
-                        "icons/icon-locked2.ktx2",
-                        Val::Px(64.0),
-                        true,
-                        UiRect {
-                            left: Val::ZERO,
-                            right: Val::ZERO,
-                            top: Val::ZERO,
-                            bottom: Val::Px(-100.0),
-                        },
-                    ))
-                    .insert(MenuIconLock::Locked);
-                })
+                .menu_button_switch_ex::<SandboxLock>(
+                    SandboxLock::default(),
+                    vec![
+                        asset_server.load("icons/icon-locked2.ktx2"),
+                        asset_server.load("icons/icon-unlocked2.ktx2"),
+                    ],
+                    64.0,
+                )
                 .tooltip_on_hover("Lock/unlock map for editing", 1.0)
                 .menu_button_hover_effect()
-                .observe(
-                    |_: On<Pointer<Click>>,
-                     mut commands: Commands,
-                     asset_server: Res<AssetServer>,
-                     lockables: Query<(Entity, &LockableDialButton)>,
-                     icons: Query<(Entity, &MenuIconLock)>| {
-                        icons.iter().for_each(|(e, lock)| match lock {
-                            MenuIconLock::Locked => {
-                                commands
-                                    .entity(e)
-                                    .insert(ImageNode {
-                                        image: asset_server.load("icons/icon-unlocked2.ktx2"),
-                                        ..default()
-                                    })
-                                    .insert(MenuIconLock::Unlocked);
-                                for (lockable_entity, lockable_state) in lockables.iter() {
-                                    if lockable_state.0 {
-                                        commands
-                                            .entity(lockable_entity)
-                                            .try_insert(DialButtonState::Enabled);
-                                    }
-                                }
-                            }
-                            MenuIconLock::Unlocked => {
-                                commands
-                                    .entity(e)
-                                    .insert(ImageNode {
-                                        image: asset_server.load("icons/icon-locked2.ktx2"),
-                                        ..default()
-                                    })
-                                    .insert(MenuIconLock::Locked);
-                                for (lockable_entity, _) in lockables.iter() {
-                                    commands
-                                        .entity(lockable_entity)
-                                        .try_insert(DialButtonState::Disabled);
-                                }
-                            }
+                .observe(|trigger: On<Pointer<Click>>, mut commands: Commands| {
+                    commands
+                        .entity(trigger.entity)
+                        .trigger(|entity| ToggleButtonSwitcherEx {
+                            entity,
+                            trigger_state_as_event: false,
+                            insert_state_as_resource: true,
                         });
-                    },
-                );
+                });
             c.spawn(create_menu_icon_frame_bundle())
                 .with_children(|c| {
                     c.spawn(create_menu_icon_bundle(
@@ -265,4 +239,53 @@ fn create_menubar_bundle(name: &str, visibility: AutoDrawerVisiblity) -> impl Bu
         },
         BackgroundColor(Srgba::new(0.0, 0.0, 0.0, 0.9).into()),
     )
+}
+
+impl Switch for SandboxLock {
+    fn rotate(&self) -> Self {
+        match self {
+            SandboxLock::Off => SandboxLock::On,
+            SandboxLock::On => SandboxLock::Off,
+        }
+    }
+
+    fn index(&self) -> usize {
+        match self {
+            SandboxLock::On => 0,
+            SandboxLock::Off => 1,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        match index {
+            0 => SandboxLock::On,
+            1 => SandboxLock::Off,
+            _ => unreachable!(),
+        }
+    }
+}
+
+fn update_lock_state(
+    mut commands: Commands,
+    lockables: Query<(Entity, &LockableDialButton)>,
+    lock: Res<ToggleResourceWrapper<SandboxLock>>,
+) {
+    match lock.value {
+        SandboxLock::Off => {
+            for (lockable_entity, lockable_state) in lockables.iter() {
+                if lockable_state.0 {
+                    commands
+                        .entity(lockable_entity)
+                        .try_insert(DialButtonState::Enabled);
+                }
+            }
+        }
+        SandboxLock::On => {
+            for (lockable_entity, _) in lockables.iter() {
+                commands
+                    .entity(lockable_entity)
+                    .try_insert(DialButtonState::Disabled);
+            }
+        }
+    }
 }

@@ -30,12 +30,11 @@ use bevy_ui_text_input::SubmitText;
 use crate::{
     clients::model::{FetchEntityReason, RerollEntity},
     content::{RenameSandboxEntity, context::ContentContext, page::ContentHeader},
-    hexmap::elements::FetchEntityFromStorage,
+    hexmap::{SandboxLock, elements::FetchEntityFromStorage},
     shared::widgets::{
         buttons::{
             MenuButtonDisabled, MenuButtonEffects, MenuButtonSwitcher,
-            MenuButtonSwitcherState, ToggleButtonSwitcher, ToggleButtonSwitcherEx,
-            ToggleResourceWrapper,
+            MenuButtonSwitcherState, ToggleButtonSwitcherEx, ToggleResourceWrapper,
         },
         link::ContentHoverLink,
     },
@@ -45,12 +44,6 @@ use super::{
     EditableAttributeParams, ThemeBackgroundColor, context::Spoilers, demidom::RollerIcon,
     spoiler::SpoilerMaskMarker,
 };
-
-#[derive(Component, Default)]
-struct LockIconNodeLocked;
-
-#[derive(Component, Default)]
-struct LockIconNodeUnlocked;
 
 #[derive(Component)]
 pub struct RerollButtonMarker;
@@ -268,71 +261,24 @@ pub fn make_header_bundle(
                 MenuButtonSwitcherState::Idle,
                 LockButtonMarker,
             ))
-            .menu_button_hover_effect()
-            .observe(
-                |trigger: On<Pointer<Click>>,
-                 button_disabled: Query<&MenuButtonDisabled>,
-                 mut content_stuff: ResMut<ContentContext>,
-                 page_rollers: Query<(Entity, &RerollButtonMarker)>,
-                 mut rollers: Query<(Entity, &mut Node, &RollerIcon)>,
-                 state: Query<&MenuButtonSwitcherState>,
-                 mut commands: Commands| {
-                    if button_disabled.contains(trigger.entity) {
-                        return;
-                    }
-                    let Ok(state) = state.get(trigger.entity) else {
-                        return;
-                    };
-
-                    // NOTE: Toggle state switch
-                    // TODO: Can we make this generic?
-                    if state.toggled() {
-                        content_stuff.unlocked = false;
-                        commands.entity(trigger.entity).trigger(|entity| {
-                            ToggleButtonSwitcher {
-                                entity,
-                                state: MenuButtonSwitcherState::Idle,
-                            }
-                        });
-                    } else {
-                        content_stuff.unlocked = true;
-                        commands.entity(trigger.entity).trigger(|entity| {
-                            ToggleButtonSwitcher {
-                                entity,
-                                state: MenuButtonSwitcherState::Toggled,
-                            }
-                        });
-                    }
-
-                    // NOTE: Toggle functionality
-                    if content_stuff.unlocked {
-                        rollers.iter_mut().for_each(|(e, mut node, _)| {
-                            node.display = Display::DEFAULT;
-                            commands.entity(e).insert(RollerIcon::Visible);
-                        });
-                        if content_stuff.rerollable {
-                            for (e, _) in page_rollers.iter() {
-                                commands.entity(e).remove::<MenuButtonDisabled>();
-                            }
-                        }
-                    } else {
-                        rollers.iter_mut().for_each(|(e, mut node, _)| {
-                            node.display = Display::None;
-                            commands.entity(e).insert(RollerIcon::Hidden);
-                        });
-                        if content_stuff.rerollable {
-                            for (e, _) in page_rollers.iter() {
-                                commands.entity(e).insert(MenuButtonDisabled);
-                            }
-                        }
-                    }
-                },
-            )
-            .menu_button_switch::<LockIconNodeLocked, LockIconNodeUnlocked>(
-                asset_server.load("icons/icon-locked.ktx2"),
-                asset_server.load("icons/icon-unlocked.ktx2"),
+            .menu_button_switch_ex::<SandboxLock>(
+                SandboxLock::default(),
+                vec![
+                    asset_server.load("icons/icon-locked.ktx2"),
+                    asset_server.load("icons/icon-unlocked.ktx2"),
+                ],
                 32.0,
-            );
+            )
+            .menu_button_hover_effect()
+            .observe(|trigger: On<Pointer<Click>>, mut commands: Commands| {
+                commands
+                    .entity(trigger.entity)
+                    .trigger(|entity| ToggleButtonSwitcherEx {
+                        entity,
+                        trigger_state_as_event: false,
+                        insert_state_as_resource: true,
+                    });
+            });
             c.spawn((
                 Name::new("ContentPageButton"),
                 Node {
@@ -434,6 +380,39 @@ pub fn submit_editable_title(
                         params: editable_title_input.0.clone(),
                     });
                 }
+            }
+        }
+    }
+}
+
+pub fn update_lock_state(
+    mut content_stuff: ResMut<ContentContext>,
+    lock: Res<ToggleResourceWrapper<SandboxLock>>,
+    page_rollers: Query<(Entity, &RerollButtonMarker)>,
+    mut rollers: Query<(Entity, &mut Node, &RollerIcon)>,
+    mut commands: Commands,
+) {
+    // NOTE: Toggle functionality
+    if lock.value.off() {
+        content_stuff.unlocked = true;
+        rollers.iter_mut().for_each(|(e, mut node, _)| {
+            node.display = Display::DEFAULT;
+            commands.entity(e).insert(RollerIcon::Visible);
+        });
+        if content_stuff.rerollable {
+            for (e, _) in page_rollers.iter() {
+                commands.entity(e).remove::<MenuButtonDisabled>();
+            }
+        }
+    } else {
+        content_stuff.unlocked = false;
+        rollers.iter_mut().for_each(|(e, mut node, _)| {
+            node.display = Display::None;
+            commands.entity(e).insert(RollerIcon::Hidden);
+        });
+        if content_stuff.rerollable {
+            for (e, _) in page_rollers.iter() {
+                commands.entity(e).insert(MenuButtonDisabled);
             }
         }
     }

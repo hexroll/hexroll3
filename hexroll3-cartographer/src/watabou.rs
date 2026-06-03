@@ -225,17 +225,24 @@ pub fn populate_city_map(
                     shop_uid.as_str().unwrap(),
                     map_data,
                     Some(map_district),
+                    Some(&district_uid),
                     partial,
                 )?;
             }
-            populate_city_entity(
-                tx,
-                randomizer,
-                entity_district.value["Tavern"][0].as_str().unwrap(),
-                map_data,
-                Some(map_district),
-                partial,
-            )?;
+            if entity_district.value["Tavern"]
+                .as_array()
+                .is_some_and(|v| !v.is_empty())
+            {
+                populate_city_entity(
+                    tx,
+                    randomizer,
+                    entity_district.value["Tavern"][0].as_str().unwrap(),
+                    map_data,
+                    Some(map_district),
+                    Some(&district_uid),
+                    partial,
+                )?;
+            }
             // Stamp district_uid on every building so we can add entities
             {
                 let buildings = locate_buildings_mut(map_data);
@@ -247,19 +254,9 @@ pub fn populate_city_map(
             }
             if shops_placed {
                 let centroid = find_centroid_f(&map_district.geometry);
-                entity_district
-                    .value
-                    .as_object_mut()
-                    .unwrap()
-                    .insert("x_coords".to_string(), centroid.x.into());
-                entity_district
-                    .value
-                    .as_object_mut()
-                    .unwrap()
-                    .insert("y_coords".to_string(), centroid.y.into());
+                stamp_entity_coords(&mut entity_district.value, centroid);
                 let district_uid =
                     entity_district.value["uuid"].as_str().unwrap();
-
                 tx.store(district_uid, &entity_district.value)?;
             }
         }
@@ -276,17 +273,24 @@ pub fn populate_city_map(
                 shop_uid.as_str().unwrap(),
                 map_data,
                 None,
+                Some(district_uid),
                 partial,
             )?;
         }
-        populate_city_entity(
-            tx,
-            randomizer,
-            district_entity.value["Tavern"].uuid_as_str(),
-            map_data,
-            None,
-            partial,
-        )?;
+        if district_entity.value["Tavern"]
+            .as_array()
+            .is_some_and(|v| !v.is_empty())
+        {
+            populate_city_entity(
+                tx,
+                randomizer,
+                district_entity.value["Tavern"].uuid_as_str(),
+                map_data,
+                None,
+                Some(district_uid),
+                partial,
+            )?;
+        }
         // Stamp district_uid on every building so we can add entities
         {
             let buildings = locate_buildings_mut(map_data);
@@ -300,85 +304,113 @@ pub fn populate_city_map(
     Ok(())
 }
 
+fn building_centroid(building: &json::Polygon) -> geometry::Point2f {
+    if building.points.len() > 3 {
+        let polygon: Vec<geometry::Point2f> = building
+            .points
+            .iter()
+            .map(|pt| geometry::Point2f::new(pt[0], pt[1]))
+            .collect();
+        find_centroid_f(&polygon)
+    } else {
+        geometry::Point2f::new(building.points[0][0], building.points[0][1])
+    }
+}
+
+fn stamp_entity_coords(
+    entity: &mut serde_json::Value,
+    point: geometry::Point2f,
+) {
+    let obj = entity.as_object_mut().unwrap();
+    obj.insert("x_coords".to_string(), point.x.into());
+    obj.insert("y_coords".to_string(), point.y.into());
+}
+
+fn pick_building_slot(
+    randomizer: &Randomizer,
+    buildings: &[json::Polygon],
+    candidates: &[usize],
+) -> Option<usize> {
+    if candidates.len() > 1 {
+        for _attempt in 0..50 {
+            let pick =
+                randomizer.in_range(1, (candidates.len() - 1) as i32) as usize;
+            let idx = candidates[pick];
+            if buildings[idx].uid.is_none() {
+                return Some(idx);
+            }
+        }
+    }
+    // Fallback: take the first available slot in the candidate pool.
+    candidates
+        .iter()
+        .find(|&&i| buildings[i].uid.is_none())
+        .copied()
+}
+
 fn populate_city_entity(
     tx: &mut ReadWriteTransaction,
     randomizer: &Randomizer,
     shop_uid: &str,
     map_data: &mut json::MapData,
     map_district: Option<&District>,
+    district_uid: Option<&str>,
     partial: bool,
 ) -> Result<bool, anyhow::Error> {
     let mut shop = tx.retrieve(shop_uid)?;
 
-    if shop.value.as_object().unwrap().contains_key("x_coords")
-        && shop.value["x_coords"].is_f64()
-        && shop.value["x_coords"].as_f64().unwrap() != 0.0
-        && partial
-    {
+    // NOTE: we care for 3 different situations:
+    // A) An entity already has a building allocated and set correctly
+    //    This is for example when re-rolling another district in the city, but
+    //    some shops are already correctly positioned in other districts and we
+    //    must not relocate them.
+    //    Another example is when re-rolling an existing shop, and we migrate
+    //    it's original building allocation to the newly rerolled entity.
+    // B) An entity already has its building index and requiring its coordinates
+    //    This is when the user manually rolls an entity over an existin unallocated
+    //    building.
+    // C) An entity needing a building allocation
+    //    Such as when rolling a new settlement.
+
+    // Case A: this is for already positioned entities - do nothing
+    if shop.value["x_coords"].as_f64().unwrap_or(0.0) != 0.0 && partial {
         return Ok(false);
     }
 
     let buildings = locate_buildings_mut(map_data);
+
+    // Case B: this is for entities requiring only the building coordinates
+    if let Some(index) = shop.value["building_index"]
+        .as_i64()
+        .filter(|_| partial)
+        .map(|i| i as usize)
+    {
+        let point = building_centroid(&buildings[index]);
+        stamp_entity_coords(&mut shop.value, point);
+        tx.store(shop_uid, &shop.value)?;
+        return Ok(false);
+    }
+
+    // Case C: Entity requires a building to allocate
     if buildings.len() < 2 {
-        return anyhow::Result::Err(anyhow::anyhow!(
-            "No buildings to choose from"
-        ));
+        return Err(anyhow::anyhow!("No buildings to choose from"));
     }
 
-    let mut maybe_index = None;
+    let candidates: Vec<usize> = match map_district {
+        Some(d) => d.buildings.clone(),
+        None => (0..buildings.len()).collect(),
+    };
 
-    if let Some(map_district) = map_district {
-        for _attempt in 0..50 {
-            let preindex = randomizer
-                .in_range(1, (map_district.buildings.len() - 1) as i32);
-            let tmp_index = map_district.buildings[preindex as usize];
-            if buildings[tmp_index].uid.is_none() {
-                maybe_index = Some(tmp_index);
-                break;
-            }
-        }
-    } else {
-        for _attempt in 0..50 {
-            let tmp_index =
-                randomizer.in_range(1, (buildings.len() - 1) as i32) as usize;
-            if buildings[tmp_index].uid.is_none() {
-                maybe_index = Some(tmp_index);
-                break;
-            }
-        }
-    }
-    if maybe_index.is_none() {
-        for (i, b) in buildings.iter().enumerate() {
-            if b.uid.is_none() {
-                maybe_index = Some(i);
-            }
-        }
-    }
-
-    let Some(index) = maybe_index else {
+    let Some(index) = pick_building_slot(randomizer, buildings, &candidates)
+    else {
         return Err(anyhow::anyhow!("Could not find building for entity"));
     };
+
     buildings[index].uid = Some(shop_uid.to_string());
-    let shop_point = if buildings[index].points.len() > 3 {
-        let mut building_polygon = Vec::new();
-        for pt in buildings[index].points.iter() {
-            building_polygon.push(geometry::Point2f::new(pt[0], pt[1]));
-        }
-        find_centroid_f(&building_polygon)
-    } else {
-        geometry::Point2f::new(
-            buildings[index].points[0][0],
-            buildings[index].points[0][1],
-        )
-    };
-    shop.value
-        .as_object_mut()
-        .unwrap()
-        .insert("x_coords".to_string(), shop_point.x.into());
-    shop.value
-        .as_object_mut()
-        .unwrap()
-        .insert("y_coords".to_string(), shop_point.y.into());
+    buildings[index].district_uid = district_uid.map(|s| s.to_string());
+
+    let point = building_centroid(&buildings[index]);
+    stamp_entity_coords(&mut shop.value, point);
     shop.value
         .as_object_mut()
         .unwrap()

@@ -33,7 +33,7 @@ use bevy::{
 use crate::shared::AppState;
 use crate::shared::input::InputMode;
 use crate::shared::vtt::PlayerPreview;
-use crate::shared::widgets::buttons::ToggleEventWrapper;
+use crate::shared::widgets::buttons::{ToggleEventWrapper, ToggleResourceWrapper};
 use crate::shared::widgets::cursor::PointerExclusivityIsPreferred;
 use crate::tokens::MainTokenEntity;
 use crate::{
@@ -48,6 +48,7 @@ use crate::{
     },
 };
 
+use super::SandboxLock;
 use super::elements::{HexMapSpawnerState, VttDataState};
 use super::prepare::post_map_loaded_handler_prefix;
 use super::revealing::VttHexRevealer;
@@ -82,6 +83,7 @@ impl Plugin for HexMap {
             .insert_state(HexMapToolState::Selection)
             .insert_state(HexMapSpawnerState::default())
             .insert_state(VttDataState::default())
+            .insert_resource(ToggleResourceWrapper::<SandboxLock>::default())
             .insert_resource(HexMapCache::default())
             .insert_resource(MapVisibilityController::default())
             .insert_resource(super::spawn::TileSpawnQueues::default())

@@ -27,7 +27,7 @@
 use core::f32;
 use std::collections::BTreeMap;
 
-use bevy::prelude::*;
+use bevy::{platform::collections::HashMap, prelude::*};
 use rand::Rng;
 
 use crate::{
@@ -37,11 +37,13 @@ use crate::{
         curve::create_bezier_curve_mesh,
         geometry::{make_filled_mesh_from_path, make_mesh_from_outline},
         layers::HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT,
-        widgets::cursor::PointerOnHover,
+        snapshot::ReleaseScreenSnapshot,
+        widgets::cursor::{PointerOnHover, TooltipOnHover},
     },
 };
 
 use super::{BattlemapFeatureUtils, helpers::*, settlement::*};
+use super::{SettlementDialProvider, settlement_dial::SpawnSettlementDial};
 
 use hexroll3_cartographer::watabou::json::*;
 
@@ -69,58 +71,81 @@ fn on_spawn_village_map(
     map: Res<HexMapData>,
     gltfs: Res<Assets<Gltf>>,
 ) {
-    let (tx, angle, _offset) =
-        if let Some((angle, offset)) = map
-            .coords
-            .get(&trigger.event().hex_uid)
-            .and_then(|coords| map.hexes.get(coords))
-            .map(|hex_data| hex_data.metadata.feature_angle_and_offset())
-        {
-            (
-                Transform::from_rotation(Quat::from_rotation_y(angle)).transform_point(
-                    Vec3::new(0.0, HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT, offset),
-                ),
-                angle,
-                offset,
-            )
-        } else {
-            return;
-        };
-    let building_cube = meshes.add(Cuboid::default());
+    let Some((angle, offset)) = map
+        .coords
+        .get(&trigger.event().hex_uid)
+        .and_then(|coords| map.hexes.get(coords))
+        .map(|hex_data| hex_data.metadata.feature_angle_and_offset())
+    else {
+        return;
+    };
 
+    let village_rotation = angle;
+    let tx = Transform::from_rotation(Quat::from_rotation_y(village_rotation))
+        .transform_point(Vec3::new(0.0, HEIGHT_OFFSET_OF_BATTLEMAP_CONTENT, offset));
+
+    let building_cube = meshes.add(Cuboid::default());
+    let hex_entity = trigger.hex_uid.clone();
     let parent_node = commands
         .spawn_empty()
         .insert(Name::new("VillageMap"))
         .insert(Visibility::default())
         .insert(
             Transform::from_xyz(tx.x, tx.y, tx.z)
-                .with_rotation(Quat::from_rotation_y(angle))
+                .with_rotation(Quat::from_rotation_y(village_rotation))
                 .with_scale(Vec3::new(0.20, 0.20, 0.20)),
         )
         .with_children(|mut commands| {
-            for (i, (rect, orientation, uid, district_uid)) in
-                trigger.event().data.buildings.iter().enumerate()
-            {
+            for b in trigger.event().data.buildings.iter() {
                 let mut building = commands.spawn((
                     Mesh3d(building_cube.clone()),
-                    MeshMaterial3d(if uid.is_some() {
+                    MeshMaterial3d(if b.entity_uid.is_some() {
                         village_map_resources.building_highlight_material.clone()
                     } else {
                         village_map_resources.building_material.clone()
                     }),
-                    Transform::from_xyz(rect.center().x, 0.1, rect.center().y)
-                        .with_rotation(Quat::from_rotation_y(*orientation))
-                        .with_scale(Vec3::new(rect.width(), 3.0, rect.height())),
+                    Transform::from_xyz(b.rect.center().x, 0.1, b.rect.center().y)
+                        .with_rotation(Quat::from_rotation_y(b.orientation))
+                        .with_scale(Vec3::new(b.rect.width(), 3.0, b.rect.height())),
                 ));
-                if let Some(uid) = uid {
-                    let cuid = uid.clone();
+                if let Some(entity_uid) = &b.entity_uid {
+                    let cuid = entity_uid.clone();
                     building.pointer_on_hover();
-                    building.observe(move |_: On<Pointer<Click>>, mut commands: Commands| {
-                        commands.trigger(crate::hexmap::elements::FetchEntityFromStorage {
-                            uid: cuid.clone(),
-                            anchor: None,
-                            why: crate::clients::model::FetchEntityReason::SandboxLink,
-                        });
+                    let hex_entity = hex_entity.clone();
+                    building.settlement_dial_provider(SpawnSettlementDial {
+                        district_uid: "".into(),
+                        building_index: 0,
+                        hex_entity,
+                        pos: Vec3::ZERO,
+                        building_uid: Some(cuid.clone()),
+                    });
+                    if let Some(label) = trigger.event().data.poi_labels.get(entity_uid) {
+                        building.tooltip_on_hover(label, 0.1);
+                    }
+                    building.observe(
+                        move |trigger: On<Pointer<Click>>, mut commands: Commands| {
+                            if trigger.event().button == PointerButton::Secondary {
+                                return;
+                            }
+                            commands.trigger(
+                                crate::hexmap::elements::FetchEntityFromStorage {
+                                    uid: cuid.clone(),
+                                    anchor: None,
+                                    why: crate::clients::model::FetchEntityReason::SandboxLink,
+                                },
+                            );
+                        },
+                    );
+                } else if let Some(district_uid) = &b.district_uid {
+                    let district_uid = district_uid.clone();
+                    let building_index = b.building_index;
+                    let hex_entity = hex_entity.clone();
+                    building.settlement_dial_provider(SpawnSettlementDial {
+                        district_uid,
+                        building_index,
+                        hex_entity,
+                        pos: Vec3::ZERO,
+                        building_uid: None,
                     });
                 }
             }
@@ -163,17 +188,27 @@ fn on_spawn_village_map(
     if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
         entity.mark_battlemap_as_ready();
         entity.add_child(parent_node);
+        commands.trigger(ReleaseScreenSnapshot);
     } else {
         commands.entity(parent_node).despawn();
     }
 }
 
+pub struct VillageBuilding {
+    pub rect: Rect,
+    pub orientation: f32,
+    pub entity_uid: Option<String>,
+    pub district_uid: Option<String>,
+    pub building_index: i32,
+}
+
 pub struct VillageMapConstructs {
     base: SettlementMapConstructs,
     building_outlines: Vec<Mesh>,
-    buildings: Vec<(Rect, f32, Option<String>, Option<String>)>,
+    buildings: Vec<VillageBuilding>,
     river: Option<Mesh>,
     water: Vec<Mesh>,
+    poi_labels: HashMap<String, String>,
 }
 
 impl VillageMapConstructs {
@@ -183,7 +218,7 @@ impl VillageMapConstructs {
         let mut water = Vec::new();
 
         let mut building_outlines: Vec<Mesh> = Vec::new();
-        let mut buildings: Vec<(Rect, f32, Option<String>, Option<String>)> = Vec::new();
+        let mut buildings: Vec<VillageBuilding> = Vec::new();
         let factor = 1.0;
         let mut offset = 0.0;
         let mut tagged_has_river = false;
@@ -268,17 +303,18 @@ impl VillageMapConstructs {
                     for (i, c) in coordinates.iter().enumerate() {
                         let v: Vec<[f64; 2]> = c.points.iter().map(|p| [p[0], p[1]]).collect();
                         let rect_in_space = get_width_height_rotation_from_rect_points(v);
-                        let uid = proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
-                        let district_uid = c.district_uid.clone();
-                        buildings.push((
-                            Rect::from_center_size(
+                        let entity_uid =
+                            proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
+                        buildings.push(VillageBuilding {
+                            rect: Rect::from_center_size(
                                 rect_in_space.center,
                                 rect_in_space.dimensions,
                             ),
-                            rect_in_space.orientation,
-                            uid,
-                            district_uid,
-                        ));
+                            orientation: rect_in_space.orientation,
+                            entity_uid,
+                            district_uid: c.district_uid.clone(),
+                            building_index: i as i32,
+                        });
 
                         let polygon: Vec<lyon::math::Point> = c
                             .points
@@ -296,12 +332,19 @@ impl VillageMapConstructs {
             }
         }
 
+        let poi_labels: HashMap<String, String> = map
+            .poi
+            .iter()
+            .map(|value| (value.uuid.clone(), value.title.clone()))
+            .collect();
+
         VillageMapConstructs {
             base,
             buildings,
             building_outlines,
             river,
             water,
+            poi_labels,
         }
     }
 }

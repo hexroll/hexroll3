@@ -32,13 +32,14 @@ use bevy_vector_shapes::prelude::*;
 
 use crate::{
     hexmap::{
-        HexState, MapMessage,
+        HexState, MapMessage, SandboxLock,
         elements::{HexMapData, HexMapState, MainCamera},
     },
     shared::{
         layers::HEIGHT_OF_TOKENS,
         vtt::{HexRevealState, VttData},
         widgets::{
+            buttons::ToggleResourceWrapper,
             cursor::{PointerExclusivityIsPreferred, pointer_world_position},
             dial::{
                 DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
@@ -377,16 +378,20 @@ fn battlemap_selection_tool(
 }
 
 pub trait BattlemapDialProvider {
-    fn battlemap_dial_provider(&mut self) -> &mut Self;
+    fn battlemap_dial_provider(&mut self, locked_mode_only: bool) -> &mut Self;
 }
 
 impl BattlemapDialProvider for EntityCommands<'_> {
-    fn battlemap_dial_provider(&mut self) -> &mut Self {
+    fn battlemap_dial_provider(&mut self, locked_mode_only: bool) -> &mut Self {
         self.observe(
-            |trigger: On<Pointer<Click>>,
-             mut commands: Commands,
-             q_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
-             q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>| {
+            move |trigger: On<Pointer<Click>>,
+                  mut commands: Commands,
+                  sandbox_lock: Res<ToggleResourceWrapper<SandboxLock>>,
+                  q_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
+                  q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>| {
+                if locked_mode_only && sandbox_lock.value.off() {
+                    return;
+                }
                 if trigger.event().button == PointerButton::Secondary {
                     if let Some(pos) = pointer_world_position(q_window, q_camera) {
                         commands.trigger(SpawnBattlemapDial { pos });

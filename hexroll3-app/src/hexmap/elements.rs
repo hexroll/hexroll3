@@ -240,6 +240,9 @@ impl HexMapData {
 #[derive(Debug, Component)]
 pub struct HexToInvalidateMarker;
 
+#[derive(Debug, Component)]
+pub struct HexToInvalidatePostLoadMarker(pub String);
+
 #[derive(Debug, Resource)]
 pub struct HexEntityCallbacks {
     pub invalidate: SystemId,
@@ -306,13 +309,26 @@ pub struct RerollHex {
     pub class: String,
 }
 
+#[derive(Clone)]
+pub enum AppendSubject {
+    Hex {
+        uid: String,
+        coords: Option<Hex>,
+    },
+    Ocean {
+        coords: Hex,
+    },
+    SettlementDistrict {
+        district_uid: String,
+        building_index: i32,
+    },
+}
+
 #[derive(Event, Clone)]
 pub struct AppendSandboxEntity {
-    pub hex_coords: Option<Hex>,
-    pub hex_uid: String,
+    pub target: AppendSubject,
     pub attr: String,
     pub what: String,
-    pub send_coords: bool,
 }
 
 #[derive(Event, Clone)]

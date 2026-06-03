@@ -86,6 +86,7 @@ impl Plugin for BattlemapsPlugin {
             .add_plugins(BattlemapDrawingPlugin)
             .add_plugins(super::effects::BattlemapEffectsPlugin) // Battlemaps
             .add_plugins(super::battlemap_dial::BattlemapDialPlugin)
+            .add_plugins(super::settlement_dial::SettlementDialPlugin)
             .register_type::<BattlemapMaterial>()
             .insert_resource(ToggleResourceWrapper { value:BattlemapsRuler::default() } )
             .add_systems(Update, draw_ruler.before(ruler_label_zoom_fader))
@@ -279,7 +280,7 @@ fn trigger_battlemaps_requests_when_visible(
                         },
                         0.0,
                     ))
-                    .battlemap_dial_provider();
+                    .battlemap_dial_provider(false);
 
                 if is_unrevealed_dungeon {
                     parent_node.with_child((

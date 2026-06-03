@@ -43,7 +43,7 @@ use crate::{
     hexmap::{
         HexMapJson, HexMapTileMaterials, HexmapTheme,
         elements::{
-            AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexMapData,
+            AppendSandboxEntity, AppendSubject, FetchEntityFromStorage, HexEntity, HexMapData,
             HexMapResources, VttDataState, hexx_to_hexroll_coords,
         },
         prepare_hex_map_data,
@@ -281,7 +281,6 @@ pub fn append_feature(
     mut http_agent: ResMut<HttpAgent>,
     mut commands: Commands,
     mut http_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
-    // hexes: Query<(Entity, &HexEntity)>,
     effects: Res<EffectSystems>,
     user_settings: Res<UserSettings>,
     window: Single<Entity, With<PrimaryWindow>>,
@@ -297,45 +296,51 @@ pub fn append_feature(
     let server_host = &user_settings.server;
     let api_key = Some(user_settings.key.as_ref().unwrap().clone());
     let url = format!("{server_host}/append/");
+
+    // Resolve the target into the pieces the HTTP backend needs.
+    let (entity_uid, maybe_coords, maybe_building_index, fetch_uid) =
+        match &event.target {
+            AppendSubject::Hex { uid, coords } => {
+                if let Some(coords) = coords {
+                    commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+                    commands.run_system(effects.roll_feature_effect);
+                }
+                (uid.clone(), *coords, None, Some(uid.clone()))
+            }
+            AppendSubject::Ocean { coords } => {
+                commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+                commands.run_system(effects.roll_feature_effect);
+                // HTTP server identifies the root entity by the sandbox name.
+                (sandbox_uid.clone(), Some(*coords), None, None)
+            }
+            AppendSubject::SettlementDistrict { district_uid, building_index } => {
+                (district_uid.clone(), None, Some(*building_index), None)
+            }
+        };
+
     let mut json_data = serde_json::json!({
         "instance": sandbox_uid,
-        "entity": event.hex_uid,
+        "entity": entity_uid,
         "type": event.what,
         "attribute": event.attr,
     });
 
-    if let Some(hex_coords) = trigger.0.hex_coords {
-        commands
-            .spawn_empty()
-            .insert(RollNewFeatureEffect(hex_coords));
-        commands.run_system(effects.roll_feature_effect);
-
-        if trigger.0.send_coords {
-            let (x, y) = hexx_to_hexroll_coords(&hex_coords);
-            json_data["nx"] = x.into();
-            json_data["ny"] = y.into();
-        }
+    if let Some(coords) = maybe_coords {
+        let (x, y) = hexx_to_hexroll_coords(&coords);
+        json_data["nx"] = x.into();
+        json_data["ny"] = y.into();
     }
-    let coords = trigger.0.hex_coords;
-    let send_coords = trigger.0.send_coords;
-    let hex_uid = trigger.0.hex_uid.clone();
+    if let Some(building_index) = maybe_building_index {
+        json_data["building_index"] = building_index.into();
+    }
+
     http_tasks.spawn_post(
         &mut http_agent,
         url,
         api_key,
         json_data,
         sandbox_uid.clone(),
-        move |data| {
-            FeatureUidResponse(
-                data,
-                coords,
-                if send_coords {
-                    None
-                } else {
-                    Some(hex_uid.clone())
-                },
-            )
-        },
+        move |data| FeatureUidResponse(data, maybe_coords, fetch_uid.clone()),
     );
 }
 

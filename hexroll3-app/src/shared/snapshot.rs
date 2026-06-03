@@ -35,6 +35,11 @@ pub struct FreezeScreenSnapshot;
 #[derive(Event)]
 pub struct ReleaseScreenSnapshot;
 
+const SNAPSHOT_WATCHDOG_TIMEOUT_SECS: f32 = 5.0;
+
+#[derive(Resource, Default)]
+struct SnapshotWatchdogTimer(f32);
+
 pub struct SnapshotPlugin;
 
 impl Plugin for SnapshotPlugin {
@@ -42,7 +47,11 @@ impl Plugin for SnapshotPlugin {
         app.init_state::<SnapshotState>()
             .init_state::<RemoteRefreshState>()
             .add_observer(trigger_snapshot)
-            .add_observer(dismiss_snapshot);
+            .add_observer(dismiss_snapshot)
+            .add_systems(
+                Update,
+                snapshot_watchdog.run_if(in_state(SnapshotState::Showing)),
+            );
     }
 }
 
@@ -86,9 +95,12 @@ fn on_screenshot_captured(
     trigger: On<ScreenshotCaptured>,
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
+    current_state: Res<State<SnapshotState>>,
     mut next_state: ResMut<NextState<SnapshotState>>,
 ) {
-    debug!("Screen freeze completed");
+    if *current_state == SnapshotState::Idle {
+        return;
+    }
     let mut img = trigger.event().image.clone();
 
     img.asset_usage = RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD;
@@ -118,6 +130,20 @@ fn on_screenshot_captured(
     ));
 
     next_state.set(SnapshotState::Showing);
+    commands.insert_resource(SnapshotWatchdogTimer::default());
+}
+
+fn snapshot_watchdog(
+    mut timer: ResMut<SnapshotWatchdogTimer>,
+    time: Res<Time>,
+    mut commands: Commands,
+) {
+    timer.0 += time.delta_secs();
+    if timer.0 >= SNAPSHOT_WATCHDOG_TIMEOUT_SECS {
+        warn!("SnapshotOverlay watchdog: overlay shown for too long, force-releasing");
+        commands.remove_resource::<SnapshotWatchdogTimer>();
+        commands.trigger(ReleaseScreenSnapshot);
+    }
 }
 
 fn dismiss_snapshot(

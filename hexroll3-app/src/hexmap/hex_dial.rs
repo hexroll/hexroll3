@@ -31,12 +31,13 @@ use crate::{
     clients::{controller::PerformHexMapActionInBackend, model::RerollEntity},
     hexmap::{
         builder::tune_editor_terrain_for_realm_type,
-        elements::{AppendSandboxEntity, HexMapData, RemoveSandboxEntity},
+        elements::{AppendSandboxEntity, AppendSubject, HexMapData, RemoveSandboxEntity},
     },
     shared::{
         settings::UserSettings,
         vtt::VttData,
         widgets::{
+            buttons::ToggleResourceWrapper,
             dial::{
                 DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
                 MenuItemSpawner, placeholder_click_handler,
@@ -47,7 +48,7 @@ use crate::{
 };
 
 use super::{
-    TerrainType,
+    SandboxLock, TerrainType,
     editor::{MapEditor, PenType},
     elements::{HexMapState, HexMapToolState, y_inverted_hexmap_layout},
     selecting::{detect_click, track_hex_under_cursor},
@@ -67,12 +68,6 @@ impl Plugin for HexDialPlugin {
             )
             .add_observer(on_spawn_hex_dial);
     }
-}
-
-#[derive(Component, PartialEq)]
-pub enum MenuIconLock {
-    Locked,
-    Unlocked,
 }
 
 #[derive(Hash, Clone, PartialEq, Eq, Copy)]
@@ -271,7 +266,7 @@ pub struct LockableDialButton(pub bool);
 
 fn on_spawn_hex_dial(
     trigger: On<SpawnHexDial>,
-    locked: Single<&MenuIconLock>,
+    locked: Res<ToggleResourceWrapper<SandboxLock>>,
     mut commands: Commands,
     mut dial_menu_commands: DialMenuCommands,
     dial_assets: Res<DialAssets<DialIcon>>,
@@ -317,7 +312,7 @@ fn on_spawn_hex_dial(
                     &dial_assets,
                     "Roll new entities",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     2,
@@ -327,7 +322,7 @@ fn on_spawn_hex_dial(
                     &dial_assets,
                     "Clean/revise entities",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     3,
@@ -337,7 +332,7 @@ fn on_spawn_hex_dial(
                     &dial_assets,
                     "Remove entities",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             let standalone_sandbox = user_settings.local.unwrap_or(false);
             if standalone_sandbox {
                 c.spawn_empty()
@@ -349,7 +344,7 @@ fn on_spawn_hex_dial(
                         &dial_assets,
                         "Draw new realms",
                     )
-                    .make_conditional_and_lockable(&locked, true);
+                    .make_conditional_and_lockable(locked.value.on(), true);
             }
         });
     }
@@ -363,11 +358,12 @@ fn create_append_trigger_closure(
     move |_, mut commands, mut next_state, map_data| {
         if let Some(uid) = map_data.get_selected_uid() {
             commands.trigger(AppendSandboxEntity {
-                hex_coords: map_data.selected,
-                what: what.into(),
+                target: AppendSubject::Hex {
+                    uid,
+                    coords: map_data.selected,
+                },
                 attr: attr.into(),
-                hex_uid: uid,
-                send_coords: false,
+                what: what.into(),
             });
         }
         next_state.set(HexMapToolState::Selection);
@@ -396,7 +392,7 @@ fn dial_menu_roll_menu(
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
-    Single<&MenuIconLock>,
+    Res<ToggleResourceWrapper<SandboxLock>>,
     Res<HexMapData>,
 ) {
     move |trigger, mut commands, parents, prev, dial_assets, locked, map_data| {
@@ -421,7 +417,7 @@ fn dial_menu_roll_menu(
                     &dial_assets,
                     "Roll a dungeon",
                 )
-                .make_conditional_and_lockable(&locked, hex_is_empty);
+                .make_conditional_and_lockable(locked.value.on(), hex_is_empty);
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -431,7 +427,7 @@ fn dial_menu_roll_menu(
                     &dial_assets,
                     "Roll a settlement",
                 )
-                .make_conditional_and_lockable(&locked, hex_is_empty);
+                .make_conditional_and_lockable(locked.value.on(), hex_is_empty);
             c.spawn_empty()
                 .spawn_menu_item(
                     6,
@@ -453,7 +449,7 @@ fn dial_menu_roll_menu(
                     &dial_assets,
                     "Roll a river (from mountain)",
                 )
-                .make_conditional_and_lockable(&locked, can_source_a_river);
+                .make_conditional_and_lockable(locked.value.on(), can_source_a_river);
             c.spawn_empty()
                 .spawn_menu_item(
                     4,
@@ -463,7 +459,7 @@ fn dial_menu_roll_menu(
                     &dial_assets,
                     "Roll a realm",
                 )
-                .make_conditional_and_lockable(&locked, false);
+                .make_conditional_and_lockable(locked.value.on(), false);
         });
     }
 }
@@ -475,7 +471,7 @@ fn dial_menu_draw_realm() -> impl Fn(
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
-    Single<&MenuIconLock>,
+    Res<ToggleResourceWrapper<SandboxLock>>,
 ) {
     move |trigger, mut commands, parents, prev, dial_assets, locked| {
         for e in prev.iter() {
@@ -493,7 +489,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     &dial_assets,
                     "Draw lands",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -503,7 +499,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     &dial_assets,
                     "Draw a duchy",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     6,
@@ -513,7 +509,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     &dial_assets,
                     "Draw a kingdom",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     4,
@@ -523,7 +519,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     &dial_assets,
                     "Draw an empire",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
         });
     }
 }
@@ -535,7 +531,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
-    Single<&MenuIconLock>,
+    Res<ToggleResourceWrapper<SandboxLock>>,
 ) {
     move |trigger, mut commands, parents, prev, dial_assets, locked| {
         for e in prev.iter() {
@@ -553,7 +549,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     &dial_assets,
                     "Roll a city",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -563,7 +559,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     &dial_assets,
                     "Roll a town",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     6,
@@ -573,7 +569,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     &dial_assets,
                     "Roll a village",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     4,
@@ -583,7 +579,7 @@ fn dial_menu_roll_settlement() -> impl Fn(
                     &dial_assets,
                     "Roll an inn",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty().spawn_menu_item(
                 2,
                 MAX_ITEMS_IN_DIAL,
@@ -605,7 +601,7 @@ fn dial_menu_clean_menu(
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
-    Single<&MenuIconLock>,
+    Res<ToggleResourceWrapper<SandboxLock>>,
     Res<HexMapData>,
 ) {
     move |trigger, mut commands, parents, prev, dial_assets, locked, map_data| {
@@ -641,7 +637,7 @@ fn dial_menu_clean_menu(
                     &dial_assets,
                     "Restructure this trail",
                 )
-                .make_conditional_and_lockable(&locked, has_a_trail);
+                .make_conditional_and_lockable(locked.value.on(), has_a_trail);
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -666,7 +662,7 @@ fn dial_menu_clean_menu(
                     &dial_assets,
                     "Clear this hex",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     6,
@@ -688,7 +684,7 @@ fn dial_menu_clean_menu(
                     &dial_assets,
                     "Remove river",
                 )
-                .make_conditional_and_lockable(&locked, has_a_river);
+                .make_conditional_and_lockable(locked.value.on(), has_a_river);
         });
     }
 }
@@ -700,7 +696,7 @@ fn dial_menu_trash_menu() -> impl Fn(
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
-    Single<&MenuIconLock>,
+    Res<ToggleResourceWrapper<SandboxLock>>,
 ) {
     move |trigger, mut commands, parents, prev, dial_assets, locked| {
         for e in prev.iter() {
@@ -726,7 +722,7 @@ fn dial_menu_trash_menu() -> impl Fn(
                     &dial_assets,
                     "Remove this hex",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -744,7 +740,7 @@ fn dial_menu_trash_menu() -> impl Fn(
                     &dial_assets,
                     "Remove this region",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
             c.spawn_empty()
                 .spawn_menu_item(
                     6,
@@ -762,31 +758,22 @@ fn dial_menu_trash_menu() -> impl Fn(
                     &dial_assets,
                     "Remove this realm",
                 )
-                .make_conditional_and_lockable(&locked, true);
+                .make_conditional_and_lockable(locked.value.on(), true);
         });
     }
 }
 
 trait MakeLockableDialButton {
-    fn make_conditional_and_lockable(
-        &mut self,
-        locked: &MenuIconLock,
-        cond: bool,
-    ) -> &mut Self;
+    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self;
 }
 impl MakeLockableDialButton for EntityCommands<'_> {
-    fn make_conditional_and_lockable(
-        &mut self,
-        locked: &MenuIconLock,
-        cond: bool,
-    ) -> &mut Self {
-        self.insert(LockableDialButton(cond)).insert(
-            if *locked == MenuIconLock::Locked || !cond {
+    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self {
+        self.insert(LockableDialButton(cond))
+            .insert(if locked || !cond {
                 DialButtonState::Disabled
             } else {
                 DialButtonState::Enabled
-            },
-        );
+            });
         self
     }
 }

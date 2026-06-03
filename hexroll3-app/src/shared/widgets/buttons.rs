@@ -256,7 +256,7 @@ pub struct ToggleEventWrapper<T> {
     pub value: T,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct ToggleResourceWrapper<T> {
     pub value: T,
 }

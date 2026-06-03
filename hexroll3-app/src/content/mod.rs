@@ -26,11 +26,15 @@
 use bevy::{
     app::{App, Plugin, Update},
     color::Color,
-    ecs::{component::Component, event::Event, resource::Resource},
+    ecs::{
+        component::Component, event::Event, resource::Resource,
+        schedule::common_conditions::resource_changed,
+    },
+    prelude::*,
     state::state::States,
 };
 use context::Spoilers;
-use header::submit_editable_title;
+use header::{submit_editable_title, update_lock_state};
 
 pub mod context;
 
@@ -49,6 +53,7 @@ const PAGE_WIDTH_LANDSCAPE: f32 = 0.4;
 
 use crate::{
     clients::model::FetchEntityReason,
+    hexmap::SandboxLock,
     shared::{camera::MapCoords, widgets::buttons::ToggleResourceWrapper},
 };
 
@@ -59,6 +64,11 @@ impl Plugin for ContentPlugin {
             .insert_resource(ToggleResourceWrapper {
                 value: Spoilers::Visible,
             })
+            .add_systems(
+                Update,
+                update_lock_state
+                    .run_if(resource_changed::<ToggleResourceWrapper<SandboxLock>>),
+            )
             .add_systems(Update, submit_editable_title)
             .add_plugins((viewport::ViewportControllerPlugin, page::PageRendererPlugin));
     }
