@@ -26,6 +26,7 @@ use anyhow::anyhow;
 use minijinja::Environment;
 use std::collections::HashMap;
 
+use crate::frame::load_all_unused_uids;
 use crate::instance::{SandboxBlueprint, SandboxInstance};
 use crate::renderer_env::prepare_renderer;
 use crate::repository::{ReadOnlyLoader, ReadOnlyTransaction};
@@ -162,16 +163,13 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
             if attr.is_optional && !is_root {
                 continue;
             }
-            let frame = tx.retrieve(&format!("{}_frame", uuid))?;
-            let unused =
-                &frame.value["$collections"]["$unused"][&spec.class_name];
+            let all_uids =
+                load_all_unused_uids(tx, &uuid, &spec.class_name)?;
             ctx[&attr.attr_name] = serde_json::Value::from(
-                unused
-                    .as_array()
-                    .unwrap()
+                all_uids
                     .iter()
                     .map(|unused_id| {
-                        let next = tx.retrieve(unused_id.as_str().unwrap())?;
+                        let next = tx.retrieve(unused_id)?;
                         recursive_entity_renderer(
                             context,
                             instance,

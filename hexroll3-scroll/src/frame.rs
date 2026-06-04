@@ -27,6 +27,251 @@ use crate::repository::*;
 use crate::semantics::Class;
 use anyhow::{Ok, Result};
 
+/// Maximum number of UIDs per class allowed in a single frame record
+/// (primary or shard) before a new shard is created.
+const FRAME_SHARD_THRESHOLD: usize = 100;
+
+// ---------------------------------------------------------------------------
+// SHARDING HELPERS
+// ---------------------------------------------------------------------------
+
+fn shard_key(frame_owner_uid: &str, n: u32) -> String {
+    format!("{}_frame_shard_{}", frame_owner_uid, n)
+}
+
+fn get_shard_count(frame_value: &serde_json::Value) -> u32 {
+    frame_value["$shards"].as_u64().unwrap_or(0) as u32
+}
+
+/// Append entity uid to the unused frame pool creating a new shard if the
+/// active record reached its capacity.
+/// (NOTE: Using transaction cache)
+fn append_to_unused(
+    tx: &mut ReadWriteTransaction,
+    frame_key: &str,
+    frame_owner_uid: &str,
+    class_name: &str,
+    uid: &str,
+) -> Result<()> {
+    let shard_count = {
+        let v = tx.load(frame_key)?;
+        get_shard_count(v)
+    };
+
+    if shard_count == 0 {
+        // Let's use the primary frame then
+        {
+            let v = tx.load(frame_key)?;
+            v["$collections"]["$unused"][class_name]
+                .as_array_mut()
+                .unwrap()
+                .push(serde_json::Value::from(uid));
+        }
+        // Did we hit the threshold?
+        let len = {
+            let v = tx.load(frame_key)?;
+            v["$collections"]["$unused"][class_name]
+                .as_array()
+                .unwrap()
+                .len()
+        };
+        if len >= FRAME_SHARD_THRESHOLD {
+            // Yes, let's start sharding
+            let entries: Vec<serde_json::Value> = {
+                let v = tx.load(frame_key)?;
+                v["$collections"]["$unused"][class_name]
+                    .as_array()
+                    .unwrap()
+                    .clone()
+            };
+            let sk = shard_key(frame_owner_uid, 1);
+            // Create shard 1 in cache and populate it
+            tx.create(&sk)?;
+            {
+                let sv = tx.load(&sk)?;
+                sv["$shard"] = serde_json::Value::from(1u32);
+                sv["$collections"] = serde_json::json!({ "$unused": {} });
+                sv["$collections"]["$unused"][class_name] =
+                    serde_json::Value::Array(entries);
+            }
+            tx.save(&sk)?;
+            // Clear primary's array and set $shards = 1
+            {
+                let v = tx.load(frame_key)?;
+                v["$collections"]["$unused"][class_name] =
+                    serde_json::json!([]);
+                v["$shards"] = serde_json::Value::from(1u32);
+            }
+        }
+        tx.save(frame_key)?;
+    } else {
+        // Append to the active (highest-numbered) shard
+        let active_key = shard_key(frame_owner_uid, shard_count);
+
+        // Ensure the shard exists in cache.
+        if tx.load(&active_key).is_err() {
+            tx.create(&active_key)?;
+            let sv = tx.load(&active_key)?;
+            sv["$shard"] = serde_json::Value::from(shard_count);
+            sv["$collections"] = serde_json::json!({ "$unused": {} });
+        }
+
+        // Ensure the class array exists in the shard
+        {
+            let sv = tx.load(&active_key)?;
+            if sv["$collections"]["$unused"][class_name].is_null() {
+                sv["$collections"]["$unused"][class_name] =
+                    serde_json::json!([]);
+            }
+        }
+
+        let shard_len = {
+            let sv = tx.load(&active_key)?;
+            sv["$collections"]["$unused"][class_name]
+                .as_array()
+                .unwrap()
+                .len()
+        };
+
+        if shard_len >= FRAME_SHARD_THRESHOLD {
+            // Active shard is full so let's create the next shard
+            let new_count = shard_count + 1;
+            let new_key = shard_key(frame_owner_uid, new_count);
+            tx.create(&new_key)?;
+            {
+                let nsv = tx.load(&new_key)?;
+                nsv["$shard"] = serde_json::Value::from(new_count);
+                nsv["$collections"] = serde_json::json!({ "$unused": {} });
+                nsv["$collections"]["$unused"][class_name] =
+                    serde_json::json!([uid]);
+            }
+            tx.save(&new_key)?;
+            // Increment $shards in the primary frame
+            {
+                let v = tx.load(frame_key)?;
+                v["$shards"] = serde_json::Value::from(new_count);
+            }
+            tx.save(frame_key)?;
+        } else {
+            {
+                let sv = tx.load(&active_key)?;
+                sv["$collections"]["$unused"][class_name]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(serde_json::Value::from(uid));
+            }
+            tx.save(&active_key)?;
+        }
+    }
+    Ok(())
+}
+
+/// Remote an entity from the unused pool across the primary frame and all shards.
+/// Returns `true` if found and removed.
+/// (NOTE: Using transaction cache)
+fn remove_from_unused(
+    tx: &mut ReadWriteTransaction,
+    frame_key: &str,
+    frame_owner_uid: &str,
+    class_name: &str,
+    uid_to_remove: &str,
+) -> Result<bool> {
+    // Check primary frame
+    let pos_in_primary = {
+        let v = tx.load(frame_key)?;
+        v["$collections"]["$unused"][class_name]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|v| v.as_str() == Some(uid_to_remove))
+    };
+    if let Some(pos) = pos_in_primary {
+        let v = tx.load(frame_key)?;
+        v["$collections"]["$unused"][class_name]
+            .as_array_mut()
+            .unwrap()
+            .remove(pos);
+        tx.save(frame_key)?;
+        return Ok(true);
+    }
+
+    // Check each shard
+    let shard_count = {
+        let v = tx.load(frame_key)?;
+        get_shard_count(v)
+    };
+    for n in 1..=shard_count {
+        let sk = shard_key(frame_owner_uid, n);
+        if tx.load(&sk).is_err() {
+            continue;
+        }
+        let pos = {
+            let sv = tx.load(&sk)?;
+            if sv["$collections"]["$unused"][class_name].is_null() {
+                continue;
+            }
+            sv["$collections"]["$unused"][class_name]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|v| v.as_str() == Some(uid_to_remove))
+        };
+        if let Some(pos) = pos {
+            let sv = tx.load(&sk)?;
+            sv["$collections"]["$unused"][class_name]
+                .as_array_mut()
+                .unwrap()
+                .remove(pos);
+            tx.save(&sk)?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+// ---------------------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------------------
+
+/// Collect all UIDs in `$unused[class_name]` across the primary frame and
+/// all its shards.
+pub fn load_all_unused_uids(
+    tx: &impl ReadOnlyLoader,
+    frame_owner_uid: &str,
+    class_name: &str,
+) -> Result<Vec<String>> {
+    let primary_key = format!("{}_frame", frame_owner_uid);
+    let primary_value = tx.retrieve(&primary_key)?.value;
+
+    let mut uids: Vec<String> = primary_value["$collections"]["$unused"]
+        [class_name]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let shard_count = get_shard_count(&primary_value);
+    for n in 1..=shard_count {
+        let sk = shard_key(frame_owner_uid, n);
+        let shard_retrieve = tx.retrieve(&sk);
+        if shard_retrieve.is_ok() {
+            let shard_jv = shard_retrieve.unwrap();
+            if let Some(arr) =
+                shard_jv.value["$collections"]["$unused"][class_name].as_array()
+            {
+                uids.extend(
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string())),
+                );
+            }
+        }
+    }
+    Ok(uids)
+}
+
 /// Creates a new entity frame and subscribes it to the classes it collects.
 ///
 /// # Arguments
@@ -68,25 +313,36 @@ pub fn remove_entity_frame(
     tx: &mut ReadWriteTransaction,
     uid: &str,
 ) -> Result<()> {
-    let user_frame = tx.load(&format!("{}_frame", uid)).unwrap().as_frame();
+    let primary_key = format!("{}_frame", uid);
 
-    let refs = &user_frame.obj["$refs"].clone();
+    let (refs, shard_count) = {
+        let frame_value = tx.load(&primary_key).unwrap();
+        let frame = Frame::from_value(frame_value);
+        let refs = frame.obj["$refs"].clone();
+        let shard_count = get_shard_count(frame.obj);
+        (refs, shard_count)
+    };
+
     for r in refs.as_array().unwrap() {
         let ref_frame_uid = r["$frame"].as_str().unwrap();
         let ref_class_name = r["$class"].as_str().unwrap();
-        let ref_frame = tx
-            .load(&format!("{}_frame", ref_frame_uid))
-            .unwrap()
-            .as_frame();
-        let demands =
-            &mut ref_frame.obj["$collections"]["$demand"][ref_class_name];
-        demands
+        let ref_key = format!("{}_frame", ref_frame_uid);
+        let ref_frame_value = tx.load(&ref_key).unwrap();
+        let ref_frame = Frame::from_value(ref_frame_value);
+        ref_frame.obj["$collections"]["$demand"][ref_class_name]
             .as_array_mut()
             .unwrap()
             .retain(|v| v.as_str().unwrap() != uid);
-        tx.save(&format!("{}_frame", ref_frame_uid))?;
+        tx.save(&ref_key)?;
     }
-    tx.remove(&format!("{}_frame", uid))
+
+    // Remove all shards before removing the primary frame
+    for n in 1..=shard_count {
+        let sk = shard_key(uid, n);
+        let _ = tx.remove(&sk);
+    }
+
+    tx.remove(&primary_key)
 }
 
 /// Collect an entity into any subscriber in its frames hierarchy.
@@ -135,11 +391,12 @@ pub fn collect(
     }
     let mut deref_backlog: Vec<DerefTask> = Vec::new();
     while frame_owner_uid != "root" {
-        let parent_owner_uid = {
-            let mut frame = tx
-                .load(&format!("{}_frame", frame_owner_uid))
-                .unwrap()
-                .as_frame();
+        // Determine which class to append to, handle waitinglist, and get $parent
+        let (parent_owner_uid, matched_class) = {
+            let frame_key = format!("{}_frame", frame_owner_uid);
+            let frame_value = tx.load(&frame_key).unwrap();
+            let mut frame = Frame::from_value(frame_value);
+            let mut matched: Option<String> = None;
             for parent in instance
                 .sandbox
                 .resolve_class(blueprint, class_name)
@@ -149,24 +406,36 @@ pub fn collect(
             {
                 let unused = &frame.obj["$collections"]["$unused"];
                 if unused.as_object().unwrap().contains_key(parent) {
-                    if let Some(uid) = waitinglist.stage(&mut frame, parent) {
+                    if let Some(deref_uid) =
+                        waitinglist.stage(&mut frame, parent)
+                    {
                         deref_backlog.push(DerefTask {
-                            user_uid: uid,
+                            user_uid: deref_uid,
                             ref_uid: frame_owner_uid.clone(),
                             class_name: parent.clone(),
                         })
                     }
-                    let unused = &mut frame.obj["$collections"]["$unused"];
-                    unused[parent]
-                        .as_array_mut()
-                        .unwrap()
-                        .push(serde_json::to_value(uid).unwrap());
+                    matched = Some(parent.clone());
                     break;
                 }
             }
-            frame.obj["$parent"].clone()
+            let parent_val = frame.obj["$parent"].clone();
+            // Save frame (waitinglist stage may have modified $demand)
+            tx.save(&format!("{}_frame", frame_owner_uid))?;
+            (parent_val, matched)
         };
-        tx.save(&format!("{}_frame", frame_owner_uid))?;
+
+        if let Some(ref matched_class_name) = matched_class {
+            let frame_key = format!("{}_frame", frame_owner_uid);
+            append_to_unused(
+                tx,
+                &frame_key,
+                &frame_owner_uid,
+                matched_class_name,
+                uid,
+            )?;
+        }
+
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     waitinglist.apply(tx)?;
@@ -216,44 +485,41 @@ pub fn withdraw(
 ) -> anyhow::Result<()> {
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" {
-        let parent_owner_uid = {
-            let frame = tx
-                .load(&format!("{}_frame", frame_owner_uid))
-                .unwrap()
-                .as_frame();
-            for parent in instance
-                .sandbox
-                .resolve_class(blueprint, class_name)
-                .unwrap()
-                .hierarchy
-                .iter()
-            {
-                let unused = &mut frame.obj["$collections"]["$unused"];
+        let hierarchy: Vec<String> = instance
+            .sandbox
+            .resolve_class(blueprint, class_name)
+            .unwrap()
+            .hierarchy
+            .clone();
+
+        let (parent_owner_uid, classes_to_remove) = {
+            let frame_key = format!("{}_frame", frame_owner_uid);
+            let frame_value = tx.load(&frame_key).unwrap();
+            let frame = Frame::from_value(frame_value);
+            let mut classes = Vec::new();
+            for parent in hierarchy.iter() {
+                let unused = &frame.obj["$collections"]["$unused"];
                 if unused.as_object().unwrap().contains_key(parent) {
-                    unused[parent]
-                        .as_array_mut()
-                        .unwrap()
-                        .retain(|v| v != origin_owner_uid);
+                    classes.push(parent.clone());
                 }
             }
-            for parent in instance
-                .sandbox
-                .resolve_class(blueprint, class_name)
-                .unwrap()
-                .hierarchy
-                .iter()
-            {
-                let used = &mut frame.obj["$collections"]["$unused"];
-                if used.as_object().unwrap().contains_key(parent) {
-                    used[parent]
-                        .as_array_mut()
-                        .unwrap()
-                        .retain(|v| v != origin_owner_uid);
-                }
-            }
-            frame.obj["$parent"].clone()
+            (frame.obj["$parent"].clone(), classes)
         };
-        tx.save(&format!("{}_frame", frame_owner_uid))?;
+
+        let frame_key = format!("{}_frame", frame_owner_uid);
+        for parent in &classes_to_remove {
+            remove_from_unused(
+                tx,
+                &frame_key,
+                &frame_owner_uid,
+                parent,
+                origin_owner_uid,
+            )?;
+        }
+        if classes_to_remove.is_empty() {
+            tx.save(&frame_key)?;
+        }
+
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     Ok(())
@@ -287,53 +553,77 @@ pub fn use_collected(
 
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" && ret.is_none() {
-        let parent_owner_uid = {
-            let mut frame = tx
-                .load(&format!("{}_frame", frame_owner_uid))
+        let frame_key = format!("{}_frame", frame_owner_uid);
+
+        // Check whether this frame subscribes to class_name and get $parent
+        let (has_class, parent_owner_uid) = {
+            let frame_value = tx.load(&frame_key).unwrap();
+            let frame = Frame::from_value(frame_value);
+            let has = frame.obj["$collections"]["$unused"]
+                .as_object()
                 .unwrap()
-                .as_frame();
-            let unused = &mut frame.obj["$collections"]["$unused"];
-            if unused.as_object().unwrap().contains_key(class_name) {
-                let unused_list = unused[class_name].as_array().unwrap();
-                if unused_list.is_empty() {
+                .contains_key(class_name);
+            (has, frame.obj["$parent"].clone())
+        };
+
+        if has_class {
+            // Build unified list
+            let all_uids =
+                load_all_unused_uids(tx, &frame_owner_uid, class_name)?;
+
+            if all_uids.is_empty() {
+                // Register a pending demand
+                {
+                    let frame_value = tx.load(&frame_key).unwrap();
+                    let mut frame = Frame::from_value(frame_value);
                     if add_pending_entity(
                         &mut frame,
                         class_name,
                         origin_owner_uid,
                     )? {
-                        tx.save(&format!("{}_frame", frame_owner_uid))?;
-                        let frame = tx
-                            .load(&format!("{}_frame", origin_owner_uid))
-                            .unwrap()
-                            .as_frame();
-                        frame.obj["$refs"].as_array_mut().unwrap().push(
+                        tx.save(&frame_key)?;
+                        let origin_key = format!("{}_frame", origin_owner_uid);
+                        let origin_value = tx.load(&origin_key).unwrap();
+                        let origin_frame = Frame::from_value(origin_value);
+                        origin_frame.obj["$refs"].as_array_mut().unwrap().push(
                             serde_json::json!({
                                 "$frame": frame_owner_uid,
                                 "$class": class_name,
                             }),
                         );
-                        tx.save(&format!("{}_frame", origin_owner_uid))?;
+                        tx.save(&origin_key)?;
                     }
-                    return Ok(None);
                 }
-                let selected = instance
-                    .randomizer
-                    .in_range(0, unused_list.len() as i32 - 1);
-
-                let selected_uid = unused_list[selected as usize].clone();
-                unused[class_name]
-                    .as_array_mut()
-                    .unwrap()
-                    .remove(selected as usize);
-                frame.obj["$collections"]["$used"][class_name]
-                    .as_array_mut()
-                    .unwrap()
-                    .push(selected_uid.clone());
-                ret = Some(selected_uid.as_str().unwrap().to_string());
+                return Ok(None);
             }
-            frame.obj["$parent"].clone()
-        };
-        tx.save(&format!("{}_frame", frame_owner_uid))?;
+
+            let selected =
+                instance.randomizer.in_range(0, all_uids.len() as i32 - 1)
+                    as usize;
+            let selected_uid = all_uids[selected].clone();
+
+            // Remove from any record that's holding it
+            remove_from_unused(
+                tx,
+                &frame_key,
+                &frame_owner_uid,
+                class_name,
+                &selected_uid,
+            )?;
+            // Mark as used in the primary frame (always lives in primary)
+            {
+                let v = tx.load(&frame_key)?;
+                v["$collections"]["$used"][class_name]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(serde_json::Value::from(selected_uid.as_str()));
+            }
+            tx.save(&frame_key)?;
+            ret = Some(selected_uid);
+        } else {
+            tx.save(&frame_key)?;
+        }
+
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     Ok(ret)
@@ -360,25 +650,40 @@ pub fn recycle(
 ) -> Result<()> {
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" {
-        let parent_owner_uid = {
-            let frame = tx
-                .load(&format!("{}_frame", frame_owner_uid))
+        let frame_key = format!("{}_frame", frame_owner_uid);
+
+        let (has_class, parent_owner_uid) = {
+            let frame_value = tx.load(&frame_key).unwrap();
+            let frame = Frame::from_value(frame_value);
+            let has = frame.obj["$collections"]["$unused"]
+                .as_object()
                 .unwrap()
-                .as_frame();
-            let unused = &mut frame.obj["$collections"]["$unused"];
-            if unused.as_object().unwrap().contains_key(class_name) {
-                unused[class_name]
-                    .as_array_mut()
-                    .unwrap()
-                    .push(serde_json::Value::from(uid_to_recycle));
-                frame.obj["$collections"]["$used"][class_name]
+                .contains_key(class_name);
+            (has, frame.obj["$parent"].clone())
+        };
+
+        if has_class {
+            // Remove from $used in primary frame
+            {
+                let v = tx.load(&frame_key)?;
+                v["$collections"]["$used"][class_name]
                     .as_array_mut()
                     .unwrap()
                     .retain(|uid| uid != uid_to_recycle);
             }
-            frame.obj["$parent"].clone()
-        };
-        tx.save(&format!("{}_frame", frame_owner_uid))?;
+            tx.save(&frame_key)?;
+            // Re-add to $unused (possibly into a shard)
+            append_to_unused(
+                tx,
+                &frame_key,
+                &frame_owner_uid,
+                class_name,
+                uid_to_recycle,
+            )?;
+        } else {
+            tx.save(&frame_key)?;
+        }
+
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     Ok(())
@@ -410,46 +715,56 @@ pub fn pick_collected(
 
     let mut frame_owner_uid: String = origin_owner_uid.to_string();
     while frame_owner_uid != "root" {
-        let parent_owner_uid = {
-            let mut frame = tx
-                .load(&format!("{}_frame", frame_owner_uid))
+        let frame_key = format!("{}_frame", frame_owner_uid);
+
+        let (has_class, parent_owner_uid) = {
+            let frame_value = tx.load(&frame_key).unwrap();
+            let frame = Frame::from_value(frame_value);
+            let has = frame.obj["$collections"]["$unused"]
+                .as_object()
                 .unwrap()
-                .as_frame();
-            let unused = &mut frame.obj["$collections"]["$unused"];
-            if unused.as_object().unwrap().contains_key(class_name) {
-                let unused_list = unused[class_name].as_array().unwrap();
-                if unused_list.is_empty() {
+                .contains_key(class_name);
+            (has, frame.obj["$parent"].clone())
+        };
+
+        if has_class {
+            // Build unified list
+            let all_uids =
+                load_all_unused_uids(tx, &frame_owner_uid, class_name)?;
+
+            if all_uids.is_empty() {
+                {
+                    let frame_value = tx.load(&frame_key).unwrap();
+                    let mut frame = Frame::from_value(frame_value);
                     if add_pending_entity(
                         &mut frame,
                         class_name,
                         origin_owner_uid,
                     )? {
-                        tx.save(&format!("{}_frame", frame_owner_uid))?;
-                        let frame = tx
-                            .load(&format!("{}_frame", origin_owner_uid))
-                            .unwrap()
-                            .as_frame();
-                        frame.obj["$refs"].as_array_mut().unwrap().push(
+                        tx.save(&frame_key)?;
+                        let origin_key = format!("{}_frame", origin_owner_uid);
+                        let origin_value = tx.load(&origin_key).unwrap();
+                        let origin_frame = Frame::from_value(origin_value);
+                        origin_frame.obj["$refs"].as_array_mut().unwrap().push(
                             serde_json::json!({
                                 "$frame": frame_owner_uid,
                                 "$class": class_name,
                             }),
                         );
-                        tx.save(&format!("{}_frame", origin_owner_uid))?;
+                        tx.save(&origin_key)?;
                     }
-                    return Ok(None);
                 }
-                let selected = instance
-                    .randomizer
-                    .in_range(0, unused_list.len() as i32 - 1);
-
-                let selected_uid = unused_list[selected as usize].clone();
-                ret = Some(selected_uid.as_str().unwrap().to_string());
-                break;
+                return Ok(None);
             }
-            frame.obj["$parent"].clone()
-        };
-        tx.save(&format!("{}_frame", frame_owner_uid))?;
+
+            let selected =
+                instance.randomizer.in_range(0, all_uids.len() as i32 - 1)
+                    as usize;
+            ret = Some(all_uids[selected].clone());
+            break;
+        }
+
+        tx.save(&frame_key)?;
         frame_owner_uid = parent_owner_uid.as_str().unwrap().to_string();
     }
     Ok(ret)

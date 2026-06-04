@@ -847,7 +847,7 @@ pub fn request_search_standalone(
     {}
 }
 
-use hexroll3_scroll::frame::FrameConvertor;
+use hexroll3_scroll::frame::{FrameConvertor, load_all_unused_uids};
 
 fn find_term(
     instance: &SandboxInstance,
@@ -866,23 +866,16 @@ fn find_term(
             let mut ret = serde_json::json!({"results":[]});
             let term = term.to_lowercase();
 
-            let mut obj = tx.retrieve(&format!("{}_frame", sid))?;
-            let frame = obj.value.as_frame();
-            let index = &frame.obj["$collections"]["$unused"]["IndexedEntity"];
-
-            let Some(index_as_array) = index.as_array() else {
-                return Err(anyhow::anyhow!("Error using index as array"));
-            };
+            let index_uids = load_all_unused_uids(tx, &sid, "IndexedEntity")?;
             let builder = SandboxBuilder::from_instance(instance);
 
             let mut count: usize = 0;
-            for uid in index_as_array.iter() {
+            for uid_as_str in index_uids.iter() {
                 let mut result = String::new();
-                let uid_as_str = uid.as_str().unwrap();
                 if let Some(cached_term) = search_index.terms.get(uid_as_str) {
                     result.push_str(cached_term);
                 } else {
-                    let entity = tx.retrieve(uid.as_str().unwrap())?;
+                    let entity = tx.retrieve(uid_as_str)?;
                     let parent_uid = entity.value["parent_uid"].as_str().unwrap();
                     if entity.value.get("Render").is_some() {
                         let parent = tx.retrieve(parent_uid)?;
@@ -961,7 +954,7 @@ fn find_term(
 
                 if result_lower.contains(&term) {
                     //
-                    let entity = tx.retrieve(uid.as_str().unwrap())?;
+                    let entity = tx.retrieve(uid_as_str)?;
                     //
 
                     let mut result_record = serde_json::json!({});
