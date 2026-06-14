@@ -31,8 +31,9 @@ DungeonEncounterCultistsClasses {
 
 DungeonEncounterCultists(DungeonEncounter) {
   Foreshadow! ~ <%
-    If listening to one of the doors here is successful, the faint voices
-    of <strong>chanting by cultists</strong> could be heard
+    If listening to one of the doors here is successful, {{begin_spoiler()}}
+    the faint voices of <strong>chanting by cultists</strong>
+    {{end_spoiler()}} could be heard
   %>
 
   Hint! @ [

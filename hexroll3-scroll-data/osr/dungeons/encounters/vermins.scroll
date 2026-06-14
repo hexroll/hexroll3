@@ -26,10 +26,11 @@
 DungeonEncounterVermins(DungeonEncounter) {
   | DungeonEncounter
   Foreshadow! ~ <%
-    A successful listening roll could detect the <strong>sounds</strong> that the
+    A successful listening roll could detect {{begin_spoiler()}}
+    the <strong>sounds</strong> that the
     <strong>{{Monster.TitlePluralizedByRoaming}}</strong> {%if
-    Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%} making inside this
-    area %>
+    Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%} making
+    {{end_spoiler()}} inside this area %>
   Hint! @ [
     * There’s movement inside
     * There’s also a foul smell of decay and rot

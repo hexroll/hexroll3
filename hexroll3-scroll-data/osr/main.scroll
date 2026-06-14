@@ -129,11 +129,13 @@ main {
 
   ToC! ~ <%
     {% for r in realms %}
-    <div class="toc-section">
+    <div id="block-{{r.uuid}}">
     <h5><a href="{{sandbox()}}/realm/{{r.uuid}}">{{r.Title}}</a></h5>
-    <p>
     <blockquote>{{r.Background}}</blockquote>
-    </p>
+    <input name="toggle-{{r.uuid}}" id="toggle-{{r.uuid}}" type="checkbox" onclick="javascript:document.getElementById('block-{{r.uuid}}').scrollIntoView();"/>
+    <div id="block-toggle-{{uuid}}" class="statblock-container">
+
+    <div class="toc-section">
 
     {% set toc_obj = list_to_obj(r.toc, "Type") %}
 
@@ -165,7 +167,8 @@ main {
     <div class="toc-column">
     <h6>Factions</h6>
     <ul>
-    {% for faction in sortby(toc_obj.Faction,"Title") %}
+    {% set sorted_factions = toc_obj.Faction | sort(attribute="Title.Full") %}
+    {% for faction in sorted_factions %}
     <li><a href="{{sandbox()}}/location/{{faction.UUID}}">{{faction.Title.Full}}</a></li>
     {% endfor %}
     </ul>
@@ -176,7 +179,8 @@ main {
     <div class="toc-column">
     <h6>Dungeons</h6>
     <ul>
-    {% for dungeon in sortby(toc_obj.Dungeon,"Title") %}
+    {% set sorted_dungeons = toc_obj.Dungeon | sort(attribute="Title.Title") %}
+    {% for dungeon in sorted_dungeons %}
     <li><a href="{{sandbox()}}/location/{{dungeon.UUID}}">{{dungeon.Title.Title}}</a></li>
     {% endfor %}
     </ul>
@@ -184,6 +188,9 @@ main {
     {% endif %}
     </div>
     </div>
+    </div>
+    </div>
+    <p></p>
     {% endfor %}
   %>
 

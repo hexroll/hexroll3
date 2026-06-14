@@ -90,8 +90,8 @@ Realm {
   << LostItemMagical
   << Castle
 
-  ItemsOfLegend << LegendaryItem
-  EvilBosses << MonsterEvilBoss
+  ItemsOfLegend? << LegendaryItem
+  EvilBosses? << MonsterEvilBoss
 
   toc! << TocEntry
 

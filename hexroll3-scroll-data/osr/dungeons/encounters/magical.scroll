@@ -26,10 +26,10 @@
 DungeonEncounterMagical(DungeonEncounter) {
   | DungeonEncounter
   Foreshadow! ~ <%
-    A successful listening roll could detect the sounds that the
+    A successful listening roll could detect {{begin_spoiler()}} the sounds that the
     <strong>{{Monster.TitlePluralizedByRoaming}}</strong> {%if
-    Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%} making inside this
-    area
+    Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%} making
+    {{end_spoiler()}} inside this area
     %>
   Hint! @ [
     * You’re not alone here

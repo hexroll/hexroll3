@@ -4968,7 +4968,7 @@ SquidGiant (OsrMonster) {
   ExHitDice! = 6
   HitDiceRoll! = "6d8"
   HitDice! = 6
-  Attacks! ~ <8 × {{dice_roller("1d4 + ","small tentacle (1d4 + constriction)")}}, 2 × {{dice_roller("1d4 + ","large tentacle (1d4 + constriction or 1d10 hull damage)")}}, 1 × {{dice_roller("1d10 ","beak (1d10 or 2 hull damage)")}}>
+  Attacks! ~ <8 × small tentacle ({{dice_roller("1d4 + ","1d4")}} + constriction), 2 × large tentacle ({{dice_roller("1d4","1d4")}} + constriction or {{dice_roller("1d10","1d10")}} hull damage), 1 × beak ({{dice_roller("1d10 ","1d10")}} or 2 hull damage)>
   THAC0! ~ <14 {{dice_roller("1d20+5","[+5]")}}>
   Movement! ~ "120’ (40’)"
   SavingThrows! ~ "D12 W13 P14 B15 S16 (3)"

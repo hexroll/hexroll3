@@ -292,7 +292,7 @@ RuledRealm (Realm){
     <!--Population: sum(Settlements | map(attribute="Population"))-->
 
     <a class="npc-anchor" id="{{RealmType.Ruler.NPC.uuid}}"></a>
-    <h5> {{RealmType.Ruler.Title}} {{RealmType.Ruler.NPC.Name.Full}} </h5>
+    <h5> {{RealmType.Ruler.Title | capitalize}} {{RealmType.Ruler.NPC.Name.Full}} </h5>
 
     {{Name.Title}} is ruled by {{RealmType.Ruler.Title}} {{RealmType.Ruler.NPC.Description}}
 
@@ -303,7 +303,7 @@ RuledRealm (Realm){
     {% if Castle and length(Castle.castles) > 0 %}
     <p>
     {{reroller(Castle, "", False)}}
-    {{RealmType.Ruler.Title}} {{RealmType.Ruler.NPC.Name.First}} preferred place of residence
+    {{RealmType.Ruler.Title | capitalize}} {{RealmType.Ruler.NPC.Name.First}} preferred place of residence
     is the {{Castle.Details}}
     </p>
     {% endif %}

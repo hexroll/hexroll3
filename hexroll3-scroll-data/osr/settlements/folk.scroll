@@ -27,9 +27,9 @@ Folk(Character) {
   | Character
   PersonalQuest! @ Quest
   OwnerTitle! = ""
-  ShopTitle! = ""
-  ServiceTitle = ""
-  Profession! = none
+  ShopTitle? = ""
+  ServiceTitle?= ""
+  Profession? = none
   $IndexRef @ IndexedEntity {
     Render = "Name"
     Details = "The {{OwnerTitle | lower}} from {{capitalize(SettlementName)}}"

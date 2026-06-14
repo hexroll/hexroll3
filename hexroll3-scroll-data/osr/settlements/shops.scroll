@@ -34,7 +34,7 @@ Shop(SettlementLocation) {
   $on_reroll = "remap_in_settlement"
   x_coords = 0
   y_coords = 0
-  Owner! @ Folk {
+  Owner? @ Folk {
     ShopTitle = &Title
     SettlementName = &SettlementName
     OwnerTitle = &OwnerTitle
@@ -43,7 +43,7 @@ Shop(SettlementLocation) {
     URLExt = "/location/{{HostingEntity}}"
   }
 
-  BaseName! ~ "{{Owner.Name.First}}'s {{maybe(Term)}}"
+  BaseName! ` "{{Owner.Name.First}}'s {{maybe(Term)}}"
   Name! ~ "{{BaseName}}"
 
   InvertedName! ~ <%<a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Title}}</strong></a> ({{BaseName}})%>
@@ -131,7 +131,7 @@ Service(SettlementLocation) {
   $on_reroll = "remap_in_settlement"
   x_coords = 0
   y_coords = 0
-  Owner! @ Folk {
+  Owner? @ Folk {
     OwnerTitle = &OwnerTitle
     Profession =  "{{OwnerTitle | lower}} of the {{ServiceTitle | lower}}"
     SettlementName = &SettlementName
@@ -140,7 +140,7 @@ Service(SettlementLocation) {
     URLExt = "/location/{{HostingEntity}}"
     HostingEntity := &uuid
   }
-  BaseName! ~ "{{Owner.Name.First}}'s {{maybe(Term)}}"
+  BaseName! ` "{{Owner.Name.First}}'s {{maybe(Term)}}"
   Name! ~  "<strong>{{Title}}</strong>"
 
   InvertedName! ~ <%<a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Title}}</strong></a> ({{Owner.Name.First}}'s {{maybe(Term)}})%>
@@ -799,7 +799,7 @@ Herbalist(Shop) {
     * harvest exotic herbs
     * forage exotic mushrooms
   ]
-  HexQuest! @ EscortQuest
+  HexQuest? @ EscortQuest
 }
 
 PotionInventory(ShopInventory) {
@@ -869,7 +869,7 @@ ExoticGoods(Shop) {
   HexQuestMission @ [
     * acquire exotic artifacts
   ]
-  HexQuest! @ EscortQuest
+  HexQuest? @ EscortQuest
 }
 
 JewelerInventory(ShopInventory) {
@@ -1009,7 +1009,7 @@ Butchery(Shop) {
   HexQuestMission @ [
     * go on a big-game hunt
   ]
-  HexQuest! @ EscortQuest
+  HexQuest? @ EscortQuest
 }
 
 ClothingInventory(ShopInventory) {
@@ -1137,7 +1137,7 @@ Music(Shop) {
   HexQuestMission @ [
     * find exquisite tonewood
   ]
-  HexQuest! @ EscortQuest
+  HexQuest? @ EscortQuest
 }
 
 SalonInventory(ShopInventory) {
@@ -1254,7 +1254,7 @@ Occult(Shop) {
   HexQuestMission @ [
     * explore for mysterious artifacts
   ]
-  HexQuest! @ EscortQuest
+  HexQuest? @ EscortQuest
 }
 
 

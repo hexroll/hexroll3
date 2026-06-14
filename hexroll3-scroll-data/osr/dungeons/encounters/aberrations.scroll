@@ -26,10 +26,10 @@
 DungeonEncounterAberrations(DungeonEncounter) {
   | DungeonEncounter
   Foreshadow!  = <%
-    A successful listening roll could detect the <strong>sounds</strong>
-    that the <strong>{{Monster.TitlePluralizedByRoaming}}</strong>
+    A successful listening roll could detect {{begin_spoiler()}}
+    the <strong>sounds</strong> that the <strong>{{Monster.TitlePluralizedByRoaming}}</strong>
     {%if Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%}
-    making inside this area
+    making {{end_spoiler()}} inside this area
   %>
   Hint! @ [
     * Red eyes are glowing inside like fire, and you hear a

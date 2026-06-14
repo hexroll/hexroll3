@@ -26,10 +26,11 @@
 DungeonEncounterOozes(DungeonEncounter) {
   | DungeonEncounter
   Foreshadow! ~ <%
-    There's a good chance players could sense the vile <strong>stench</strong> that the
+    There's a good chance players could sense {{begin_spoiler()}}
+    the vile <strong>stench</strong> that the
     <strong>{{Monster.TitlePluralizedByRoaming}}</strong> {%if
     Monster.NumberAppearingRoaming>1%}are{%else%}is{%endif%} emitting from
-    inside this area
+    {{end_spoiler()}} inside this area
     %>
   Hint! @ [
     * There’s a strong burning sensation when breathing the air here

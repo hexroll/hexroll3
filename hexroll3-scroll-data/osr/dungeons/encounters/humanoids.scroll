@@ -26,10 +26,10 @@
 DungeonEncounterHumanoids(DungeonEncounter) {
   | DungeonEncounter
   Foreshadow! ~ <%
-    When listening from outside,
+    When listening from outside, {{begin_spoiler()}}
     {%if Monster.NumberAppearingRoaming > 1%}<strong>speaking {{Monster.Title}}s</strong>
     {%else%}<strong>footsteps</strong>{%endif%}
-    can be faintly heard from inside this area
+    can be faintly heard from {{end_spoiler()}} inside this area
     %>
   Hint! @ [
     * There’s movement inside

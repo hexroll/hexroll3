@@ -93,8 +93,47 @@ CaveFeatureTier4 {
     ]
 }
 
-CaveMap {}
 
+CaveLoreFiendish {
+    Description! @ [
+        * A dank, sulfurous wound in the ground, this place is filled with infernal horrors from the depths of nightmare.
+        * Screams echo from the blackness inside, a harrowing chorus of sorrow and dread.
+        * Infernal heat pours out from the cave mouthes and a lurid orange glow beckons travellers within.
+        * Jagged rocks mark its entrances, like the maw of some terrible beast. The stench of sulfur drifts from the blackness within.
+        * Crimson stains paint the stone of the cave with arcs of colour, a stark contrast to the obsidian idols within.
+    ]
+}
+
+CaveLoreMine {
+    Description! @ [
+        * Discarded tools, abandoned carts, and bones litter its twisting passages. The darkness below the mountain hungers eternally.
+        * Its old halls rumbles ominously, as if some great beast were passing beneath. Ghostly echoes of ancient tools clatter, the commotion echoing through the tunnels.
+        * Caustic burns scar the tunnel walls inside, and precious little remains except scraps of corroded metal.
+        * Pools of rancid black ichor and unstable tunnels make passage through the darkness inside treacherous.
+        * Though it once echoed with the clamour of industry, the tunnels now lie silent. A reminder of the horrors which await in the dark.
+
+    ]
+}
+
+CaveLoreGiants {
+    Description! @ [
+        * A cave deemed hospitable by the towering residents and the beasts they keep. The smell permeates the woods nearby.
+        * Shattered bones litter the approach, the marrow within brutally devoured. Matted furs hang like ragged banners from posts driven into the ground nearby.
+        * Bestial roars echo from within the cave, punctuated by the sounds of combat.
+        * Remains of beasts lie chained around here - with giant footsteps around them.
+    ]
+}
+
+CaveLoreHideout {
+    Description! @ [
+        * A perfect hiding place for potentially dangerous wrongdoers. The damp air inside is thick with the stench of muck.
+        * Woven nets camouflage its entrences - leaves tied to the ropes adding to its natural appearance. The ground nearby is well-travelled.
+        * Domestic detritus is scattered around the enterances without care and the stench of potent alcohol drifts from within.
+        * Crude wooden barricades has been pulled across its enterances.
+    ]
+}
+
+CaveMap {}
 Cavern(Dungeon) {
   Name! @ CavernName
   HexLink! = :Hex.uuid
@@ -107,6 +146,12 @@ Cavern(Dungeon) {
     HexLink = &HexLink
     Coords = &Coords
   }
+
+  Lore! @@ [
+    * CaveLoreMine
+    * CaveLoreGiants
+    * CaveLoreHideout
+  ]
 
   | Dungeon
 
