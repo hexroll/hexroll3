@@ -27,14 +27,15 @@ use bevy::prelude::*;
 use hexx::*;
 
 use crate::{
+    battlemaps::dial_menu_layers_menu,
     clients::{controller::PerformHexMapActionInBackend, model::RerollEntity},
     hexmap::{
-        HexState, MapMessage,
+        builder::tune_editor_terrain_for_realm_type,
         elements::{AppendSandboxEntity, HexMapData, RemoveSandboxEntity},
     },
     shared::{
         settings::UserSettings,
-        vtt::{HexRevealState, VttData},
+        vtt::VttData,
         widgets::{
             dial::{
                 DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
@@ -43,7 +44,6 @@ use crate::{
             modal::DiscreteAppState,
         },
     },
-    vtt::sync::SyncMapForPeers,
 };
 
 use super::{
@@ -51,6 +51,7 @@ use super::{
     editor::{MapEditor, PenType},
     elements::{HexMapState, HexMapToolState, y_inverted_hexmap_layout},
     selecting::{detect_click, track_hex_under_cursor},
+    tune_editor_for_realm_type,
 };
 
 pub struct HexDialPlugin;
@@ -97,15 +98,7 @@ pub enum DialIcon {
     RealmEmpire,
     RealmKingdom,
     RealmDuchy,
-    LayerOverland,
     Layers,
-    Layer1,
-    Layer2,
-    Layer3,
-    Layer4,
-    Layer5,
-    Layer6,
-    Layer7,
 }
 
 fn setup(
@@ -250,54 +243,6 @@ fn setup(
             "icons/icon-layers.ktx2",
             &mut materials,
             &asset_server,
-        )
-        .add_item(
-            DialIcon::LayerOverland,
-            "icons/icon-overland.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer1,
-            "icons/icon-layer1.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer2,
-            "icons/icon-layer2.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer3,
-            "icons/icon-layer3.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer4,
-            "icons/icon-layer4.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer5,
-            "icons/icon-layer5.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer6,
-            "icons/icon-layer6.ktx2",
-            &mut materials,
-            &asset_server,
-        )
-        .add_item(
-            DialIcon::Layer7,
-            "icons/icon-layer7.ktx2",
-            &mut materials,
-            &asset_server,
         );
     commands.insert_resource(dial_assets);
 }
@@ -354,18 +299,18 @@ fn on_spawn_hex_dial(
         is_visible,
     }) {
         commands.entity(menu_entity).with_children(|c| {
-            const MAX_ITEMS_IN_DIAL: i32 = 6;
+            const MAX_ITEMS_IN_DIAL: i32 = 7;
             c.spawn_empty().spawn_menu_item(
-                1,
+                0,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Layers,
-                dial_menu_layers_menu(trigger.hex),
+                dial_menu_layers_menu(),
                 &dial_assets,
                 "Change Layers",
             );
             c.spawn_empty()
                 .spawn_menu_item(
-                    2,
+                    1,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Dice,
                     dial_menu_roll_menu(trigger.hex),
@@ -375,7 +320,7 @@ fn on_spawn_hex_dial(
                 .make_conditional_and_lockable(&locked, true);
             c.spawn_empty()
                 .spawn_menu_item(
-                    4,
+                    2,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Broom,
                     dial_menu_clean_menu(trigger.hex),
@@ -385,7 +330,7 @@ fn on_spawn_hex_dial(
                 .make_conditional_and_lockable(&locked, true);
             c.spawn_empty()
                 .spawn_menu_item(
-                    5,
+                    3,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Trash,
                     dial_menu_trash_menu(),
@@ -397,7 +342,7 @@ fn on_spawn_hex_dial(
             if standalone_sandbox {
                 c.spawn_empty()
                     .spawn_menu_item(
-                        3,
+                        5,
                         MAX_ITEMS_IN_DIAL,
                         DialIcon::Pencil,
                         dial_menu_draw_realm(),
@@ -434,102 +379,12 @@ fn create_editor_trigger_closure(
 ) -> impl Fn(On<Pointer<Click>>, ResMut<MapEditor>, ResMut<NextState<HexMapToolState>>) {
     move |_, mut editor, mut next_tool_state| {
         next_tool_state.set(HexMapToolState::Edit);
-        editor.realm_type = realm_type.to_string();
+        editor.realm_type = format!("RealmType{}", realm_type);
+        tune_editor_terrain_for_realm_type(&mut editor, realm_type);
+        editor.budget.target = 0;
         editor.pen = PenType::Brush;
         editor.terrain = TerrainType::MountainsHex;
     }
-}
-
-#[allow(clippy::type_complexity)]
-fn dial_menu_layers_menu(
-    _hex: Hex,
-) -> impl Fn(
-    On<Pointer<Click>>,
-    Commands,
-    Query<&ChildOf>,
-    Query<Entity, With<DialButton>>,
-    Res<DialAssets<DialIcon>>,
-) {
-    move |trigger, mut commands, parents, prev, dial_assets| {
-        for e in prev.iter() {
-            commands.entity(e).despawn();
-        }
-        let entity_pointer = parents.get(trigger.entity).unwrap();
-        commands.entity(entity_pointer.parent()).with_children(|c| {
-            const MAX_ITEMS_IN_DIAL: i32 = 8;
-            c.spawn_empty().spawn_menu_item(
-                5,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::LayerOverland,
-                make_layer_handler(0),
-                &dial_assets,
-                "Reveal Overland Layer",
-            );
-            c.spawn_empty().spawn_menu_item(
-                6,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer1,
-                make_layer_handler(1),
-                &dial_assets,
-                "Reveal Layer 1",
-            );
-            // .make_conditional_and_lockable(&locked, true);
-            c.spawn_empty().spawn_menu_item(
-                7,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer2,
-                make_layer_handler(2),
-                &dial_assets,
-                "Reveal Layer 2",
-            );
-            c.spawn_empty().spawn_menu_item(
-                0,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer3,
-                make_layer_handler(3),
-                &dial_assets,
-                "Reveal Layer 3",
-            );
-            c.spawn_empty().spawn_menu_item(
-                1,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer4,
-                make_layer_handler(4),
-                &dial_assets,
-                "Reveal Layer 4",
-            );
-            c.spawn_empty().spawn_menu_item(
-                2,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer5,
-                make_layer_handler(5),
-                &dial_assets,
-                "Reveal Layer 5",
-            );
-        });
-    }
-}
-
-fn make_layer_handler(
-    layer: u32,
-) -> impl Fn(On<Pointer<Click>>, Commands, ResMut<HexMapData>, ResMut<VttData>) {
-    return move |_: On<Pointer<Click>>,
-                 mut commands: Commands,
-                 mut map_data: ResMut<HexMapData>,
-                 mut vtt_data: ResMut<VttData>| {
-        let Some(selected) = map_data.selected else {
-            return;
-        };
-        let new_state = HexRevealState::Full(Some(layer));
-        vtt_data.revealed.insert(selected, new_state);
-        commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(HexState {
-            coords: selected,
-            is_ocean: false,
-            state: Some(new_state),
-        })));
-        map_data.force_refresh.push(selected);
-        vtt_data.invalidate_map = true;
-    };
 }
 
 #[allow(clippy::type_complexity)]
@@ -634,7 +489,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     10,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::RealmLands,
-                    create_editor_trigger_closure("RealmTypeLands"),
+                    create_editor_trigger_closure("Lands"),
                     &dial_assets,
                     "Draw lands",
                 )
@@ -644,7 +499,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     8,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::RealmDuchy,
-                    create_editor_trigger_closure("RealmTypeDuchy"),
+                    create_editor_trigger_closure("Duchy"),
                     &dial_assets,
                     "Draw a duchy",
                 )
@@ -654,7 +509,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     6,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::RealmKingdom,
-                    create_editor_trigger_closure("RealmTypeKingdom"),
+                    create_editor_trigger_closure("Kingdom"),
                     &dial_assets,
                     "Draw a kingdom",
                 )
@@ -664,7 +519,7 @@ fn dial_menu_draw_realm() -> impl Fn(
                     4,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::RealmEmpire,
-                    create_editor_trigger_closure("RealmTypeEmpire"),
+                    create_editor_trigger_closure("Empire"),
                     &dial_assets,
                     "Draw an empire",
                 )

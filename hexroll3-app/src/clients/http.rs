@@ -59,6 +59,7 @@ use crate::{
 };
 
 use super::controller::SearchEntitiesInBackend;
+use super::setup_solo_mode;
 use super::{
     RemoteBackendEvent,
     controller::{
@@ -508,6 +509,9 @@ pub fn receive_vtt_load_response(
             commands.insert_resource(data.0.settings);
             let mut vtt_data = data.0.vtt;
             vtt_data.patch_ephemeral_state(&existing_vtt_data);
+            if vtt_data.is_solo() {
+                commands.run_system_cached(setup_solo_mode);
+            }
             vtt_data.invalidate_map = true;
             commands.insert_resource(vtt_data);
             for t in data.0.tokens {

@@ -150,6 +150,7 @@ pub fn refresh_city_map(
         if let Some(uid) = &b.uid {
             if tx.load(uid).is_err() {
                 b.uid = None;
+                b.district_uid = None;
             }
         }
     }
@@ -213,6 +214,8 @@ pub fn populate_city_map(
             .iter_mut()
             .zip(relevant_map_districts.iter_mut())
         {
+            let district_uid =
+                entity_district.value["uuid"].as_str().unwrap().to_string();
             let shops = entity_district.value["shops"].as_array().unwrap();
             let mut shops_placed = false;
             for shop_uid in shops {
@@ -233,6 +236,15 @@ pub fn populate_city_map(
                 Some(map_district),
                 partial,
             )?;
+            // Stamp district_uid on every building so we can add entities
+            {
+                let buildings = locate_buildings_mut(map_data);
+                for &bi in &map_district.buildings {
+                    if buildings[bi].district_uid.is_none() {
+                        buildings[bi].district_uid = Some(district_uid.clone());
+                    }
+                }
+            }
             if shops_placed {
                 let centroid = find_centroid_f(&map_district.geometry);
                 entity_district
@@ -275,6 +287,15 @@ pub fn populate_city_map(
             None,
             partial,
         )?;
+        // Stamp district_uid on every building so we can add entities
+        {
+            let buildings = locate_buildings_mut(map_data);
+            for b in buildings.iter_mut() {
+                if b.district_uid.is_none() {
+                    b.district_uid = Some(district_uid.to_string());
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -796,6 +817,7 @@ pub mod json {
     pub struct Polygon {
         pub points: Vec<Vec<f64>>,
         pub uid: Option<String>,
+        pub district_uid: Option<String>,
         pub uid1: Option<String>,
         pub uid2: Option<String>,
         pub uid3: Option<String>,

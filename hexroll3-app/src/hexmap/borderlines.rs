@@ -27,7 +27,10 @@ use bevy::{camera::visibility::RenderLayers, prelude::*};
 
 use crate::{
     hexmap::elements::{HexMapData, HexMapResources, RealmBorderline},
-    shared::layers::{HEIGHT_OF_REALM_BORDERLINES, RENDER_LAYER_MAP_LOD_LOW},
+    shared::{
+        layers::{HEIGHT_OF_REALM_BORDERLINES, RENDER_LAYER_MAP_LOD_LOW},
+        vtt::VttData,
+    },
 };
 
 pub fn spawn_realm_borderlines(
@@ -36,8 +39,9 @@ pub fn spawn_realm_borderlines(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     assets: Res<HexMapResources>,
+    vtt_data: Res<VttData>,
 ) {
-    if map_data.realm_borderlines.is_empty() {
+    if map_data.realm_borderlines.is_empty() || vtt_data.is_solo() {
         return;
     }
     let batch_size = map_data.realm_borderlines.len().min(5);

@@ -31,20 +31,24 @@ use bevy::{
 use bevy_vector_shapes::prelude::*;
 
 use crate::{
-    hexmap::elements::{HexMapState, MainCamera},
+    hexmap::{
+        HexState, MapMessage,
+        elements::{HexMapData, HexMapState, MainCamera},
+    },
     shared::{
         layers::HEIGHT_OF_TOKENS,
-        vtt::VttData,
+        vtt::{HexRevealState, VttData},
         widgets::{
             cursor::{PointerExclusivityIsPreferred, pointer_world_position},
             dial::{
-                DialAssets, DialButtonState, DialMenuCommands, DialMenuOptions,
+                DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
                 MenuItemSpawner, placeholder_click_handler,
             },
             modal::DiscreteAppState,
         },
     },
     tokens::{DuplicateLastSpawnedToken, SpawnTokenFromLibrary, TeleportSelectedTokens},
+    vtt::sync::SyncMapForPeers,
 };
 
 use crate::hexmap::elements::HexMapToolState;
@@ -61,13 +65,22 @@ impl Plugin for BattlemapDialPlugin {
 }
 
 #[derive(Hash, Clone, PartialEq, Eq, Copy)]
-enum DialIcon {
+pub enum DialIcon {
     Spawn,
     Draw,
     Select,
     Teleport,
     Vfx,
     Respawn,
+    LayerOverland,
+    Layers,
+    Layer1,
+    Layer2,
+    Layer3,
+    Layer4,
+    Layer5,
+    Layer6,
+    Layer7,
 }
 
 fn setup(
@@ -116,6 +129,60 @@ fn setup(
             "icons/icon-skulls-256.ktx2",
             &mut materials,
             &asset_server,
+        )
+        .add_item(
+            DialIcon::Layers,
+            "icons/icon-layers.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::LayerOverland,
+            "icons/icon-overland.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer1,
+            "icons/icon-layer1.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer2,
+            "icons/icon-layer2.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer3,
+            "icons/icon-layer3.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer4,
+            "icons/icon-layer4.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer5,
+            "icons/icon-layer5.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer6,
+            "icons/icon-layer6.ktx2",
+            &mut materials,
+            &asset_server,
+        )
+        .add_item(
+            DialIcon::Layer7,
+            "icons/icon-layer7.ktx2",
+            &mut materials,
+            &asset_server,
         );
     commands.insert_resource(dial_assets);
 }
@@ -157,9 +224,9 @@ fn on_spawn_battlemap_dial(
         is_visible,
     }) {
         commands.entity(menu_entity).with_children(|c| {
-            const MAX_ITEMS_IN_DIAL: i32 = 12;
+            const MAX_ITEMS_IN_DIAL: i32 = 7;
             c.spawn_empty().spawn_menu_item(
-                12,
+                0,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Spawn,
                 move |_: On<Pointer<Click>>,
@@ -174,7 +241,20 @@ fn on_spawn_battlemap_dial(
                 "Spawn new token",
             );
             c.spawn_empty().spawn_menu_item(
-                4,
+                1,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Respawn,
+                move |_: On<Pointer<Click>>,
+                      mut commands: Commands,
+                      mut next_state: ResMut<NextState<HexMapToolState>>| {
+                    commands.trigger(DuplicateLastSpawnedToken { duplicate_pos: pos });
+                    next_state.set(HexMapToolState::Selection);
+                },
+                &dial_assets,
+                "Respawn last spawned token",
+            );
+            c.spawn_empty().spawn_menu_item(
+                2,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Select,
                 move |_: On<Pointer<Click>>,
@@ -192,7 +272,7 @@ fn on_spawn_battlemap_dial(
                 "Select tokens by region",
             );
             c.spawn_empty().spawn_menu_item(
-                8,
+                3,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Teleport,
                 move |_: On<Pointer<Click>>,
@@ -206,7 +286,7 @@ fn on_spawn_battlemap_dial(
             );
             c.spawn_empty()
                 .spawn_menu_item(
-                    6,
+                    4,
                     MAX_ITEMS_IN_DIAL,
                     DialIcon::Vfx,
                     placeholder_click_handler(),
@@ -215,7 +295,7 @@ fn on_spawn_battlemap_dial(
                 )
                 .insert(DialButtonState::Disabled);
             c.spawn_empty().spawn_menu_item(
-                10,
+                5,
                 MAX_ITEMS_IN_DIAL,
                 DialIcon::Draw,
                 move |_: On<Pointer<Click>>,
@@ -235,17 +315,12 @@ fn on_spawn_battlemap_dial(
                 "Dry-erase marker",
             );
             c.spawn_empty().spawn_menu_item(
-                2,
+                6,
                 MAX_ITEMS_IN_DIAL,
-                DialIcon::Respawn,
-                move |_: On<Pointer<Click>>,
-                      mut commands: Commands,
-                      mut next_state: ResMut<NextState<HexMapToolState>>| {
-                    commands.trigger(DuplicateLastSpawnedToken { duplicate_pos: pos });
-                    next_state.set(HexMapToolState::Selection);
-                },
+                DialIcon::Layers,
+                dial_menu_layers_menu(),
                 &dial_assets,
-                "Respawn last spawned token",
+                "Change Layers",
             );
         });
     }
@@ -330,4 +405,94 @@ pub struct BattlemapSelectionFinalizing;
 pub struct BattlemapSelection {
     pub from: Vec3,
     pub radius: f32,
+}
+
+#[allow(clippy::type_complexity)]
+pub fn dial_menu_layers_menu() -> impl Fn(
+    On<Pointer<Click>>,
+    Commands,
+    Query<&ChildOf>,
+    Query<Entity, With<DialButton>>,
+    Res<DialAssets<DialIcon>>,
+) {
+    move |trigger, mut commands, parents, prev, dial_assets| {
+        for e in prev.iter() {
+            commands.entity(e).despawn();
+        }
+        let entity_pointer = parents.get(trigger.entity).unwrap();
+        commands.entity(entity_pointer.parent()).with_children(|c| {
+            const MAX_ITEMS_IN_DIAL: i32 = 8;
+            c.spawn_empty().spawn_menu_item(
+                0,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::LayerOverland,
+                make_layer_handler(0),
+                &dial_assets,
+                "Reveal Overland Layer",
+            );
+            c.spawn_empty().spawn_menu_item(
+                1,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Layer1,
+                make_layer_handler(1),
+                &dial_assets,
+                "Reveal Layer 1",
+            );
+            // .make_conditional_and_lockable(&locked, true);
+            c.spawn_empty().spawn_menu_item(
+                2,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Layer2,
+                make_layer_handler(2),
+                &dial_assets,
+                "Reveal Layer 2",
+            );
+            c.spawn_empty().spawn_menu_item(
+                3,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Layer3,
+                make_layer_handler(3),
+                &dial_assets,
+                "Reveal Layer 3",
+            );
+            c.spawn_empty().spawn_menu_item(
+                4,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Layer4,
+                make_layer_handler(4),
+                &dial_assets,
+                "Reveal Layer 4",
+            );
+            c.spawn_empty().spawn_menu_item(
+                5,
+                MAX_ITEMS_IN_DIAL,
+                DialIcon::Layer5,
+                make_layer_handler(5),
+                &dial_assets,
+                "Reveal Layer 5",
+            );
+        });
+    }
+}
+
+fn make_layer_handler(
+    layer: u32,
+) -> impl Fn(On<Pointer<Click>>, Commands, ResMut<HexMapData>, ResMut<VttData>) {
+    return move |_: On<Pointer<Click>>,
+                 mut commands: Commands,
+                 mut map_data: ResMut<HexMapData>,
+                 mut vtt_data: ResMut<VttData>| {
+        let Some(selected) = map_data.selected else {
+            return;
+        };
+        let new_state = HexRevealState::Full(Some(layer));
+        vtt_data.revealed.insert(selected, new_state);
+        commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(HexState {
+            coords: selected,
+            is_ocean: false,
+            state: Some(new_state),
+        })));
+        map_data.force_refresh.push(selected);
+        vtt_data.invalidate_map = true;
+    };
 }

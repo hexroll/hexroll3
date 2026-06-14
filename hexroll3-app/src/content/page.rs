@@ -57,11 +57,14 @@ use crate::{
     hexmap::elements::{FetchEntityFromStorage, HexMapData},
     shared::{
         AppState,
+        input::InputMode,
         layers::{RENDER_LAYER_CONTENT_OFFSCREEN, RENDER_LAYER_CONTENT_ONSCREEN},
         settings::Config,
         tweens::UiImageNodeAlphaLens,
-        widgets::cursor::PointerOnHover,
-        widgets::{buttons::MenuButtonDisabled, cursor::CursorController},
+        widgets::{
+            buttons::{MenuButtonDisabled, ToggleResourceWrapper},
+            cursor::{CursorController, PointerOnHover},
+        },
     },
 };
 
@@ -69,7 +72,7 @@ use super::{
     ContentDarkMode, ContentMode, EditableProxy, EntityRenderingCompleted, NpcAnchor,
     ScrollToAnchor,
     clipboard::CopyOnRightClick,
-    context::ContentContext,
+    context::{ContentContext, Spoilers},
     demidom::*,
     header::{EditableTitleInput, make_header_bundle, update_header_buttons_state},
     viewport::get_split_content_metrics,
@@ -329,6 +332,7 @@ fn set_grip_size(
 
 fn setup(
     mut commands: Commands,
+    spoilers: Res<ToggleResourceWrapper<Spoilers>>,
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -413,7 +417,7 @@ fn setup(
             BackgroundColor(Color::WHITE),
         ))
         .with_children(|mut c| {
-            make_header_bundle(&mut c, &asset_server);
+            make_header_bundle(&mut c, &asset_server, &spoilers.value);
             c.spawn((
                 ContentScroll,
                 ScrollView {
@@ -835,12 +839,14 @@ fn on_render_entity_content(
     window: Single<Entity, With<PrimaryWindow>>,
     reroller: Single<Entity, With<super::header::RerollButtonMarker>>,
     mut cursor_controller: ResMut<CursorController>,
+    spoilers: Res<ToggleResourceWrapper<Spoilers>>,
 ) {
     let Some(content_assets) = content_assets else {
         return;
     };
     let data = &trigger.data;
     let why = &trigger.why;
+    content_stuff.spoilers = spoilers.value == Spoilers::Hidden;
 
     let resp = render_entity_page(
         data,
@@ -928,7 +934,11 @@ fn wasd_hex_navigation(
     content_context: Res<ContentContext>,
     map_data: Res<HexMapData>,
     mut commands: Commands,
+    input_mode: Res<InputMode>,
 ) {
+    if !input_mode.keyboard_available() {
+        return;
+    }
     let direction = if keyboard.just_pressed(KeyCode::KeyW) {
         EdgeDirection::FLAT_SOUTH
     } else if keyboard.just_pressed(KeyCode::KeyS) {

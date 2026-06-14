@@ -174,8 +174,11 @@ pub fn on_connect(
     }
 }
 
-pub fn on_click_vtt() -> impl Fn(On<Pointer<Click>>, Commands) {
-    move |_, mut commands| {
+pub fn on_click_vtt() -> impl Fn(On<Pointer<Click>>, Commands, Res<VttData>) {
+    move |_, mut commands, vtt_data| {
+        if vtt_data.is_solo() {
+            return;
+        }
         commands.trigger(ConnectVtt);
     }
 }

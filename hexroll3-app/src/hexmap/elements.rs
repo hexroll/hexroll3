@@ -92,6 +92,7 @@ pub struct PreparedHexTile {
     pub river_tile: Option<Vec<(i32, Handle<Mesh>)>>,
     pub trail_tile: Option<Vec<(i32, Handle<Mesh>)>>,
     pub feature: HexFeature,
+    pub user_placed_feature: bool,
     pub metadata: HexMetadata,
     pub generated: bool,
     pub pool_id: i32,

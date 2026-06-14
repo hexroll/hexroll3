@@ -101,9 +101,6 @@ pub fn make_mesh_from_outline(
             path_builder.line_to(point.clone());
         }
 
-        // if let Some(start_point) = outline.first() {
-        //     path_builder.line_to(point(start_point.x, start_point.y));
-        // }
         path_builder.end(true);
 
         path_builder.close();
@@ -113,7 +110,6 @@ pub fn make_mesh_from_outline(
 
     let mut geometry: VertexBuffers<Point, u32> = VertexBuffers::new();
     {
-        // let mut tessellator = FillTessellator::new();
         let options = StrokeOptions::default()
             .with_tolerance(0.1)
             .with_line_width(stroke_width);
@@ -122,8 +118,6 @@ pub fn make_mesh_from_outline(
             .tessellate_path(
                 &path,
                 &options,
-                // &FillOptions::default(),
-                // &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| vertex.position()),
                 &mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| {
                     vertex.position()
                 }),
@@ -155,7 +149,6 @@ pub fn make_mesh_from_outline(
             .map(|v| [v[0], v[1], v[2]])
             .collect::<Vec<[f32; 3]>>(),
     )
-    // .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_NORMAL,
         vertices
@@ -188,23 +181,18 @@ pub fn make_filled_mesh_from_outline(outline: &[lyon::math::Point]) -> bevy::pre
 
     let mut geometry: VertexBuffers<Point, u32> = VertexBuffers::new();
     {
-        // let mut tessellator = FillTessellator::new();
         let options = FillOptions::default().with_tolerance(0.1);
         let mut tessellator = FillTessellator::new();
         tessellator
             .tessellate_path(
                 &path,
                 &options,
-                // &FillOptions::default(),
-                // &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| vertex.position()),
                 &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
                     vertex.position()
                 }),
             )
             .unwrap();
     }
-
-    // Create a mesh from the tessellated geometry
 
     let vertices = geometry
         .vertices
@@ -275,23 +263,18 @@ pub fn make_filled_mesh_from_path(path: lyon::path::Path) -> bevy::prelude::Mesh
 
     let mut geometry: VertexBuffers<Point, u32> = VertexBuffers::new();
     {
-        // let mut tessellator = FillTessellator::new();
         let options = FillOptions::default().with_tolerance(0.005);
         let mut tessellator = FillTessellator::new();
         tessellator
             .tessellate_path(
                 &path,
                 &options,
-                // &FillOptions::default(),
-                // &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| vertex.position()),
                 &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
                     vertex.position()
                 }),
             )
             .unwrap();
     }
-
-    // Create a mesh from the tessellated geometry
 
     let vertices = geometry
         .vertices
@@ -364,7 +347,6 @@ pub fn make_mesh_from_outline2(
 
     let mut geometry: VertexBuffers<Point, u32> = VertexBuffers::new();
     {
-        // let mut tessellator = FillTessellator::new();
         let options = StrokeOptions::default()
             .with_tolerance(0.1)
             .with_line_width(stroke_width);
@@ -373,16 +355,12 @@ pub fn make_mesh_from_outline2(
             .tessellate_path(
                 &path,
                 &options,
-                // &FillOptions::default(),
-                // &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| vertex.position()),
                 &mut BuffersBuilder::new(&mut geometry, |vertex: StrokeVertex| {
                     vertex.position()
                 }),
             )
             .unwrap();
     }
-
-    // Create a mesh from the tessellated geometry
 
     let vertices = geometry
         .vertices
@@ -406,7 +384,6 @@ pub fn make_mesh_from_outline2(
             .map(|v| [v[0], v[1], v[2]])
             .collect::<Vec<[f32; 3]>>(),
     )
-    // .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_NORMAL,
         vertices

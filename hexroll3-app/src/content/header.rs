@@ -34,22 +34,17 @@ use crate::{
     shared::widgets::{
         buttons::{
             MenuButtonDisabled, MenuButtonEffects, MenuButtonSwitcher,
-            MenuButtonSwitcherState, ToggleButtonSwitcher,
+            MenuButtonSwitcherState, ToggleButtonSwitcher, ToggleButtonSwitcherEx,
+            ToggleResourceWrapper,
         },
         link::ContentHoverLink,
     },
 };
 
 use super::{
-    EditableAttributeParams, ThemeBackgroundColor, demidom::RollerIcon,
+    EditableAttributeParams, ThemeBackgroundColor, context::Spoilers, demidom::RollerIcon,
     spoiler::SpoilerMaskMarker,
 };
-
-#[derive(Component, Default)]
-struct MaskIconNodeOn;
-
-#[derive(Component, Default)]
-struct MaskIconNodeOff;
 
 #[derive(Component, Default)]
 struct LockIconNodeLocked;
@@ -69,9 +64,13 @@ pub struct BackButtonMarker;
 #[derive(Component)]
 pub struct ForwardButtonMarker;
 
+#[derive(Component)]
+pub struct ContentSpoilersMarker;
+
 pub fn make_header_bundle(
     c: &mut RelatedSpawnerCommands<'_, ChildOf>,
     asset_server: &Res<AssetServer>,
+    spoilers: &Spoilers,
 ) {
     c.spawn((
         Name::new("ContentHeaderPanel"),
@@ -217,47 +216,36 @@ pub fn make_header_bundle(
         .with_children(|c| {
             c.spawn((
                 Name::new("ContentSpoilersButton"),
+                ContentSpoilersMarker,
                 Node {
                     width: Val::Px(36.0),
                     height: Val::Px(36.0),
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                MenuButtonSwitcherState::Idle,
             ))
+            .menu_button_switch_ex::<Spoilers>(
+                spoilers.clone(),
+                vec![
+                    asset_server.load("icons/icon-mask-off.ktx2"),
+                    asset_server.load("icons/icon-mask-on.ktx2"),
+                ],
+                32.0,
+            )
             .menu_button_hover_effect()
             .observe(
                 |trigger: On<Pointer<Click>>,
-                 mut content_stuff: ResMut<ContentContext>,
-                 mut masks: Query<(&mut Node, &SpoilerMaskMarker)>,
-                 state: Query<&MenuButtonSwitcherState>,
-                 mut commands: Commands| {
-                    let Ok(state) = state.get(trigger.entity) else {
-                        return;
-                    };
-
-                    // NOTE: Toggle state switch
-                    // TODO: Can we make this generic?
-                    if state.toggled() {
-                        content_stuff.spoilers = false;
-                        commands.entity(trigger.entity).trigger(|entity| {
-                            ToggleButtonSwitcher {
-                                entity,
-                                state: MenuButtonSwitcherState::Idle,
-                            }
+                 mut commands: Commands,
+                 current: Res<ToggleResourceWrapper<Spoilers>>,
+                 mut masks: Query<(&mut Node, &SpoilerMaskMarker)>| {
+                    commands
+                        .entity(trigger.entity)
+                        .trigger(|entity| ToggleButtonSwitcherEx {
+                            entity,
+                            trigger_state_as_event: false,
+                            insert_state_as_resource: true,
                         });
-                    } else {
-                        content_stuff.spoilers = true;
-                        commands.entity(trigger.entity).trigger(|entity| {
-                            ToggleButtonSwitcher {
-                                entity,
-                                state: MenuButtonSwitcherState::Toggled,
-                            }
-                        });
-                    }
-
-                    // NOTE: Toggle functionality
-                    if content_stuff.spoilers {
+                    if current.value == Spoilers::Hidden {
                         masks.iter_mut().for_each(|(mut node, _)| {
                             node.display = Display::DEFAULT;
                         });
@@ -267,11 +255,6 @@ pub fn make_header_bundle(
                         });
                     }
                 },
-            )
-            .menu_button_switch::<MaskIconNodeOff, MaskIconNodeOn>(
-                asset_server.load("icons/icon-mask-off.ktx2"),
-                asset_server.load("icons/icon-mask-on.ktx2"),
-                32.0,
             );
 
             c.spawn((

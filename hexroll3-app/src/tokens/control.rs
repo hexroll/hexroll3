@@ -731,7 +731,9 @@ fn add_outline_to_tokens(
     vtt_data: Res<VttData>,
 ) {
     for (e, p) in query.iter() {
-        if selection.contains(p.0) || vtt_data.mode == HexMapMode::RefereeAsPlayer {
+        if selection.contains(p.0)
+            || (vtt_data.mode == HexMapMode::RefereeAsPlayer && !vtt_data.is_solo())
+        {
             commands
                 .entity(e)
                 .try_remove::<bevy_mod_outline::ComputedOutline>();
@@ -757,7 +759,9 @@ fn remove_outline_from_tokens(
     vtt_data: Res<VttData>,
 ) {
     for (e, p) in query.iter() {
-        if !selection.contains(p.0) && vtt_data.mode != HexMapMode::RefereeAsPlayer {
+        if !selection.contains(p.0)
+            && (vtt_data.mode != HexMapMode::RefereeAsPlayer || vtt_data.is_solo())
+        {
             commands
                 .entity(e)
                 .try_remove::<bevy_mod_outline::ComputedOutline>();

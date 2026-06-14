@@ -23,9 +23,9 @@
 // for more information about commercial licensing terms.
 */
 
-use bevy::ecs::resource::Resource;
+use bevy::ecs::{component::Component, resource::Resource};
 
-use crate::clients::model::FetchEntityReason;
+use crate::{clients::model::FetchEntityReason, shared::widgets::buttons::Switch};
 
 #[derive(Debug, Resource, Default)]
 pub struct ContentContext {
@@ -92,6 +92,37 @@ impl ContentContext {
             Some(ret)
         } else {
             None
+        }
+    }
+}
+
+#[derive(Component, Default, PartialEq, Clone)]
+pub enum Spoilers {
+    #[default]
+    Visible,
+    Hidden,
+}
+
+impl Switch for Spoilers {
+    fn rotate(&self) -> Self {
+        match self {
+            Spoilers::Visible => Spoilers::Hidden,
+            Spoilers::Hidden => Spoilers::Visible,
+        }
+    }
+
+    fn index(&self) -> usize {
+        match self {
+            Spoilers::Visible => 0,
+            Spoilers::Hidden => 1,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        match index {
+            0 => Spoilers::Visible,
+            1 => Spoilers::Hidden,
+            _ => unreachable!(),
         }
     }
 }

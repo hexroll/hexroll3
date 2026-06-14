@@ -72,6 +72,7 @@ use hexroll3_app::{
         gltf::GltfProcessorPlugin,
         input::InputMode,
         settings::{self, UserSettings},
+        snapshot::SnapshotPlugin,
         spawnq::SpawnQueuePlugin,
         tweens::SharedTweensPlugin,
         widgets::{cursor::CursorController, list::ListPlugin, modal::ModalPlugin},
@@ -155,6 +156,7 @@ fn main() {
         .add_plugins(intro::IntroPlugin)
         .add_plugins(help::HelpPlugin)
         .add_plugins(PhysicsPlugins::default())
+        .add_plugins(SnapshotPlugin)
         .add_plugins(DialogsPlugin)
         .add_plugins(ScrollViewPlugin)
         .add_plugins(HanabiPlugin)

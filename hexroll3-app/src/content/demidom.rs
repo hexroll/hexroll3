@@ -49,7 +49,7 @@ use crate::{
     clients::model::{FetchEntityReason, RerollEntity},
     content::ContentMode,
     dice::RollDice,
-    hexmap::elements::{AppendSandboxEntity, FetchEntityFromStorage, HexMapData, MainCamera},
+    hexmap::elements::{AppendSandboxEntity, FetchEntityFromStorage, HexMapData},
     shared::{
         camera::MapCoords,
         layers::HEIGHT_OF_TOKENS,
@@ -61,8 +61,7 @@ use crate::{
 
 use super::{
     EditableAttributeParams, EditableProxy, NpcAnchor, ThemeBackgroundColor,
-    clipboard::CopyOnRightClick, context::ContentContext, header::EditableTitleInput,
-    spoiler::ContentIsSpoiler,
+    clipboard::CopyOnRightClick, header::EditableTitleInput, spoiler::ContentIsSpoiler,
 };
 
 #[derive(Clone, Debug)]
@@ -511,9 +510,8 @@ impl DemidomRenderContext {
     pub fn spawn_token_spawner(
         &mut self,
         commands: &mut Commands,
-        attrs: String,
+        _attrs: String,
         font_size: f32,
-        visible: bool,
         coords: MapCoords,
     ) {
         let size = font_size * (30.0 / 24.0);
@@ -1150,7 +1148,6 @@ pub fn render_demidom(
                     &mut commands,
                     attributes.clone(),
                     font.size,
-                    context.unlocked,
                     coords.clone(),
                 );
             }
@@ -2462,23 +2459,15 @@ pub fn roller_click()
 
 pub fn spawner_click(
     coords: MapCoords,
-) -> impl Fn(
-    On<Pointer<Click>>,
-    Commands,
-    Single<&Transform, With<MainCamera>>,
-    Res<HexMapData>,
-    Res<ContentContext>,
-) {
-    move |trigger, mut commands, t, hex_map, context| {
+) -> impl Fn(On<Pointer<Click>>, Commands, Res<HexMapData>) {
+    move |_, mut commands, hex_map| {
         if let Some(pos) =
-            // &context.current_hex_uid.as_ref().unwrap(),
             hex_map.get_canonical_pos(&coords.hex, Vec2::new(coords.x, coords.y))
         {
             commands.trigger(SpawnTokenFromLibrary {
                 pos: Vec3::new(pos.x + 0.5, HEIGHT_OF_TOKENS, pos.y + 0.5),
             });
         }
-        // let pos = t.translation;
     }
 }
 

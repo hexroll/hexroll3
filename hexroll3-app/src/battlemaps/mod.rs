@@ -106,6 +106,7 @@ pub use drawing::DryeraseDrawingMessage;
 pub use battlemap_dial::BattlemapDialProvider;
 pub use battlemap_dial::BattlemapSelection;
 pub use battlemap_dial::BattlemapSelectionFinalizing;
+pub use battlemap_dial::dial_menu_layers_menu;
 
 pub use ruler::BattlemapsRuler;
 pub use ruler::RulerDragData;

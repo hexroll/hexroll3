@@ -32,7 +32,6 @@ use crate::{
     hexmap::elements::HexEntity,
     shared::{
         settings::UserSettings,
-        // snapshot::{FreezeScreenSnapshot, RemoteRefreshState},
         vtt::{HexRevealState, VttData},
     },
 };
@@ -133,11 +132,10 @@ pub fn on_map_message(
                             cache.jsons.insert(key.clone(), buffer);
                             cache.hashes.insert(key.clone(), chunk_data.hash);
                         }
-                        visible_hexes.iter().for_each(|(e, h)| {
+                        visible_hexes.iter().for_each(|(_, h)| {
                             if let Some(revealed_hex) = map_data.hexes.get(&h.hex) {
                                 if revealed_hex.uid.as_str() == key {
                                     map_data.force_refresh.push(h.hex);
-                                    debug!("Screen freeze initiated");
                                 }
                             }
                         });
@@ -203,9 +201,6 @@ pub fn on_map_message(
             }
         }
         MapMessage::ReloadMap(hex_uid) => {
-            // debug!("Screen freeze initiated");
-            // commands.trigger(FreezeScreenSnapshot);
-            // next_refresh_state.set(RemoteRefreshState::Initiated);
             if !user_settings.local.unwrap_or(false) {
                 if let Some(uid) = hex_uid {
                     commands.trigger(RequestMapFromBackend {

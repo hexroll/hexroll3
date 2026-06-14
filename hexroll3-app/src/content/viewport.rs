@@ -28,8 +28,8 @@ use std::time::Duration;
 use crate::{
     hexmap::elements::{HexMarkerEntity, MainCamera},
     shared::{
-        tweens::{CameraViewportLens, UiNodeLens, UiNodeSizePos},
         AppState,
+        tweens::{CameraViewportLens, UiNodeLens, UiNodeSizePos},
     },
 };
 
@@ -37,9 +37,9 @@ use bevy::{camera::Viewport, prelude::*, window::PrimaryWindow};
 use bevy_editor_cam::prelude::EditorCam;
 
 use super::{
+    ContentMode, PAGE_HEIGHT_PORTRAIT, PAGE_WIDTH_LANDSCAPE,
     header::EditableTitleInput,
     page::{ContentCamera, ContentPage},
-    ContentMode, PAGE_HEIGHT_PORTRAIT, PAGE_WIDTH_LANDSCAPE,
 };
 
 pub struct ViewportControllerPlugin;

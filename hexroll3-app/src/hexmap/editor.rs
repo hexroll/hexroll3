@@ -43,7 +43,9 @@ use crate::{
     shared::{
         vtt::*,
         widgets::{
-            cursor::PointerExclusivityIsPreferred, knob::GeneratorKnob, link::ContentHoverLink,
+            cursor::PointerExclusivityIsPreferred,
+            knob::{GeneratorKnob, inverse_exponential_graph_value},
+            link::ContentHoverLink,
         },
     },
 };
@@ -63,7 +65,6 @@ fn enter_edit_mode_setup(
     mut editor: ResMut<MapEditor>,
 ) {
     editor.budget.target = 0;
-    editor.budget.current = 0;
     vtt_data.edit_mode = true;
     for (mask, mut vis) in masks.iter_mut() {
         if map.hexes.get(&mask.0).map_or(false, |t| t.generated) {
@@ -156,15 +157,11 @@ impl PenType {
 #[derive(Default)]
 pub struct Knob {
     pub target: i32,
-    pub current: i32,
 }
 
 impl Knob {
     pub fn from(value: i32) -> Self {
-        Self {
-            target: value,
-            current: 0,
-        }
+        Self { target: value }
     }
 }
 
@@ -226,21 +223,6 @@ fn get_feature_ratio_for_realm_type(realm_type: &str, feature_type: HexFeature) 
         };
     }
     return 0.0;
-}
-fn get_region_volume_for_realm_type(realm_type: &str) -> i32 {
-    if realm_type == "RealmTypeKingdom" {
-        return 12;
-    }
-    if realm_type == "RealmTypeEmpire" {
-        return 16;
-    }
-    if realm_type == "RealmTypeLands" {
-        return 14;
-    }
-    if realm_type == "RealmTypeDuchy" {
-        return 8;
-    }
-    return 10;
 }
 
 pub fn random_neighboring_hexes(coords: Hex) -> Vec<Hex> {
@@ -311,6 +293,7 @@ pub fn draw_tiles(
                         river_tile: None,
                         trail_tile: None,
                         feature: HexFeature::None,
+                        user_placed_feature: false,
                         metadata: HexMetadata {
                             harbor: None,
                             river_dir: 0.0,
@@ -392,6 +375,7 @@ pub fn draw_tiles(
                     {
                         if let Some(data) = map.hexes.get_mut(&coord) {
                             data.feature = editor.selected_feature.clone();
+                            data.user_placed_feature = true;
                         }
                         let material = if let Some(data) = map.hexes.get(&coord) {
                             get_tile_material(coord, data.hex_type.clone(), &map.hexes, &tiles)
@@ -423,91 +407,107 @@ struct DelFeature(HexFeature);
 fn on_add_features(
     trigger: On<AddFeature>,
     mut commands: Commands,
-    to_extend: Query<(Entity, &HexEntity), With<TempHex>>,
+    spawned_hexes: Query<(Entity, &HexEntity)>,
     mut map: ResMut<HexMapData>,
     mut vtt_data: ResMut<VttData>,
     tiles: Res<HexMapTileMaterials>,
-    mut editor: ResMut<MapEditor>,
 ) {
-    let range = to_extend.count();
-    let pick_count = 1usize.min(range);
-    if pick_count == 0 {
+    let candidates: Vec<Hex> = map
+        .hexes
+        .iter()
+        .filter(|(_, t)| !t.generated && t.feature == HexFeature::None)
+        .map(|(h, _)| *h)
+        .collect();
+
+    if candidates.is_empty() {
         return;
     }
-    let indices: Vec<usize> = sample(&mut rand::thread_rng(), range, pick_count).into_vec();
 
-    let mut retrying_next = false;
-    for (i, (e, hex_coords)) in to_extend.iter().enumerate() {
-        if indices.contains(&i) || retrying_next {
-            if let Some(data) = map.hexes.get_mut(&hex_coords.hex) {
-                if data.feature == HexFeature::None {
-                    data.feature = trigger.0.clone();
-                    retrying_next = false;
-                } else {
-                    retrying_next = true;
-                    continue;
-                }
-            }
-            let material = if let Some(data) = map.hexes.get(&hex_coords.hex) {
-                get_tile_material(hex_coords.hex, data.hex_type.clone(), &map.hexes, &tiles)
-            } else {
-                continue;
-            };
-            if let Some(data) = map.hexes.get_mut(&hex_coords.hex) {
-                data.hex_tile_material = material;
-                commands.entity(e).try_despawn();
-            }
+    let indices = sample(&mut rand::thread_rng(), candidates.len(), 1).into_vec();
+    let picked_hex = candidates[indices[0]];
+
+    if let Some(data) = map.hexes.get_mut(&picked_hex) {
+        data.feature = trigger.0.clone();
+    }
+    let material = if let Some(data) = map.hexes.get(&picked_hex) {
+        get_tile_material(picked_hex, data.hex_type.clone(), &map.hexes, &tiles)
+    } else {
+        return;
+    };
+    if let Some(data) = map.hexes.get_mut(&picked_hex) {
+        data.hex_tile_material = material;
+    }
+
+    for (e, hex_entity) in spawned_hexes.iter() {
+        if hex_entity.hex == picked_hex {
+            commands.entity(e).try_despawn();
+            break;
         }
     }
+
     vtt_data.invalidate_map = true;
-    editor.knobs.get_mut(&trigger.0).unwrap().current += 1;
 }
 
 fn on_del_features(
     trigger: On<DelFeature>,
     mut commands: Commands,
-    to_extend: Query<(Entity, &HexEntity), With<TempHex>>,
+    spawned_hexes: Query<(Entity, &HexEntity)>,
     mut map: ResMut<HexMapData>,
     mut vtt_data: ResMut<VttData>,
     tiles: Res<HexMapTileMaterials>,
-    mut editor: ResMut<MapEditor>,
 ) {
-    let mut to_extend_vec: Vec<_> = to_extend.iter().collect();
-    to_extend_vec.shuffle(&mut rand::thread_rng());
-    for (e, hex_coords) in to_extend_vec.iter() {
-        if let Some(data) = map.hexes.get_mut(&hex_coords.hex) {
-            if data.feature == trigger.0 {
-                data.feature = HexFeature::None;
-            } else {
-                continue;
-            }
-        }
-        let material = if let Some(data) = map.hexes.get(&hex_coords.hex) {
-            get_tile_material(hex_coords.hex, data.hex_type.clone(), &map.hexes, &tiles)
-        } else {
-            continue;
-        };
-        if let Some(data) = map.hexes.get_mut(&hex_coords.hex) {
-            data.hex_tile_material = material;
-            commands.entity(*e).try_despawn();
-            debug!(" despawing entity hex");
-        }
-        break;
+    let mut candidates: Vec<Hex> = map
+        .hexes
+        .iter()
+        .filter(|(_, t)| !t.generated && t.feature == trigger.0 && !t.user_placed_feature)
+        .map(|(h, _)| *h)
+        .collect();
+
+    candidates.shuffle(&mut rand::thread_rng());
+
+    let Some(picked_hex) = candidates.into_iter().next() else {
+        return;
+    };
+
+    if let Some(data) = map.hexes.get_mut(&picked_hex) {
+        data.feature = HexFeature::None;
     }
+    let material = if let Some(data) = map.hexes.get(&picked_hex) {
+        get_tile_material(picked_hex, data.hex_type.clone(), &map.hexes, &tiles)
+    } else {
+        return;
+    };
+    if let Some(data) = map.hexes.get_mut(&picked_hex) {
+        data.hex_tile_material = material;
+    }
+
+    for (e, hex_entity) in spawned_hexes.iter() {
+        if hex_entity.hex == picked_hex {
+            commands.entity(e).try_despawn();
+            break;
+        }
+    }
+
     vtt_data.invalidate_map = true;
-    editor.knobs.get_mut(&trigger.0).unwrap().current -= 1;
 }
 
-fn add_features(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    editor: Res<MapEditor>,
-) {
-    if keyboard.just_pressed(KeyCode::F2) {}
-    if keyboard.just_pressed(KeyCode::F3) {}
-
+fn add_features(mut commands: Commands, editor: Res<MapEditor>, map_data: Res<HexMapData>) {
     for (feature, knob) in editor.knobs.iter() {
-        let diff = knob.target - knob.current;
+        let current: i32 = map_data
+            .hexes
+            .iter()
+            .filter(|(_, t)| !t.generated && t.feature == *feature && !t.user_placed_feature)
+            .count() as i32;
+
+        let real_target = if editor.budget.target > 0 {
+            let linear_budget =
+                inverse_exponential_graph_value(editor.budget.target as f32 * 2.0);
+            (knob.target as f32) * ((linear_budget + 1.0) / 27.0)
+        } else {
+            knob.target as f32
+        };
+
+        let diff = real_target as i32 - current;
         if diff > 0 {
             commands.trigger(AddFeature(feature.clone()));
         }

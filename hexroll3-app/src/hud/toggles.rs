@@ -31,7 +31,7 @@ use crate::{
         HexMapTime, HexmapTheme, LoadHexmapTheme, MapMessage, TileSetThemesMetadata,
         ToggleDayNight,
     },
-    hud::drawer::AutoDrawer,
+    hud::{drawer::AutoDrawer, help::HelpToggle},
     shared::{
         labels::DespawnLabels,
         settings::{AppSettings, LabelsMode},
@@ -72,7 +72,7 @@ pub fn on_show_toggles(
                 super::drawer::AutoDrawerCommand::On,
                 AutoDrawer::new(
                     Vec2::new(20.0, 220.0),
-                    Vec2::new(220.0, 220.0),
+                    Vec2::new(290.0, 220.0),
                     Color::srgba_u8(0, 0, 0, 0),
                     Color::srgba_u8(0, 0, 0, 230),
                 )
@@ -85,7 +85,7 @@ pub fn on_show_toggles(
                     flex_wrap: FlexWrap::Wrap,
                     position_type: PositionType::Absolute,
                     border: UiRect::all(Val::Px(4.)),
-                    width: Val::Px(220.),
+                    width: Val::Px(290.),
                     height: Val::Px(220.),
                     left: Val::Px(100.),
                     bottom: Val::Px(20.0),
@@ -154,6 +154,8 @@ pub fn on_show_toggles(
                         },
                     );
 
+                spawn_help_toggle(c, create_toggle_icon_frame_bundle(), asset_server.as_ref());
+
                 spawn_audio_toggle(
                     c,
                     create_toggle_icon_frame_bundle(),
@@ -178,6 +180,7 @@ pub fn on_show_toggles(
                         },
                     );
 
+                spawn_pins_toggle(c, create_toggle_icon_frame_bundle(), asset_server.as_ref());
                 c.spawn(make_auto_drawer_sensor());
             });
     }
@@ -261,6 +264,95 @@ pub fn spawn_audio_toggle<T>(
         });
 }
 
+pub fn spawn_help_toggle<T>(
+    c: &mut RelatedSpawnerCommands<'_, ChildOf>,
+    bundle: T,
+    asset_server: &AssetServer,
+) where
+    T: Bundle,
+{
+    c.spawn(bundle)
+        .menu_button_switch_ex::<HelpToggle>(
+            HelpToggle::default(),
+            vec![
+                asset_server.load("icons/icon-help-off.ktx2"),
+                asset_server.load("icons/icon-help-on.ktx2"),
+            ],
+            64.0,
+        )
+        .tooltip_on_hover("Toggle Help Overlay", 1.0)
+        .menu_button_hover_effect()
+        .observe(|trigger: On<Pointer<Click>>, mut commands: Commands| {
+            commands
+                .entity(trigger.entity)
+                .trigger(|entity| ToggleButtonSwitcherEx {
+                    entity,
+                    trigger_state_as_event: true,
+                    insert_state_as_resource: false,
+                });
+        });
+}
+
+pub fn spawn_pins_toggle<T>(
+    c: &mut RelatedSpawnerCommands<'_, ChildOf>,
+    bundle: T,
+    asset_server: &AssetServer,
+) where
+    T: Bundle,
+{
+    c.spawn(bundle)
+        .menu_button_switch_ex::<PinsToggle>(
+            PinsToggle::default(),
+            vec![
+                asset_server.load("icons/icon-pin-on.ktx2"),
+                asset_server.load("icons/icon-pin-off.ktx2"),
+            ],
+            64.0,
+        )
+        .tooltip_on_hover("Toggle Map Pins", 1.0)
+        .menu_button_hover_effect()
+        .observe(|trigger: On<Pointer<Click>>, mut commands: Commands| {
+            commands
+                .entity(trigger.entity)
+                .trigger(|entity| ToggleButtonSwitcherEx {
+                    entity,
+                    trigger_state_as_event: true,
+                    insert_state_as_resource: false,
+                });
+        });
+}
+
+#[derive(Component, Default, PartialEq, Clone)]
+pub enum PinsToggle {
+    #[default]
+    On,
+    Off,
+}
+
+impl Switch for PinsToggle {
+    fn rotate(&self) -> Self {
+        match self {
+            PinsToggle::On => PinsToggle::Off,
+            PinsToggle::Off => PinsToggle::On,
+        }
+    }
+
+    fn index(&self) -> usize {
+        match self {
+            PinsToggle::On => 0,
+            PinsToggle::Off => 1,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        match index {
+            0 => PinsToggle::On,
+            1 => PinsToggle::Off,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Component, PartialEq)]
 pub struct TogglesMenuMarker;
 
@@ -286,6 +378,30 @@ impl Switch for AudioToggle {
         match index {
             0 => AudioToggle::On,
             1 => AudioToggle::Off,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Switch for HelpToggle {
+    fn rotate(&self) -> Self {
+        match self {
+            HelpToggle::Off => HelpToggle::On,
+            HelpToggle::On => HelpToggle::Off,
+        }
+    }
+
+    fn index(&self) -> usize {
+        match self {
+            HelpToggle::Off => 0,
+            HelpToggle::On => 1,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        match index {
+            0 => HelpToggle::Off,
+            1 => HelpToggle::On,
             _ => unreachable!(),
         }
     }

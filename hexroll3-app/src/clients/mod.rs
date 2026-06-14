@@ -36,6 +36,9 @@ use hexroll3_scroll::instance::SandboxInstance;
 
 use crate::shared::settings::UserSettings;
 
+pub use controller::setup_group_mode;
+pub use controller::setup_solo_mode;
+
 pub fn main_scrolls_repo_path() -> PathBuf {
     UserSettings::assets_path().join("scrolls")
 }

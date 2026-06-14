@@ -36,6 +36,7 @@ pub mod labels;
 pub mod layers;
 pub mod poly;
 pub mod settings;
+pub mod snapshot;
 pub mod spawnq;
 pub mod svg;
 pub mod tweens;

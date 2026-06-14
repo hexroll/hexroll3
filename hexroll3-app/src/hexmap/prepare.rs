@@ -154,11 +154,7 @@ pub fn prepare_hex_map_data(
                     if trails.len() == 4 {
                         ret.push(get_curved_tile(trails[2] as i32, trails[3] as i32));
                     }
-                    if ret.is_empty() {
-                        None
-                    } else {
-                        Some(ret)
-                    }
+                    if ret.is_empty() { None } else { Some(ret) }
                 } else {
                     None
                 }
@@ -192,6 +188,7 @@ pub fn prepare_hex_map_data(
                     river_tile,
                     trail_tile,
                     feature: h.feature.clone().unwrap_or(HexFeature::None),
+                    user_placed_feature: false,
                     metadata: HexMetadata {
                         harbor: h.feature.as_ref().and_then(|feature| {
                             if feature.can_have_a_harbor() {

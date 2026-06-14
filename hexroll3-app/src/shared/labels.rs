@@ -173,7 +173,7 @@ fn spawn_labels(
                 Mesh3d::default(),
                 MeshMaterial3d(assets.realm_labels_material.clone()),
                 Transform::from_xyz(pos.x, HEIGHT_OF_REGION_LABELS, pos.y)
-                    .with_scale(Vec3::splat(12.0 + size_ratio * (20.0 - 12.0)) * 0.15)
+                    .with_scale(Vec3::splat(6.0 + size_ratio * (20.0 - 12.0)) * 0.15)
                     .looking_at(Vec3::new(pos.x, 0.0, pos.y), Dir3::NEG_Z),
                 Pickable {
                     should_block_lower: false,
@@ -197,7 +197,7 @@ fn spawn_labels(
                 MapLabel::Poi,
                 Name::new(label.clone()),
                 Text3d::new(label.clone()),
-                Text3dBounds { width: 400.0 },
+                Text3dBounds { width: 800.0 },
                 Text3dStyling {
                     font: "Eczar".into(),
                     size: 128.,

@@ -244,7 +244,7 @@ impl MenuItemSpawner for EntityCommands<'_> {
                 let y = radius * angle_radians.sin();
                 Vec2::new(x, y)
             }
-            let pos = calculate_position(220.0, (360.0 / total as f32) * (index + 9) as f32);
+            let pos = calculate_position(220.0, (360.0 / total as f32) * index as f32 - 90.0);
             let scale_tween = bevy_tweening::Tween::new(
                 EaseFunction::ElasticOut,
                 Duration::from_millis(rand::Rng::gen_range(

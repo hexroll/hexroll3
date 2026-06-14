@@ -449,6 +449,11 @@ pub fn exponential_graph_value(x: f32) -> f32 {
     x.powi(2) / 10.0
 }
 
+pub fn inverse_exponential_graph_value(x: f32) -> f32 {
+    let x = x.clamp(0.0, 72.9);
+    (x * 10.0).sqrt()
+}
+
 fn make_large_hud_button_image_bundle(
     asset_server: &AssetServer,
     image_asset_name: &str,

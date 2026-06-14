@@ -206,83 +206,7 @@ fn on_spawn_token_dial(
     }) {
         commands.entity(menu_entity).with_children(|c| {
             c.spawn_empty().spawn_menu_item(
-                7,
-                7,
-                TokenDialIcon::Trash,
-                move |_: On<Pointer<Click>>,
-                      mut commands: Commands,
-                      selected_tokens: Query<Entity, With<SelectedToken>>,
-                      mut next_state: ResMut<NextState<HexMapToolState>>| {
-                    token_set_interaction(&selected_tokens, token, |token| {
-                        commands.trigger(DespawnToken {
-                            token_entity: token,
-                        });
-                    });
-                    next_state.set(HexMapToolState::Selection);
-                },
-                &dial_assets,
-                "Remove token",
-            );
-            c.spawn_empty().spawn_menu_item(
-                2,
-                7,
-                TokenDialIcon::Scale,
-                move |trigger: On<Pointer<Click>>,
-                      selected_tokens: Query<Entity, With<SelectedToken>>,
-                      transforms: Query<&Transform>,
-                      mut commands: Commands,
-                      mut editor_cam: Single<&mut EditorCam>,
-                      mut next_state: ResMut<NextState<HexMapToolState>>| {
-                    token_set_interaction(&selected_tokens, token, |token| {
-                        editor_cam.restrict_camera_zoom(TOKEN_SIZE_SCALING_ZOOM_LIMIT);
-                        if let Ok(t) = transforms.get(token) {
-                            commands.entity(token).insert(TokenInteractionMode::Scale(
-                                trigger.hit.position.unwrap(),
-                                t.scale.x,
-                            ));
-                            next_state.set(HexMapToolState::Selection);
-                        }
-                    });
-                },
-                &dial_assets,
-                "Scale token",
-            );
-            c.spawn_empty().spawn_menu_item(
-                6,
-                7,
-                TokenDialIcon::Lock,
-                move |_: On<Pointer<Click>>,
-                      mut commands: Commands,
-                      selected_tokens: Query<Entity, With<SelectedToken>>,
-                      mut tokens_data: Query<&mut Token>,
-                      mut next_state: ResMut<NextState<HexMapToolState>>| {
-                    token_set_interaction(&selected_tokens, token, |token| {
-                        if let Ok(mut token_data) = tokens_data.get_mut(token) {
-                            token_data.mobility = match token_data.mobility {
-                                super::tokens::TokenMobility::Unrestricted(locked) => {
-                                    super::tokens::TokenMobility::Unrestricted(!locked)
-                                }
-                                super::tokens::TokenMobility::RefereeOnly(locked) => {
-                                    super::tokens::TokenMobility::RefereeOnly(!locked)
-                                }
-                            };
-                            if token_data.mobility.is_locked_now() {
-                                commands.entity(token).try_insert(TokenIsLocked);
-                            } else {
-                                commands.entity(token).try_remove::<TokenIsLocked>();
-                            }
-                            commands.trigger(EventContext::from(TokenMessage::Update(
-                                TokenUpdateMessage::from_token(&token_data),
-                            )));
-                            next_state.set(HexMapToolState::Selection);
-                        }
-                    });
-                },
-                &dial_assets,
-                "Lock token",
-            );
-            c.spawn_empty().spawn_menu_item(
-                3,
+                0,
                 7,
                 TokenDialIcon::Torch,
                 move |_: On<Pointer<Click>>,
@@ -316,7 +240,39 @@ fn on_spawn_token_dial(
                 "Change light radius",
             );
             c.spawn_empty().spawn_menu_item(
-                5,
+                1,
+                7,
+                TokenDialIcon::Color,
+                dial_menu_color_target(token),
+                &dial_assets,
+                "Change color",
+            );
+            c.spawn_empty().spawn_menu_item(
+                2,
+                7,
+                TokenDialIcon::Scale,
+                move |trigger: On<Pointer<Click>>,
+                      selected_tokens: Query<Entity, With<SelectedToken>>,
+                      transforms: Query<&Transform>,
+                      mut commands: Commands,
+                      mut editor_cam: Single<&mut EditorCam>,
+                      mut next_state: ResMut<NextState<HexMapToolState>>| {
+                    token_set_interaction(&selected_tokens, token, |token| {
+                        editor_cam.restrict_camera_zoom(TOKEN_SIZE_SCALING_ZOOM_LIMIT);
+                        if let Ok(t) = transforms.get(token) {
+                            commands.entity(token).insert(TokenInteractionMode::Scale(
+                                trigger.hit.position.unwrap(),
+                                t.scale.x,
+                            ));
+                            next_state.set(HexMapToolState::Selection);
+                        }
+                    });
+                },
+                &dial_assets,
+                "Scale token",
+            );
+            c.spawn_empty().spawn_menu_item(
+                3,
                 7,
                 TokenDialIcon::Opacity,
                 move |_: On<Pointer<Click>>,
@@ -351,13 +307,57 @@ fn on_spawn_token_dial(
             c.spawn_empty().spawn_menu_item(
                 4,
                 7,
-                TokenDialIcon::Color,
-                dial_menu_color_target(token),
+                TokenDialIcon::Lock,
+                move |_: On<Pointer<Click>>,
+                      mut commands: Commands,
+                      selected_tokens: Query<Entity, With<SelectedToken>>,
+                      mut tokens_data: Query<&mut Token>,
+                      mut next_state: ResMut<NextState<HexMapToolState>>| {
+                    token_set_interaction(&selected_tokens, token, |token| {
+                        if let Ok(mut token_data) = tokens_data.get_mut(token) {
+                            token_data.mobility = match token_data.mobility {
+                                super::tokens::TokenMobility::Unrestricted(locked) => {
+                                    super::tokens::TokenMobility::Unrestricted(!locked)
+                                }
+                                super::tokens::TokenMobility::RefereeOnly(locked) => {
+                                    super::tokens::TokenMobility::RefereeOnly(!locked)
+                                }
+                            };
+                            if token_data.mobility.is_locked_now() {
+                                commands.entity(token).try_insert(TokenIsLocked);
+                            } else {
+                                commands.entity(token).try_remove::<TokenIsLocked>();
+                            }
+                            commands.trigger(EventContext::from(TokenMessage::Update(
+                                TokenUpdateMessage::from_token(&token_data),
+                            )));
+                            next_state.set(HexMapToolState::Selection);
+                        }
+                    });
+                },
                 &dial_assets,
-                "Change color",
+                "Lock token",
             );
             c.spawn_empty().spawn_menu_item(
-                1,
+                5,
+                7,
+                TokenDialIcon::Trash,
+                move |_: On<Pointer<Click>>,
+                      mut commands: Commands,
+                      selected_tokens: Query<Entity, With<SelectedToken>>,
+                      mut next_state: ResMut<NextState<HexMapToolState>>| {
+                    token_set_interaction(&selected_tokens, token, |token| {
+                        commands.trigger(DespawnToken {
+                            token_entity: token,
+                        });
+                    });
+                    next_state.set(HexMapToolState::Selection);
+                },
+                &dial_assets,
+                "Remove token",
+            );
+            c.spawn_empty().spawn_menu_item(
+                6,
                 7,
                 TokenDialIcon::Title,
                 set_token_label(token),
@@ -534,11 +534,11 @@ fn dial_menu_torch_colors(
 
         let colors = vec![
             Color::srgb_u8(255, 0, 0),
-            Color::srgb_u8(0, 255, 0),
-            Color::srgb_u8(0, 0, 255),
-            Color::srgb_u8(255, 255, 0),
-            Color::srgb_u8(255, 0, 255),
+            Color::srgb_u8(155, 227, 0),
             Color::srgb_u8(0, 255, 255),
+            Color::srgb_u8(255, 200, 0),
+            Color::srgb_u8(255, 100, 145),
+            Color::srgb_u8(0, 183, 255),
         ];
 
         for (i, col) in colors.iter().enumerate() {

@@ -105,7 +105,6 @@ fn pick_terrain_to_remove(
     }
 
     if best_terrains.is_empty() {
-        debug!("Best terrain is empty");
         return None;
     }
     Some((*best_terrains[rng.gen_range(0..best_terrains.len())]).clone())
@@ -259,7 +258,6 @@ fn place_next_region(
             next_pool_id,
             attempts > 0,
         ) {
-            editor.budget.current += 1;
             return true;
         }
         attempts += 1;
@@ -323,7 +321,7 @@ pub fn interactive_terrain_generator(
                     removed_any = true;
                 }
             }
-            editor.budget.current -= 1;
+            // editor.budget.current -= 1;
             break;
         }
         if removed_any {
@@ -587,6 +585,7 @@ fn place_region(
             river_tile: None,
             trail_tile: None,
             feature: HexFeature::None,
+            user_placed_feature: false,
             metadata: HexMetadata {
                 harbor: None,
                 river_dir: 0.0,
@@ -813,7 +812,13 @@ pub fn generate_hex_map(
                 }
                 hex_map.apply_layout(tx, &builder.randomizer)?;
 
-                // Append features
+                let feature_order = |hex: &Hex| match features_backlog.get(hex) {
+                    Some(HexFeature::None) => 0,
+                    Some(HexFeature::Dungeon) => 1,
+                    _ => 2,
+                };
+
+                ret.sort_by_key(|(_, hex)| feature_order(hex));
                 for r in ret.iter() {
                     let (xc, yc) = hexx_to_hexroll_coords(&r.1);
                     let display_coords = hexroll_coords_to_string(xc, yc);
@@ -830,8 +835,19 @@ pub fn generate_hex_map(
                                 display_coords
                             );
                         }
-                        let _uids =
-                            append(&builder, &mut blueprint, tx, &r.0, "Feature", None, 1)?;
+                        let _uids = append(
+                            &builder,
+                            &mut blueprint,
+                            tx,
+                            &r.0,
+                            if builder.randomizer.in_range(1, 3) == 1 {
+                                "Encounter"
+                            } else {
+                                "Feature"
+                            },
+                            None,
+                            1,
+                        )?;
                     }
                     if let Some(task) = features_backlog.get(&r.1) {
                         if let Ok(mut message) = generation_tracker.message.lock() {
@@ -1044,6 +1060,11 @@ fn partition_hexes_to_regions(map: &HexMapData) -> (Vec<(TerrainType, Vec<Hex>)>
 
 pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
     editor.realm_type = format!("RealmType{}", realm_type);
+    tune_editor_terrain_for_realm_type(editor, realm_type);
+    tune_editor_features_for_realm_type(editor, realm_type);
+}
+
+pub fn tune_editor_terrain_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
     match realm_type {
         "Lands" => {
             editor.budget.target = 20;
@@ -1055,12 +1076,6 @@ pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
             editor.intent.insert(TerrainType::TundraHex, 0);
             editor.intent.insert(TerrainType::ForestHex, 0);
             editor.intent.insert(TerrainType::DesertHex, 4);
-            editor.knobs.insert(HexFeature::Dungeon, Knob::from(20));
-            editor.knobs.insert(HexFeature::City, Knob::from(0));
-            editor.knobs.insert(HexFeature::Town, Knob::from(2));
-            editor.knobs.insert(HexFeature::Village, Knob::from(10));
-            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
-            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
         }
         "Kingdom" => {
             editor.budget.target = 17;
@@ -1072,12 +1087,6 @@ pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
             editor.intent.insert(TerrainType::TundraHex, 1);
             editor.intent.insert(TerrainType::ForestHex, 7);
             editor.intent.insert(TerrainType::DesertHex, 0);
-            editor.knobs.insert(HexFeature::Dungeon, Knob::from(16));
-            editor.knobs.insert(HexFeature::City, Knob::from(2));
-            editor.knobs.insert(HexFeature::Town, Knob::from(5));
-            editor.knobs.insert(HexFeature::Village, Knob::from(10));
-            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
-            editor.knobs.insert(HexFeature::Residency, Knob::from(10));
         }
         "Empire" => {
             editor.budget.target = 27;
@@ -1089,12 +1098,6 @@ pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
             editor.intent.insert(TerrainType::TundraHex, 2);
             editor.intent.insert(TerrainType::ForestHex, 7);
             editor.intent.insert(TerrainType::DesertHex, 3);
-            editor.knobs.insert(HexFeature::Dungeon, Knob::from(23));
-            editor.knobs.insert(HexFeature::City, Knob::from(5));
-            editor.knobs.insert(HexFeature::Town, Knob::from(10));
-            editor.knobs.insert(HexFeature::Village, Knob::from(15));
-            editor.knobs.insert(HexFeature::Inn, Knob::from(9));
-            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
         }
         "Duchy" => {
             editor.budget.target = 12;
@@ -1106,6 +1109,44 @@ pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
             editor.intent.insert(TerrainType::TundraHex, 2);
             editor.intent.insert(TerrainType::ForestHex, 7);
             editor.intent.insert(TerrainType::DesertHex, 0);
+        }
+        _ => {}
+    }
+    editor.knobs.insert(HexFeature::Dungeon, Knob::from(0));
+    editor.knobs.insert(HexFeature::City, Knob::from(0));
+    editor.knobs.insert(HexFeature::Town, Knob::from(0));
+    editor.knobs.insert(HexFeature::Village, Knob::from(0));
+    editor.knobs.insert(HexFeature::Inn, Knob::from(0));
+    editor.knobs.insert(HexFeature::Residency, Knob::from(0));
+}
+
+pub fn tune_editor_features_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
+    match realm_type {
+        "Lands" => {
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(20));
+            editor.knobs.insert(HexFeature::City, Knob::from(0));
+            editor.knobs.insert(HexFeature::Town, Knob::from(2));
+            editor.knobs.insert(HexFeature::Village, Knob::from(10));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
+        }
+        "Kingdom" => {
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(16));
+            editor.knobs.insert(HexFeature::City, Knob::from(2));
+            editor.knobs.insert(HexFeature::Town, Knob::from(5));
+            editor.knobs.insert(HexFeature::Village, Knob::from(10));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(10));
+        }
+        "Empire" => {
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(23));
+            editor.knobs.insert(HexFeature::City, Knob::from(5));
+            editor.knobs.insert(HexFeature::Town, Knob::from(10));
+            editor.knobs.insert(HexFeature::Village, Knob::from(15));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(9));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
+        }
+        "Duchy" => {
             editor.knobs.insert(HexFeature::Dungeon, Knob::from(10));
             editor.knobs.insert(HexFeature::City, Knob::from(1));
             editor.knobs.insert(HexFeature::Town, Knob::from(3));

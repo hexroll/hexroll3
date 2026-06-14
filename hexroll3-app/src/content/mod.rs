@@ -29,6 +29,7 @@ use bevy::{
     ecs::{component::Component, event::Event, resource::Resource},
     state::state::States,
 };
+use context::Spoilers;
 use header::submit_editable_title;
 
 pub mod context;
@@ -46,17 +47,24 @@ mod viewport;
 const PAGE_HEIGHT_PORTRAIT: f32 = 0.6;
 const PAGE_WIDTH_LANDSCAPE: f32 = 0.4;
 
-use crate::{clients::model::FetchEntityReason, shared::camera::MapCoords};
+use crate::{
+    clients::model::FetchEntityReason,
+    shared::{camera::MapCoords, widgets::buttons::ToggleResourceWrapper},
+};
 
 pub struct ContentPlugin;
 impl Plugin for ContentPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ContentDarkMode::default())
+            .insert_resource(ToggleResourceWrapper {
+                value: Spoilers::Visible,
+            })
             .add_systems(Update, submit_editable_title)
             .add_plugins((viewport::ViewportControllerPlugin, page::PageRendererPlugin));
     }
 }
 
+pub use header::ContentSpoilersMarker;
 pub use page::ContentPageModel;
 
 #[derive(Event)]

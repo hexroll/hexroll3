@@ -32,7 +32,7 @@ use crate::{
     dice::{DiceRollHelpers, RollDice},
     hexmap::elements::HexMapResources,
     hud::DiceMessage,
-    shared::input::InputMode,
+    shared::{input::InputMode, vtt::VttData},
 };
 
 pub struct TokenInitiativePlugin;
@@ -87,7 +87,11 @@ fn on_initiative_setup(
     memoized_modifiers: Query<&TokenMemoizedInitiativeModifier>,
     key: Res<ButtonInput<KeyCode>>,
     labels: Query<&TokenInitiativeLabelChild>,
+    vtt_data: Res<VttData>,
 ) {
+    if vtt_data.is_solo() {
+        return;
+    }
     let token_entity = trigger.event().0;
     let mut initiative_label_entity: Option<Entity> = None;
     commands

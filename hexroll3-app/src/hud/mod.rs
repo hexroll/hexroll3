@@ -36,6 +36,7 @@ use bevy::{
 use crate::{dice::DiceRoll, shared::AppState};
 
 mod dicebar;
+mod help;
 mod menubar;
 mod searchbar;
 mod shortcuts;
@@ -58,6 +59,7 @@ impl Plugin for OverlayPlugin {
             searchbar::SearchBarPlugin,
             dicebar::DiceBarPlugin,
             vttbar::VttBarPlugin,
+            help::HelpOverlayPlugin,
         ));
         app.add_systems(Update, keyboard_shortcuts.run_if(in_state(AppState::Live)));
     }

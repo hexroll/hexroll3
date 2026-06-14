@@ -38,15 +38,16 @@ use crate::{
         SpawnDungeonMap, SpawnVillageMap,
     },
     content::{
-        ContentMode, ContentPageModel, EditableAttributeParams, EntityRenderingCompleted,
-        RenameSandboxEntity, ScrollToAnchor, context::ContentContext,
+        ContentMode, ContentPageModel, ContentSpoilersMarker, EditableAttributeParams,
+        EntityRenderingCompleted, RenameSandboxEntity, ScrollToAnchor,
+        context::{ContentContext, Spoilers},
     },
     hexmap::{
         HexMapJson, MapMessage,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
-            HexMapData, HexMarkerEntity, HexToInvalidateMarker, RemoveSandboxEntity,
-            y_inverted_hexmap_layout,
+            HexMapData, HexMarkerEntity, HexRevealPattern, HexToInvalidateMarker,
+            RemoveSandboxEntity, y_inverted_hexmap_layout,
         },
         reveal_hex, update_hex_map_tiles,
     },
@@ -56,7 +57,10 @@ use crate::{
         layers::HEIGHT_OF_HEX_MARKER,
         settings::{AppSettings, CONFIG_DIR, UserSettings},
         vtt::{LoadVttState, VttData},
-        widgets::cursor::CursorController,
+        widgets::{
+            buttons::{ToggleButtonSwitcherEx, ToggleResourceWrapper},
+            cursor::CursorController,
+        },
     },
     tokens::Token,
     vtt::sync::{Chunkomatic, SyncMapForPeers},
@@ -211,9 +215,7 @@ pub fn receive_hex_map(
                 // FIXME: condition this to when vtt is actually connected as well
                 if user_settings.local.unwrap_or(false) {
                     if vtt_data.mode.is_referee() {
-                        debug!("referee is sending cached map");
                         if json_obj.is_some() {
-                            debug!("vtt_data cache is set!");
                             data.cache = json_obj.clone();
                         } else {
                             debug!("WHY?!");
@@ -311,12 +313,10 @@ pub fn receive_renaming_result(
     http_tasks.poll_responses(|_, data| {
         if let Some(data) = data {
             if data.1.is_a_map_label {
-                debug!("received renaming result - refreshing map");
                 commands.trigger(RequestMapFromBackend {
                     post_map_loaded_op: PostMapLoadedOp::FetchEntity(data.0),
                 });
             } else {
-                debug!("received renaming result - refreshing entity");
                 commands.trigger(FetchEntityFromStorage {
                     uid: data.0,
                     anchor: data.1.attr_entity.clone(),
@@ -380,7 +380,6 @@ fn receive_battlemaps_data(
             && !data.1.is_empty()
         {
             let raw_json = data.1.clone();
-            debug!("ingesting battlemap map for {}", key.0);
             on_ingest_battlemap_data(key, data, &mut commands, cache.as_mut());
 
             // FIXME: condition this to when vtt is actually connected
@@ -706,5 +705,57 @@ pub fn backend_router<T>(
         }
     } else {
         commands.trigger(RemoteBackendEvent(e.clone()));
+    }
+}
+
+pub fn setup_solo_mode(
+    mut commands: Commands,
+    content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
+    spoilers: Res<ToggleResourceWrapper<Spoilers>>,
+) {
+    commands.insert_resource(ToggleResourceWrapper {
+        value: HexRevealPattern::Solo,
+    });
+
+    if content_spoilers_entity.is_empty() {
+        commands.insert_resource(ToggleResourceWrapper {
+            value: Spoilers::Hidden,
+        });
+    } else {
+        for e in content_spoilers_entity.iter() {
+            if spoilers.value == Spoilers::Visible {
+                commands.entity(e).trigger(|entity| ToggleButtonSwitcherEx {
+                    entity,
+                    trigger_state_as_event: false,
+                    insert_state_as_resource: true,
+                });
+            }
+        }
+    }
+}
+
+pub fn setup_group_mode(
+    mut commands: Commands,
+    content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
+    spoilers: Res<ToggleResourceWrapper<Spoilers>>,
+) {
+    commands.insert_resource(ToggleResourceWrapper {
+        value: HexRevealPattern::Flower,
+    });
+
+    if content_spoilers_entity.is_empty() {
+        commands.insert_resource(ToggleResourceWrapper {
+            value: Spoilers::Visible,
+        });
+    } else {
+        for e in content_spoilers_entity.iter() {
+            if spoilers.value == Spoilers::Hidden {
+                commands.entity(e).trigger(|entity| ToggleButtonSwitcherEx {
+                    entity,
+                    trigger_state_as_event: false,
+                    insert_state_as_resource: true,
+                });
+            }
+        }
     }
 }

@@ -98,7 +98,9 @@ fn on_spawn_village_map(
                 .with_scale(Vec3::new(0.20, 0.20, 0.20)),
         )
         .with_children(|mut commands| {
-            for (rect, orientation, uid) in trigger.event().data.buildings.iter() {
+            for (i, (rect, orientation, uid, district_uid)) in
+                trigger.event().data.buildings.iter().enumerate()
+            {
                 let mut building = commands.spawn((
                     Mesh3d(building_cube.clone()),
                     MeshMaterial3d(if uid.is_some() {
@@ -169,7 +171,7 @@ fn on_spawn_village_map(
 pub struct VillageMapConstructs {
     base: SettlementMapConstructs,
     building_outlines: Vec<Mesh>,
-    buildings: Vec<(Rect, f32, Option<String>)>,
+    buildings: Vec<(Rect, f32, Option<String>, Option<String>)>,
     river: Option<Mesh>,
     water: Vec<Mesh>,
 }
@@ -181,7 +183,7 @@ impl VillageMapConstructs {
         let mut water = Vec::new();
 
         let mut building_outlines: Vec<Mesh> = Vec::new();
-        let mut buildings: Vec<(Rect, f32, Option<String>)> = Vec::new();
+        let mut buildings: Vec<(Rect, f32, Option<String>, Option<String>)> = Vec::new();
         let factor = 1.0;
         let mut offset = 0.0;
         let mut tagged_has_river = false;
@@ -267,6 +269,7 @@ impl VillageMapConstructs {
                         let v: Vec<[f64; 2]> = c.points.iter().map(|p| [p[0], p[1]]).collect();
                         let rect_in_space = get_width_height_rotation_from_rect_points(v);
                         let uid = proxy.get(&(i as i32)).cloned().or_else(|| c.uid.clone());
+                        let district_uid = c.district_uid.clone();
                         buildings.push((
                             Rect::from_center_size(
                                 rect_in_space.center,
@@ -274,6 +277,7 @@ impl VillageMapConstructs {
                             ),
                             rect_in_space.orientation,
                             uid,
+                            district_uid,
                         ));
 
                         let polygon: Vec<lyon::math::Point> = c

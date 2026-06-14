@@ -57,7 +57,7 @@ use crate::{
         HexMapJson, HexMapTileMaterials, HexmapTheme,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexMapData, HexMapResources,
-            RemoveSandboxEntity, hexx_to_hexroll_coords,
+            HexMapToolState, RemoveSandboxEntity, hexx_to_hexroll_coords,
         },
         prepare_hex_map_data,
     },
@@ -456,18 +456,60 @@ pub fn load_vtt_state_standalone(
         .spawn_standalone(sid.clone(), move || -> Option<LoadStateResponse> {
             let config_path = ClientState::path(&sandbox_uid.clone());
 
-            debug!("{:?}", config_path);
             if let Ok(data) = fs::read_to_string(config_path) {
-                debug!("{:?}", data);
                 if let Ok(state) = serde_json::from_str::<ClientState>(&data) {
                     return Some(LoadStateResponse(state));
                 }
             }
-            debug!("Default vtt state returned");
             return Some(LoadStateResponse(ClientState::default()));
         })
         .is_err()
     {};
+}
+
+fn retrieve_settlement_map_data(
+    tx: &mut hexroll3_scroll::repository::ReadOnlyTransaction,
+    hex_uid: &str,
+) -> anyhow::Result<Option<(serde_json::Value, Vec<PointOfInterest>)>> {
+    let hex = tx.retrieve(hex_uid)?;
+    let settlement_map = tx.retrieve(hex.value["Settlement"].uuid_as_str())?;
+    if settlement_map.value["$map_data"].is_null() {
+        return Ok(None);
+    }
+    let content = settlement_map.value["$map_data"].clone();
+    let d1 = settlement_map.value.get("districts");
+    let d2 = settlement_map.value.get("District");
+    let ds = if d2.is_some() {
+        d2.unwrap().as_array().unwrap()
+    } else {
+        d1.unwrap().as_array().unwrap()
+    };
+    let mut pois = Vec::new();
+    for d in ds {
+        let d_data = tx.retrieve(d.as_str().unwrap())?;
+        let t_uid = d_data.value["Tavern"][0].as_str().unwrap();
+        let t_data = tx.retrieve(t_uid)?;
+        pois.push(PointOfInterest {
+            coords: Coords { x: 0.0, y: 0.0 },
+            title: t_data.value["Title"].as_str().unwrap().to_string(),
+            uuid: t_uid.to_string(),
+            building: t_data.value["building_index"]
+                .as_i64()
+                .map(|i: i64| i as i32),
+        });
+        for s in d_data.value["shops"].as_array().unwrap() {
+            let s_data = tx.retrieve(s.as_str().unwrap())?;
+            pois.push(PointOfInterest {
+                coords: Coords { x: 0.0, y: 0.0 },
+                title: s_data.value["Title"].as_str().unwrap().to_string(),
+                uuid: s.as_str().unwrap().to_string(),
+                building: s_data.value["building_index"]
+                    .as_i64()
+                    .map(|i: i64| i as i32),
+            });
+        }
+    }
+    Ok(Some((content, pois)))
 }
 
 pub fn request_city_standalone(
@@ -477,71 +519,18 @@ pub fn request_city_standalone(
     mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
 ) {
     let event = trigger.event().0.clone();
-    let instance = &sandbox.instance;
-    let repo = instance.repo.clone();
+    let repo = sandbox.instance.repo.clone();
     let task = move || -> Option<(BattleMapConstructs, String)> {
         repo.inspect(|tx| {
-            let city_hex = tx.retrieve(&event.uid)?;
-            let city_map = tx.retrieve(city_hex.value["Settlement"].uuid_as_str())?;
-            let ret = {
-                if city_map.value["$map_data"].is_null() {
-                    // (BattleMapConstructs::Empty, "".to_string())
-                    None
-                } else {
-                    let content = city_map.value["$map_data"].clone();
-                    // Prepare POIs
-                    let d1 = city_map.value.get("districts");
-                    let d2 = city_map.value.get("District");
-                    let ds = if d2.is_some() {
-                        d2.unwrap().as_array().unwrap()
-                    } else {
-                        d1.unwrap().as_array().unwrap()
-                    };
-                    let mut pois = Vec::new();
-                    for d in ds {
-                        let d_data = tx.retrieve(d.as_str().unwrap())?;
-                        let t_uid = d_data.value["Tavern"][0].as_str().unwrap();
-                        let t_data = tx.retrieve(t_uid)?;
-                        let poi = PointOfInterest {
-                            coords: Coords { x: 0.0, y: 0.0 },
-                            title: t_data.value["Title"].as_str().unwrap().to_string(),
-                            uuid: t_uid.to_string(),
-                            building: if let Some(building_index) =
-                                t_data.value["building_index"].as_i64()
-                            {
-                                Some(building_index as i32)
-                            } else {
-                                None
-                            },
-                        };
-                        pois.push(poi);
-                        let shops = d_data.value["shops"].as_array().unwrap();
-                        for s in shops {
-                            let s_data = tx.retrieve(s.as_str().unwrap())?;
-                            let poi = PointOfInterest {
-                                coords: Coords { x: 0.0, y: 0.0 },
-                                title: s_data.value["Title"].as_str().unwrap().to_string(),
-                                uuid: s.as_str().unwrap().to_string(),
-                                building: if let Some(building_index) =
-                                    s_data.value["building_index"].as_i64()
-                                {
-                                    Some(building_index as i32)
-                                } else {
-                                    None
-                                },
-                            };
-                            pois.push(poi);
-                        }
-                    }
-
-                    let data = json!({"map_data": content, "poi":pois}).to_string();
-                    Some((
+            Ok(
+                retrieve_settlement_map_data(tx, &event.uid)?.map(|(content, pois)| {
+                    let data = json!({"map_data": content, "poi": pois}).to_string();
+                    (
                         BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
-                        data.clone(),
-                    ))
-                }
-            };
-            Ok(ret)
+                        data,
+                    )
+                }),
+            )
         })
         .unwrap_or_else(|e| {
             error!("{:?}", e);
@@ -566,29 +555,21 @@ pub fn request_village_standalone(
     mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
 ) {
     let event = trigger.event().0.clone();
-    let instance = &sandbox.instance;
-    let repo = instance.repo.clone();
+    let repo = sandbox.instance.repo.clone();
     let task = move || -> Option<(BattleMapConstructs, String)> {
         repo.inspect(|tx| {
-            let city_hex = tx.retrieve(&event.uid)?;
-            let city_map = tx.retrieve(city_hex.value["Settlement"].uuid_as_str())?;
-            let ret = {
-                if city_map.value["$map_data"].is_null() {
-                    // (BattleMapConstructs::Empty, "".to_string())
-                    None
-                } else {
-                    let content = city_map.value["$map_data"].clone();
-                    let data = json!({"map_data": content, "poi":[]}).to_string();
-                    Some((
+            Ok(
+                retrieve_settlement_map_data(tx, &event.uid)?.map(|(content, pois)| {
+                    let data = json!({"map_data": content, "poi": pois}).to_string();
+                    (
                         BattleMapConstructs::Village(VillageMapConstructs::from(
                             BackendUid::from(event.uid.clone()),
                             data.clone(),
                         )),
-                        data.clone(),
-                    ))
-                }
-            };
-            Ok(ret)
+                        data,
+                    )
+                }),
+            )
         })
         .unwrap_or_else(|e| {
             error!("{:?}", e);
@@ -1116,7 +1097,6 @@ pub fn request_hex_map_for_standalone_player_node(
     let Some(sandbox_id) = user_settings.sandbox.clone() else {
         return;
     };
-    debug!("Player is requesting hex map");
     commands.trigger(PostMapLoadedOpPrefix {
         post_map_op: trigger.0.post_map_loaded_op.clone(),
     });
@@ -1132,7 +1112,6 @@ pub fn request_hex_map_for_standalone_player_node(
             sandbox_id,
             move || -> Option<(Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)> {
                 if let Some(map) = map.clone() {
-                    debug!("Player found cached map sized");
                     Some((
                         Some(prepare_hex_map_data(
                             map.clone(),
@@ -1159,17 +1138,14 @@ pub fn request_dungeon_map_for_standalone_player_node(
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     let event = trigger.event().0.clone();
-    debug!("Requesting (node) battlemap");
 
     if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
         let data = data.to_string();
-        // debug!("Found (node) battlemap: {}", data);
         if my_tasks
             .spawn_standalone(
                 (trigger.0.uid.clone(), trigger.0.hex),
                 move || -> Option<(BattleMapConstructs, String)> {
                     if data.contains("areas") {
-                        debug!("Found (node) dungeon map");
                         Some((
                             BattleMapConstructs::Dungeon(DungeonMapConstructs::from(
                                 data.clone(),
@@ -1177,7 +1153,6 @@ pub fn request_dungeon_map_for_standalone_player_node(
                             data.to_string(),
                         ))
                     } else if data.contains("caverns") {
-                        debug!("Found (node) cave map");
                         Some((
                             BattleMapConstructs::Cave(CaveMapConstructs::from(
                                 data.clone(),
@@ -1206,10 +1181,7 @@ pub fn request_city_map_for_standalone_player_node(
     mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
-    debug!("Requesting (node) battlemap");
-
     if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
-        debug!("Found (node) battlemap");
         let data = data.to_string();
         if my_tasks
             .spawn_standalone(
@@ -1237,10 +1209,8 @@ pub fn request_village_map_for_standalone_player_node(
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     let event = trigger.event().0.clone();
-    debug!("Requesting (node) battlemap");
 
     if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
-        debug!("Found (node) battlemap");
         let data = data.to_string();
         if my_tasks
             .spawn_standalone(
@@ -1270,7 +1240,12 @@ pub fn handle_user_triggered_rollback(
     mut commands: Commands,
     mut content_context: ResMut<ContentContext>,
     mut next_content_mode: ResMut<NextState<ContentMode>>,
+    hex_map_tool_state: Res<State<HexMapToolState>>,
 ) {
+    // NOTE: Ctrl-Z is also captured when drawing - so we need to ignore it here.
+    if *hex_map_tool_state == HexMapToolState::Draw {
+        return;
+    }
     if keyboard.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
         && keyboard.just_pressed(KeyCode::KeyZ)
     {
