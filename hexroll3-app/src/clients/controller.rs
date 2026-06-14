@@ -101,13 +101,13 @@ impl Plugin for ApiControllerPlugin {
             // Get entity content page 
             .register_api_callback::<_, String, (ContentPageModel, FetchEntityReason, Option<String>)>(receive_hex)
             // Roll a new feature
-            .register_api_callback::<_, String, FeatureUidResponse>(receive_appended_feature)
+            .register_api_callback::<_, String, AppendResponse>(receive_appended_feature)
             // Rename a sandbox entity
             .register_api_callback::<_, String, RenamingResponse>(receive_renaming_result)
             // Get sandbox hexmap
             .register_api_callback::<_, String, (Option<HexMapData>, PostMapLoadedOp, Option<HexMapJson>)>(receive_hex_map)
             // Get battlemaps
-            .register_api_callback::<_, (String, Entity), (BattleMapConstructs, String)>(
+            .register_api_callback::<_, (String, Entity, BattlemapRequestType), (BattleMapConstructs, String)>(
                 receive_battlemaps_data.after(update_hex_map_tiles),
             )
             // Reroll an entity
@@ -182,7 +182,7 @@ pub enum PostMapLoadedOp {
     #[default]
     None,
     Initialize(SandboxMode),
-    InvalidateVisible,
+    InvalidateVisible(Option<String>),
     FetchEntity(String),
 }
 
@@ -247,8 +247,6 @@ pub fn receive_hex_map(
                             ));
                         });
                     }
-                } else {
-                    commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
                 }
                 let maybe_hex = if vtt_data.is_solo() && vtt_data.revealed.is_empty() {
                     data.hexes
@@ -259,9 +257,8 @@ pub fn receive_hex_map(
                     None
                 };
                 for (e, hex_to_invalidate) in invalidate.iter() {
-                    if post_map_loaded_op != PostMapLoadedOp::InvalidateVisible {
-                        data.force_refresh
-                            .push(*data.coords.get(&hex_to_invalidate.0).unwrap());
+                    if post_map_loaded_op != PostMapLoadedOp::InvalidateVisible(None) {
+                        data.force_refresh.push(hex_to_invalidate.0);
                     }
                     commands.entity(e).try_despawn();
                 }
@@ -274,7 +271,7 @@ pub fn receive_hex_map(
                     commands.trigger(FetchEntityFromStorage {
                         uid: uid.clone(),
                         anchor: None,
-                        why: FetchEntityReason::SandboxLink,
+                        why: FetchEntityReason::SystemNavigation,
                     });
                 }
             }
@@ -340,12 +337,15 @@ pub fn receive_renaming_result(
 
 // ---------------------------------------------------------------------------------------------------------
 #[derive(Debug)]
-pub struct FeatureUidResponse(pub String, pub Option<hexx::Hex>, pub Option<String>);
+pub enum AppendResponse {
+    MapScopeEntity(String, Option<String>),
+    HexScopeEntity(String, hexx::Hex, Option<String>),
+    Unknown,
+}
 
 pub fn receive_appended_feature(
     mut commands: Commands,
-    mut http_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
-    hexes: Query<(Entity, &HexEntity)>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, AppendResponse>>,
     content_mode: Res<State<ContentMode>>,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
@@ -354,48 +354,71 @@ pub fn receive_appended_feature(
     http_tasks.poll_responses(|_, data| {
         cursor_controller.done(&mut commands, *window);
         if let Some(data) = data {
-            if let Ok(parsed_data) = serde_json::from_str::<Value>(&data.0) {
-                if let Some(hex_coords) = data.1 {
-                    for (entity, hex) in hexes.iter() {
-                        if hex.hex == hex_coords {
-                            commands.entity(entity).insert(HexToInvalidateMarker);
-                        }
-                    }
-                }
-                if let Some(uid) = parsed_data.get("uuid").and_then(Value::as_str) {
-                    if let Some(hex_coords) = data.1 {
-                        // NOTE: Oceans have a special care here. If we have just
-                        // materialized a previously revealed ocean hex, we must
-                        // upgrade it to a standard hex and refresh any VTT peers.
-                        if vtt_data.ocean_upgrade(&hex_coords) {
-                            commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(
-                                HexState {
-                                    coords: hex_coords,
-                                    is_ocean: false,
-                                    state: Some(HexRevealState::Full(Some(0))),
-                                },
-                            )));
-                        }
-                    }
+            match data {
+                AppendResponse::MapScopeEntity(uid, fetch_uid) => {
                     commands.trigger(RequestMapFromBackend {
-                        post_map_loaded_op: if content_mode.get() == &ContentMode::MapOnly
-                            && data.2.is_some()
-                        {
-                            PostMapLoadedOp::InvalidateVisible
-                        } else {
-                            PostMapLoadedOp::FetchEntity(data.2.unwrap_or(uid.to_string()))
-                        },
+                        post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(
+                            if content_mode.get() == &ContentMode::SplitScreen {
+                                Some(fetch_uid.unwrap_or(uid.to_string()))
+                            } else {
+                                None
+                            },
+                        ),
                     });
                 }
+                AppendResponse::HexScopeEntity(uid, hex_coords, fetch_uid) => {
+                    commands.spawn(HexToInvalidatePostLoadMarker(hex_coords));
+                    // NOTE: Oceans have a special care here. If we have just
+                    // materialized a previously revealed ocean hex, we must
+                    // upgrade it to a standard hex and refresh any VTT peers.
+                    if vtt_data.ocean_upgrade(&hex_coords) {
+                        commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(
+                            HexState {
+                                coords: hex_coords,
+                                is_ocean: false,
+                                state: Some(HexRevealState::Full(Some(0))),
+                            },
+                        )));
+                    }
+                    commands.trigger(RequestMapFromBackend {
+                        post_map_loaded_op: PostMapLoadedOp::FetchEntity(
+                            fetch_uid.unwrap_or(uid.to_string()),
+                        ),
+                    });
+                }
+                _ => {}
             }
+            commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
         }
     });
+}
+
+#[derive(Eq, PartialEq, Hash)]
+pub enum BattlemapRequestType {
+    DungeonMap(bool),
+    CityMap(bool),
+    VillageMap(bool),
+}
+
+impl BattlemapRequestType {
+    pub fn is_underlayer(&self) -> bool {
+        match self {
+            BattlemapRequestType::DungeonMap(v) => *v,
+            BattlemapRequestType::CityMap(v) => *v,
+            BattlemapRequestType::VillageMap(v) => *v,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
 fn receive_battlemaps_data(
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
     vtt_data: Res<crate::shared::vtt::VttData>,
     user_settings: Res<UserSettings>,
@@ -436,7 +459,7 @@ fn receive_battlemaps_data(
             // NOTE: Seems like fetching a battlemap failed.
             // By removing the SubMapMarker the battlemaps module will attempt another fetch.
             error!("error in battlemap map for {}", key.0);
-            let (_, entity) = key;
+            let (_, entity, _) = key;
             commands.entity(*entity).reset_battlemap_loading_state();
         }
     });
@@ -515,7 +538,7 @@ pub fn receive_reroll_response(
                                     current_entity_uid.clone()
                                 },
                                 anchor: None,
-                                why: FetchEntityReason::SandboxLink,
+                                why: FetchEntityReason::SystemNavigation,
                             });
                         }
                     }
@@ -563,7 +586,7 @@ pub fn receive_hex_action_results(
     http_tasks.poll_responses(|key, data| {
         if data.is_some() {
             commands.trigger(RequestMapFromBackend {
-                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
             });
             commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(Some(key.1.clone()))));
         }
@@ -581,7 +604,7 @@ pub fn receive_remove_entity_results(
     http_tasks.poll_responses(|_key, data| {
         if data.is_some() {
             commands.trigger(RequestMapFromBackend {
-                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
             });
             commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
 
@@ -613,15 +636,34 @@ pub fn on_render_entity_completed(
     mut commands: Commands,
     map: Res<HexMapData>,
     mut content_stuff: ResMut<ContentContext>,
+    vtt_data: Res<VttData>,
 ) {
     if trigger.fetch_reason == FetchEntityReason::TokenMovement {
         return;
     }
     if let Some(coords) = &trigger.map_coords {
         content_stuff.current_hex_uid = Some(coords.hex.clone());
-        commands.trigger(GimbalshotCameraMovement {
-            coords: coords.clone(),
-        });
+
+        if let Some(hex_uid) = &content_stuff.current_hex_uid {
+            if let Some(hex_coords) = map.coords.get(hex_uid) {
+                let okay_to_gimbleshot = {
+                    if let Some(revealed_state) = vtt_data.revealed.get(hex_coords) {
+                        if let HexRevealState::Full(Some(layer)) = revealed_state {
+                            *layer == coords.layer as u32
+                        } else {
+                            true
+                        }
+                    } else {
+                        true
+                    }
+                };
+                if okay_to_gimbleshot {
+                    commands.trigger(GimbalshotCameraMovement {
+                        coords: coords.clone(),
+                    });
+                }
+            }
+        }
     } else {
         if let Some(coord) = map.coords.get(&trigger.uid) {
             content_stuff.current_hex_uid = Some(trigger.uid.clone());
@@ -631,6 +673,7 @@ pub fn on_render_entity_completed(
                         hex: entity.uid.clone(),
                         x: 0.0,
                         y: 0.0,
+                        layer: 0,
                         zoom: 4,
                     },
                 });
@@ -646,7 +689,7 @@ pub fn on_render_entity_completed(
 }
 
 pub fn on_ingest_battlemap_data(
-    key: &(String, Entity),
+    key: &(String, Entity, BattlemapRequestType),
     data: (BattleMapConstructs, String),
     commands: &mut Commands,
     cache: &mut crate::hexmap::elements::HexMapCache,
@@ -660,6 +703,7 @@ pub fn on_ingest_battlemap_data(
             commands.trigger(SpawnDungeonMap {
                 hex: key.1,
                 data: dungeon_map_constructs,
+                is_underlayer: key.2.is_underlayer(),
             })
         }
         BattleMapConstructs::Cave(cave_map_constructs) => {
@@ -667,6 +711,7 @@ pub fn on_ingest_battlemap_data(
             commands.trigger(SpawnCaveMap {
                 hex: key.1,
                 data: cave_map_constructs,
+                is_underlayer: key.2.is_underlayer(),
             })
         }
         BattleMapConstructs::City(city_map_constructs) => commands.trigger(SpawnCityMap {
@@ -750,12 +795,13 @@ pub fn backend_router<T>(
 
 pub fn setup_solo_mode(
     mut commands: Commands,
-    mut vtt_data: ResMut<VttData>,
     content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
     spoilers: Res<ToggleResourceWrapper<Spoilers>>,
 ) {
+    let mut vtt_data = VttData::default();
     vtt_data.mode = HexMapMode::RefereeAsPlayer;
     vtt_data.session_type = Some(VttSessionType::Solo);
+    commands.insert_resource(vtt_data);
     commands.insert_resource(ToggleResourceWrapper {
         value: HexRevealPattern::Solo,
     });
@@ -779,12 +825,13 @@ pub fn setup_solo_mode(
 
 pub fn setup_group_mode(
     mut commands: Commands,
-    mut vtt_data: ResMut<VttData>,
     content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
     spoilers: Res<ToggleResourceWrapper<Spoilers>>,
 ) {
+    let mut vtt_data = VttData::default();
     vtt_data.mode = HexMapMode::RefereeViewing;
     vtt_data.session_type = Some(VttSessionType::Group);
+    commands.insert_resource(vtt_data);
     commands.insert_resource(ToggleResourceWrapper {
         value: HexRevealPattern::Flower,
     });

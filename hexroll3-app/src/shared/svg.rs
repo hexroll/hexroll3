@@ -36,11 +36,13 @@ pub fn svg_to_path(svg_data: &str) -> Path {
     let mut builder = Path::builder();
 
     let mut current_pos = point(0.0, 0.0);
+    let mut start_pos = point(0.0, 0.0);
 
     for command in path_commands {
         match command {
             PathCommand::MoveTo(dx, dy) => {
                 current_pos = point(current_pos.x + dx, current_pos.y + dy);
+                start_pos = current_pos;
                 builder.begin(current_pos);
             }
             PathCommand::CubicTo(dx1, dy1, dx2, dy2, dx, dy) => {
@@ -62,6 +64,7 @@ pub fn svg_to_path(svg_data: &str) -> Path {
                 builder.line_to(current_pos);
             }
             PathCommand::ClosePath => {
+                current_pos = start_pos;
                 builder.close();
             }
         }

@@ -29,7 +29,7 @@ CharacterExtension {
 }
 
 Character {
-    Gender! @ Gender
+    Gender @ Gender
     Name! @ Name {
         Gender := &Gender.NameClass
     }
@@ -44,9 +44,9 @@ Character {
     FactionUUID = none
     Association! = ""
 
-    TavernOfChoice = none
-    TavernOfChoiceUUID = none
-    TavernText! @ [
+    TavernOfChoice?= none
+    TavernOfChoiceUUID?= none
+    TavernText  @ [
           * {%if TavernOfChoice%}
             <li>
             {{Name.First}} is frequenting the
@@ -90,8 +90,8 @@ Character {
             {%endif%}
     ]
 
-    InThePocket! @ InThePocket
-    State! @ $kNPCState
+    InThePocket  @ InThePocket
+    State  @ $kNPCState
     Feature1 @ [
         *(x2) wise dark eyes
         *(x2) cold dark eyes

@@ -114,9 +114,12 @@ impl VttData {
     pub fn revealed_hex_layer(&self, hex: &Hex) -> i32 {
         if let Some(state) = self.revealed.get(hex) {
             return match state {
-                HexRevealState::Partial => -1,
+                HexRevealState::Unrevealed(Some(layer)) => *layer as i32,
+                HexRevealState::Unrevealed(None) => -1,
+                HexRevealState::Partial(Some(layer)) => *layer as i32,
+                HexRevealState::Partial(None) => -1,
                 HexRevealState::Full(Some(layer)) => *layer as i32,
-                HexRevealState::Full(None) => 1,
+                HexRevealState::Full(None) => 0,
             };
         } else {
             return 0;
@@ -140,13 +143,36 @@ impl VttData {
     }
 }
 
-#[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub enum HexRevealState {
-    #[default]
+    #[serde(rename = "UR")]
+    Unrevealed(Option<u32>),
     #[serde(rename = "PT")]
-    Partial,
+    Partial(Option<u32>),
     #[serde(rename = "FL")]
     Full(Option<u32>),
+}
+impl HexRevealState {
+    pub fn is_partially_revealed(&self) -> bool {
+        match self {
+            HexRevealState::Partial(_) => true,
+            _ => false,
+        }
+    }
+    pub fn player_state(&self) -> Option<Self> {
+        match self {
+            HexRevealState::Unrevealed(_) => None,
+            HexRevealState::Partial(_) => Some(HexRevealState::Partial(None)),
+            HexRevealState::Full(_) => Some(*self),
+        }
+    }
+    pub fn reset_layer(&mut self) {
+        *self = match self {
+            HexRevealState::Unrevealed(_) => HexRevealState::Unrevealed(Some(0)),
+            HexRevealState::Partial(_) => HexRevealState::Partial(Some(0)),
+            HexRevealState::Full(_) => HexRevealState::Full(Some(0)),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]

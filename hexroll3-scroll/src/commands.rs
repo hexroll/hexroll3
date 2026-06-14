@@ -484,7 +484,10 @@ impl AttrCommand for AttrCommandRollEntity {
                     }
                 }
             };
-            for _ in 0..n {
+            let mut parent_context = ParentContext::default();
+            parent_context.count = n as usize;
+            for ordinal in 0..n {
+                parent_context.ordinal = ordinal as usize;
                 let actual_class_name =
                     builder.randomizer.choose::<String>(&class_names);
                 let generated_uid = roll(
@@ -493,6 +496,7 @@ impl AttrCommand for AttrCommandRollEntity {
                     tx,
                     actual_class_name,
                     &uid,
+                    &mut parent_context,
                     Some(&self.injectors),
                 )?;
                 {
@@ -993,6 +997,68 @@ impl AttrCommand for AttrCommandPickEntity {
                 tx.save(uid_in_use)?;
             }
         }
+        Ok(())
+    }
+}
+
+/// Placeholder
+///
+/// ```text
+/// [0..0 placeholder];
+/// ```
+///
+/// * Note the semi-colon! this is what make a placeholder a placeholder
+///
+/// Placeholders are designed to contain lists that do not adhere to the
+/// consistency maintainance policy of the engine.
+///
+#[derive(Clone)]
+pub struct AttrCommandPlaceholder {
+    pub name: String,
+    pub class_names: ClassNamesToRoll,
+    pub min: CardinalityValue,
+    pub max: CardinalityValue,
+}
+
+impl EntityAssigner for AttrCommandPlaceholder {
+    fn new(
+        name: String,
+        class_names: ClassNamesToRoll,
+        min: CardinalityValue,
+        max: CardinalityValue,
+        _injectors: Injectors,
+    ) -> Self {
+        AttrCommandPlaceholder {
+            name,
+            class_names,
+            min,
+            max,
+        }
+    }
+}
+
+impl AttrCommand for AttrCommandPlaceholder {
+    fn apply(
+        &self,
+        _ctx: &mut Context,
+        _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
+        tx: &mut ReadWriteTransaction,
+        euid: &str,
+    ) -> Result<()> {
+        let entity = tx.load(euid)?;
+        entity[&self.name] = serde_json::json!([]);
+        Ok(())
+    }
+
+    fn revert(
+        &self,
+        _ctx: &mut Context,
+        _builder: &SandboxBuilder,
+        _blueprint: &mut SandboxBlueprint,
+        _tx: &mut ReadWriteTransaction,
+        _euid: &str,
+    ) -> Result<()> {
         Ok(())
     }
 }

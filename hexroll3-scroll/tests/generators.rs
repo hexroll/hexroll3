@@ -68,12 +68,14 @@ class1 {
         let generated_ids = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class1",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -108,12 +110,14 @@ class1 {
         let _generated_id = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class1",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -139,12 +143,14 @@ class2 {
         let generated_ids = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class2",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -174,12 +180,14 @@ class2 {
         let generated_ids = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class2",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -215,12 +223,14 @@ class2 {
         let generated_ids = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class2",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -267,12 +277,14 @@ class2 {
         let generated_ids = instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class2",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -323,12 +335,14 @@ class3 {
         instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class3",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -372,12 +386,14 @@ class3 {
         instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class3",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -443,12 +459,14 @@ class3 {
         instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class3",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })
@@ -520,12 +538,14 @@ class3 {
         instance
             .repo
             .mutate(|tx| {
+                let mut parent_context = ParentContext::default();
                 roll(
                     &SandboxBuilder::from_instance(&instance),
                     &mut blueprint,
                     tx,
                     "class3",
                     "root",
+                    &mut parent_context,
                     None,
                 )
             })

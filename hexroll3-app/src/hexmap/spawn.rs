@@ -85,7 +85,7 @@ pub fn spawn_tile<T>(
     let mut base = commands.spawn_empty();
     base.insert(ChildOf(map_parent));
     let (overlayer, underlayer, is_dungeon) =
-        get_tile_background_material(hex, map_data, tiles, map_resources);
+        get_tile_background_material(hex, map_data, tiles);
     let (xc, yc) = hexx_to_hexroll_coords(&hex);
     let display_coords = hexroll_coords_to_string(xc, yc);
     base.insert((
@@ -103,11 +103,12 @@ pub fn spawn_tile<T>(
         marker,
     ));
     if let Some(hex_data) = map_data.hexes.get(&hex) {
+        let layers = hex_data.num_of_layers;
         if !hex_data.generated {
             base.insert(crate::hexmap::editor::TempHex);
         }
         let terrain_material = if vtt_data.mode.is_player() {
-            if vtt_data.revealed.get(&hex) == Some(&HexRevealState::Partial) {
+            if let Some(HexRevealState::Partial(_)) = vtt_data.revealed.get(&hex) {
                 hex_data.partial_hex_tile_material.clone()
             } else {
                 hex_data.hex_tile_material.clone()
@@ -165,7 +166,7 @@ pub fn spawn_tile<T>(
                     0.0,
                 ))
                 .insert(RenderLayers::layer(RENDER_LAYER_MAP_LOD_HIGH))
-                .insert(HexCoordsForFeature { hex })
+                .insert(HexCoordsForFeature { hex, layers })
                 .insert(hex_data.hex_type.clone())
                 .insert(hex_data.feature.clone())
                 .insert(Visibility::Inherited)
@@ -173,9 +174,12 @@ pub fn spawn_tile<T>(
                     uid: hex_data.uid.clone(),
                 });
             if let Some(tile) = &hex_data.trail_tile {
-                let should_be_partially_revealed = vtt_data.revealed.get(&hex)
-                    == Some(&HexRevealState::Partial)
-                    && vtt_data.is_player();
+                let should_be_partially_revealed = vtt_data.is_player()
+                    && vtt_data
+                        .revealed
+                        .get(&hex)
+                        .map(|v| v.is_partially_revealed())
+                        .unwrap_or(false);
                 if !should_be_partially_revealed {
                     for t in tile {
                         spawn_trail_tile(&mut c, t.0, &t.1, &map_resources.trail_material);
@@ -290,10 +294,10 @@ pub fn update_hex_map_tiles(
     mut vtt_data: ResMut<VttData>,
     mut q: ResMut<TileSpawnQueues>,
     expensives: Query<&ExpensiveHex>,
-
     mut commands: Commands,
     map_parent: Single<Entity, With<HexMapTime>>,
     map_resources: Res<HexMapResources>,
+    tiles: Res<HexMapTileMaterials>,
 ) {
     if let Ok((cam_transform, proj)) = cameras.single() {
         let layout = y_inverted_hexmap_layout();
@@ -345,6 +349,7 @@ pub fn update_hex_map_tiles(
                         hex,
                         *map_parent,
                         &map_resources,
+                        &tiles,
                         ocean_marker_visibility,
                     );
                     return;
@@ -369,8 +374,8 @@ pub fn update_hex_map_tiles(
                 }
             }
             for coords_to_force_refresh in map_data.force_refresh.iter() {
-                q.spawn_queue.queue(*coords_to_force_refresh);
                 if let Some(e) = current_frame_hex_to_entities.get(coords_to_force_refresh) {
+                    q.spawn_queue.queue(*coords_to_force_refresh);
                     commands.entity(*e).try_despawn();
                 }
             }
@@ -486,7 +491,6 @@ fn get_tile_background_material(
     hex: Hex,
     map: &ResMut<HexMapData>,
     tiles: &Res<HexMapTileMaterials>,
-    map_resources: &Res<HexMapResources>,
 ) -> (
     Handle<BackgroundMaterial>,         // Overlayer
     Option<Handle<BackgroundMaterial>>, // Underlayer
@@ -505,7 +509,7 @@ fn get_tile_background_material(
             hex_data.feature == HexFeature::Dungeon,
         )
     } else {
-        (map_resources.ocean_material.clone(), None, false)
+        (tiles.unrevealed_ocean_material.clone(), None, false)
     }
 }
 
@@ -571,6 +575,7 @@ pub fn spawn_ocean_marker(
     hex: Hex,
     map_parent: Entity,
     map_resources: &Res<HexMapResources>,
+    tiles: &Res<HexMapTileMaterials>,
     visibility: Visibility,
 ) {
     let pos = layout.hex_to_world_pos(hex);
@@ -581,7 +586,7 @@ pub fn spawn_ocean_marker(
         Name::new("OceanMarker"),
         HexEntity { hex },
         Mesh3d(map_resources.mesh.clone()),
-        MeshMaterial3d(map_resources.water_material.clone()),
+        MeshMaterial3d(tiles.unrevealed_ocean_material.clone()),
         RenderLayers::layer(RENDER_LAYER_MAP_LOD_LOW),
         Transform::from_xyz(pos.x, HEIGHT_OF_TILES_BACKGROUND_HEX, pos.y),
         visibility,

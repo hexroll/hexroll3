@@ -26,7 +26,7 @@ WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
 COMMENT = _{ "#" ~ (!("\n" | "\r\n") ~ ANY)* }
 
 // Basic constructs
-null = {  "null-array" | "none" | "null" }
+null = {  "none" | "null" }
 quoted_string = _{ "\"" ~ string ~ "\"" }
 string = { (!"\"" ~ ANY)* }
 free_text = @{ !(":" | "*" | "&") ~ (!("\n" | "\r") ~ ANY)+ }
@@ -63,7 +63,7 @@ entity_parent = _{ "(" ~ entity_parent_name ~ ")" }
 subclasses = { "^" ~ (global | entities_list) }
 
 // Entity Attributes
-attributes = _{ (roll | inheritance | context_assignment | assignment | weak_assignment | prerendered_assignment | declaration | roll_one_of | pop | collect | tags)+  }
+attributes = _{ (roll | inheritance | context_assignment | assignment | weak_assignment | prerendered_assignment | declaration | placeholder | roll_one_of | pop | collect | tags)+  }
 
 // Assignments
 prepend_assignment = { property ~ ":=" ~ (context | value) }
@@ -81,6 +81,7 @@ roll_from_global = { property ~ "@" ~ global }
 roll_from_indirect = { property ~ "@" ~ indirect ~ injections? }
 indirect = ${"&" ~ identifier}
 roll_a_dice = { property ~ "@" ~ dice_value }
+placeholder = { (array | property)  ~ ";" }
 roll_an_entity = { (array | property)  ~ "@" ~ entity_name ~ injections? }
 pick_an_entity = { (array | property)  ~ "%" ~ entity_name ~ injections? }
 pop_an_entity = { (array | property)  ~ "?" ~ entity_name ~ injections? }

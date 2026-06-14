@@ -73,6 +73,7 @@ pub struct SearchResultItem {
 pub enum FetchEntityReason {
     TokenMovement,
     SandboxLink,
+    SystemNavigation,
     History,
     Refresh,
 }

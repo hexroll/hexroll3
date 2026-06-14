@@ -71,10 +71,12 @@ fn on_spawn_village_map(
     map: Res<HexMapData>,
     gltfs: Res<Assets<Gltf>>,
 ) {
+    let Some(hex_coords) = map.coords.get(&trigger.event().hex_uid) else {
+        return;
+    };
     let Some((angle, offset)) = map
-        .coords
-        .get(&trigger.event().hex_uid)
-        .and_then(|coords| map.hexes.get(coords))
+        .hexes
+        .get(hex_coords)
         .map(|hex_data| hex_data.metadata.feature_angle_and_offset())
     else {
         return;
@@ -116,6 +118,7 @@ fn on_spawn_village_map(
                         district_uid: "".into(),
                         building_index: 0,
                         hex_entity,
+                        hex_coords: *hex_coords,
                         pos: Vec3::ZERO,
                         building_uid: Some(cuid.clone()),
                     });
@@ -144,6 +147,7 @@ fn on_spawn_village_map(
                         district_uid,
                         building_index,
                         hex_entity,
+                        hex_coords: *hex_coords,
                         pos: Vec3::ZERO,
                         building_uid: None,
                     });

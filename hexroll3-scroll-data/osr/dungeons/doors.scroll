@@ -24,6 +24,7 @@
 #
 
 DungeonDoorKey {
+  AreaFloor! = none
   AreaNumber! = none
   AreaUUID! = none
   Title! = Key
@@ -31,17 +32,20 @@ DungeonDoorKey {
   Sigil! = none
   DoorShape! = none
   DoorMaterial! = none
-  Ref! = none
+  DoorAreaNumber! = none
+  DoorAreaFloor! = none
   DungeonUUID = none
   DoorAreaUUID = none
   Active! = false
 }
 
 DungeonDoorLever {
+  AreaFloor! = none
   AreaNumber! = none
   AreaUUID! = none
   LeverType = none
   LeverRef = none
+  LeverRefFloor = none
   LeverRefUUID = none
   LeverDoorPosition = none
   Title! = Lever
@@ -49,6 +53,7 @@ DungeonDoorLever {
 }
 
 DungeonDoorPassphrase {
+  AreaFloor! = none
   AreaNumber! = none
   AreaUUID! = none
   PassphraseAdj = none
@@ -56,6 +61,7 @@ DungeonDoorPassphrase {
   PassphraseLanguage = none
   PassphraseForm = none
   PassphraseRef = none
+  PassphraseRefFloor = none
   PassphraseRefUUID = none
   PassphraseDoorPosition = none
   Title! = Lever
@@ -63,7 +69,8 @@ DungeonDoorPassphrase {
 }
 
 DungeonPassage {
-  Ref = :RoomDescription.RoomNumber
+  DoorAreaNumber = :RoomDescription.RoomNumber
+  DoorAreaFloor = :RoomDescription.RoomFloor
   DoorPosition = none
   Description! ~ <%
     <strong>{{Wall}}</strong> side - passage to area {{Room}}.
@@ -71,7 +78,8 @@ DungeonPassage {
 }
 
 DungeonDoor {
-  Ref = :RoomDescription.RoomNumber
+  DoorAreaNumber = :RoomDescription.RoomNumber
+  DoorAreaFloor = :RoomDescription.RoomFloor
   DoorPosition = none
   Material @ [
     *(x4) wooden
@@ -90,7 +98,8 @@ DungeonDoor {
 
   State @ DungeonDoorState {
     Wall := &Wall
-    Ref := &Ref
+    DoorAreaNumber := &DoorAreaNumber
+    DoorAreaFloor := &DoorAreaFloor
     DoorMaterial := &Material
     DoorShape := &Shape
     DoorPosition := &DoorPosition
@@ -127,8 +136,8 @@ KeySecret(Secret) {
   | Secret
   Details! ~ <%
     {%if Key%}
-    * The key to unlock the {{Link.Shape}} {{Link.Material}} door in area {{Ref}}
-    in the {{title(DungeonContext.Name.Title)}} is in area {{Key.RoomContext.Ref}}
+    * The key to unlock the {{Link.Shape}} {{Link.Material}} door in area {{DoorAreaFloor}}X{{DoorAreaNumber}}
+    in the {{title(DungeonContext.Name.Title)}} is in area {{Key.RoomContext.DoorAreaNumber}}
     {% endif %}
     %>
 }
@@ -136,9 +145,9 @@ KeySecret(Secret) {
 LeverSecret(Secret) {
   | Secret
   Details! @ [
-    * The lever to open the secret door in area {{Ref}}
+    * The lever to open the secret door in area {{DoorAreaFloor}}X{{DoorAreaNumber}}
     in the {{title(DungeonContext.Name.Title)}} is in area
-    {{Lever.RoomContext.Ref}}
+    {{Lever.RoomContext.DoorAreaNumber}}
     ]
 }
 
@@ -157,19 +166,20 @@ DungeonDoorLocked {
         Sigil = &Sigil
         DoorShape = &DoorShape
         DoorMaterial = &DoorMaterial
-        Ref = *Ref
+        DoorAreaNumber = *DoorAreaNumber
+        DoorAreaFloor = *DoorAreaFloor
         DungeonUUID = &DungeonUUID
         DoorAreaUUID = *AreaUUID
         Active = <%
-          <strong>key (<span class='alchemy'>{{Sigil.Symbol}}</span>)</strong> to unlock {{begin_spoiler()}}
+          <strong>key</strong> (<span class='alchemy'>{{Sigil.Symbol}}</span>) to unlock {{begin_spoiler()}}
           the {{DoorShape}} {{DoorMaterial}} door
-          (to the {{Wall}}) in <a href="{{sandbox()}}/location/{{DoorAreaUUID}}">area {{Ref}}</a>{{end_spoiler()}}
+          (to the {{Wall}}) in <a href="{{sandbox()}}/location/{{DoorAreaUUID}}">area {{conditional_ref(AreaFloor, DoorAreaFloor, DoorAreaNumber)}}</a>{{end_spoiler()}}
           %>
   }
 
   AdditionalInfo! ~ <%
     {% if Key %}
-    <ul><li> {{reroller(Key, "", False)}} {{begin_spoiler()}}The key is in <a href="{{sandbox()}}/location/{{Key.AreaUUID}}"><strong>area {{Key.AreaNumber}}</strong></a>{{end_spoiler()}}</li> </ul>
+    <ul><li> {{reroller(Key, "", False)}} {{begin_spoiler()}}The key is in <a href="{{sandbox()}}/location/{{Key.AreaUUID}}"><strong>area {{conditional_ref(DoorAreaFloor, Key.AreaFloor, Key.AreaNumber)}}</strong></a>{{end_spoiler()}}</li> </ul>
     {% else %}
     <ul><li> The key was lost long time ago.</li> </ul>
     {% endif %}
@@ -198,11 +208,13 @@ DungeonDoorTrapped {
 }
 
 DungeonSecretDoor {
-  Ref = :RoomDescription.RoomNumber
+  DoorAreaNumber = :RoomDescription.RoomNumber
+  DoorAreaFloor = :RoomDescription.RoomFloor
 
   SecretDoorTrigger @ DungeonSecretDoorTrigger {
     Wall := &Wall
-    Ref := &Ref
+    DoorAreaNumber := &DoorAreaNumber
+    DoorAreaFloor := &DoorAreaFloor
   }
 
   Description! ~ <%
@@ -344,18 +356,19 @@ DungeonSecretDoorPassphrase {
     PassphraseNoun = &Noun
     PassphraseLanguage = &Language
     PassphraseForm = &Form
-    PassphraseRef = *Ref
+    PassphraseRef = *DoorAreaNumber
+    PassphraseRefFloor = *DoorAreaFloor
     PassphraseRefUUID = *AreaUUID
     PassphraseDoorPosition = &Wall
     Active = <% The words <strong>"{{title(PassphraseAdj)}} {{title(PassphraseNoun)}}"</strong> in {{PassphraseLanguage}} {{PassphraseForm}}.
-            {{begin_spoiler()}}It is the passphrase for the secret door in <a href="{{sandbox()}}/location/{{PassphraseRefUUID}}">area {{PassphraseRef}}</a> (to the {{PassphraseDoorPosition}}){{end_spoiler()}}%>
+            {{begin_spoiler()}}It is the passphrase for the secret door in <a href="{{sandbox()}}/location/{{PassphraseRefUUID}}">area {{conditional_ref(AreaFloor,PassphraseRefFloor,PassphraseRef)}}</a> (to the {{PassphraseDoorPosition}}){{end_spoiler()}}%>
   }
 
   Description! ~ <% requiring a <strong>passphrase</strong>  %>
 
   Details! ~ <%
       {{Action.Hint}} <strong>"{{Hint}}"</strong>. {{begin_spoiler()}}The full passphrase is in
-      <strong><a href="{{sandbox()}}/location/{{Passphrase.AreaUUID}}">area {{Passphrase.AreaNumber}}</a></strong>.
+      <strong><a href="{{sandbox()}}/location/{{Passphrase.AreaUUID}}">area {{conditional_ref(DoorAreaFloor,Passphrase.AreaFloor,Passphrase.AreaNumber)}}</a></strong>.
       {{Action.Action}}.{{end_spoiler()}}
   %>
 }
@@ -382,16 +395,17 @@ DungeonSecretDoorLever {
 
   Lever ? DungeonDoorLever {
     LeverType = &Type
-    LeverRef = *Ref
+    LeverRef = *DoorAreaNumber
+    LeverRefFloor = *DoorAreaFloor
     LeverRefUUID = *AreaUUID
     LeverDoorPosition = &Wall
     Active = <%
     <strong>{{LeverType}} lever</strong> that can open the secret door in
-    <a href="{{sandbox()}}/location/{{LeverRefUUID}}">area {{LeverRef}}</a> (to the {{LeverDoorPosition}})%>
+    <a href="{{sandbox()}}/location/{{LeverRefUUID}}">area {{conditional_ref(AreaFloor, LeverRefFloor, LeverRef)}}</a> (to the {{LeverDoorPosition}})%>
   }
 
   Details! ~ <%
-    {{reroller(Lever, "", False)}} {{begin_spoiler()}}The lever is in <a href="{{sandbox()}}/location/{{Lever.AreaUUID}}"><strong>area {{Lever.AreaNumber}}</strong></a>{{end_spoiler()}}
+    {{reroller(Lever, "", False)}} {{begin_spoiler()}}The lever is in <a href="{{sandbox()}}/location/{{Lever.AreaUUID}}"><strong>area {{conditional_ref(DoorAreaFloor, Lever.AreaFloor, Lever.AreaNumber)}}</strong></a>{{end_spoiler()}}
   %>
 
 }

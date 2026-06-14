@@ -43,7 +43,7 @@ use hexroll3_scroll::{
     generators::*,
     instance::{SandboxInstance, *},
     renderer::{render_entity, render_entity_html},
-    repository::ReadOnlyLoader,
+    repository::{ReadOnlyLoader, ReadWriteTransaction},
 };
 
 use crate::{
@@ -71,12 +71,12 @@ use crate::{
 };
 use crate::{content::context::ContentContext, shared::widgets::cursor::CursorController};
 
-use super::NodeBackendEvent;
 use super::model::FetchEntityReason;
+use super::{NodeBackendEvent, controller::BattlemapRequestType};
 use super::{
     StandaloneBackendEvent,
     controller::{
-        ClientState, FeatureUidResponse, PerformHexMapActionInBackend, PostMapLoadedOp,
+        AppendResponse, ClientState, PerformHexMapActionInBackend, PostMapLoadedOp,
         PostMapLoadedOpPrefix, RequestMapFromBackend, RequestMapResult,
         RequestSandboxFromBackend, SearchEntitiesInBackend,
     },
@@ -91,7 +91,9 @@ impl Plugin for StandaloneClientPlugin {
         app // -->
             .add_observer(request_sandbox_standalone)
             .add_observer(fetch_hex_standalone)
-            .add_observer(append_feature_standalone)
+            .add_observer(append_land_hex_entity_standalone)
+            .add_observer(append_ocean_hex_standalone)
+            .add_observer(append_settlement_building_standlone)
             .add_observer(remove_entity_standalone)
             .add_observer(request_hex_map_standalone)
             .add_observer(load_vtt_state_standalone)
@@ -118,6 +120,7 @@ impl Plugin for StandaloneClientPlugin {
 pub struct StandaloneSandbox {
     pub instance: SandboxInstance,
     pub index: std::sync::Arc<std::sync::Mutex<SandboxIndex>>,
+    pub cache: moka::sync::Cache<String, (String, String)>,
 }
 
 pub struct SandboxIndex {
@@ -159,59 +162,76 @@ pub fn request_sandbox_standalone(
     commands.insert_resource(StandaloneSandbox {
         instance,
         index: std::sync::Arc::new(std::sync::Mutex::new(SandboxIndex::new())),
+        cache: moka::sync::Cache::new(100),
     });
     commands.trigger(RequestMapResult::Loaded(event.sandbox_uid.clone(), None));
 }
 
+fn append_and_reroll(
+    builder: &SandboxBuilder,
+    blueprint: &mut SandboxBlueprint,
+    tx: &mut ReadWriteTransaction,
+    hex_uid: &str,
+    attr: &str,
+    what: &str,
+) -> anyhow::Result<String> {
+    let uids = append(builder, blueprint, tx, hex_uid, attr, Some(what), 1)?;
+    let Some(uid) = uids.first() else {
+        return Err(anyhow::anyhow!("Something went wrong with appending"));
+    };
+    let uid = uid.clone();
+
+    {
+        let rerolls = tx.load("rerolls").unwrap().clone();
+        tx.emplace_and_save("rerolls", json!({"entities": []}))?;
+        for r in rerolls["entities"].as_array().unwrap() {
+            let r_uid = r.as_str().unwrap();
+            if tx.load(r_uid).is_ok() {
+                reroll(builder, blueprint, tx, r_uid, None)?;
+            }
+        }
+    }
+
+    Ok(uid)
+}
+
 // ---------------------------------------------------------------------------------------------------------
-pub fn append_feature_standalone(
+pub fn append_land_hex_entity_standalone(
     trigger: On<StandaloneBackendEvent<AppendSandboxEntity>>,
     sandbox: Res<StandaloneSandbox>,
     mut commands: Commands,
     effects: Res<EffectSystems>,
-    mut async_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
+    mut async_tasks: ResMut<AsyncBackendTasks<String, AppendResponse>>,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
 ) {
+    let AppendSubject::Hex {
+        uid: hex_uid,
+        coords,
+    } = &trigger.event().0.target
+    else {
+        return;
+    };
+
+    if let Some(coords) = coords {
+        commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+        commands.run_system(effects.roll_feature_effect);
+    }
+
     cursor_controller.loading(&mut commands, *window);
 
     let sid = sandbox.instance.sid.clone().unwrap();
     let event = trigger.event().0.clone();
+    let hex_uid = hex_uid.clone();
 
-    // NOTE: Resolve the target into the three pieces the backend needs:
-    // hex_uid: the entity to append onto
-    // maybe_coords: hex coordinates to stamp onto the new entity if any
-    // maybe_building_index: building slot to stamp onto the new entity if any
-    // fetch_uid: the UID to open in the content panel after appending
-    //            (None means use the new entity's own UID)
-    let (hex_uid, maybe_coords, maybe_building_index, fetch_uid) = match &event.target {
-        AppendSubject::Hex { uid, coords } => {
-            if let Some(coords) = coords {
-                commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
-                commands.run_system(effects.roll_feature_effect);
-            }
-            (uid.clone(), *coords, None, Some(uid.clone()))
-        }
-        AppendSubject::Ocean { coords } => {
-            commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
-            commands.run_system(effects.roll_feature_effect);
-            (
-                sandbox.instance.sid.clone().unwrap(),
-                Some(*coords),
-                None,
-                None,
-            )
-        }
-        AppendSubject::SettlementDistrict {
-            district_uid,
-            building_index,
-        } => (district_uid.clone(), None, Some(*building_index), None),
-    };
+    let fetch_uid = Some(hex_uid.clone());
+
+    sandbox.cache.clone().invalidate_all();
 
     let mut instance = sandbox.instance.clone();
 
     if async_tasks
-        .spawn_standalone(sid, move || -> Option<FeatureUidResponse> {
+        .spawn_standalone(sid, move || -> Option<AppendResponse> {
             let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
             hex_map.reconstruct(&mut instance);
 
@@ -219,49 +239,17 @@ pub fn append_feature_standalone(
             let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
                 return None;
             };
-
             blueprint.map_data_provider = map_data_providers();
 
             match builder.sandbox.repo.mutate(|mut tx| {
-                let uids = append(
+                let uid = append_and_reroll(
                     &builder,
                     &mut blueprint,
                     &mut tx,
                     &hex_uid,
                     &event.attr,
-                    Some(&event.what),
-                    1,
+                    &event.what,
                 )?;
-                let Some(uid) = uids.first() else {
-                    return Err(anyhow::anyhow!("Something went wrong with appending"));
-                };
-
-                // Stamp hex coordinates onto the new entity if provided.
-                if let Some(coords) = maybe_coords {
-                    let entity = tx.load(&uid)?;
-                    let (x, y) = hexx_to_hexroll_coords(&coords);
-                    entity["$coords"]["x"] = x.into();
-                    entity["$coords"]["y"] = y.into();
-                    tx.save(&uid)?;
-                }
-
-                // Stamp building index onto the new entity for settlement district appends.
-                if let Some(building_index) = maybe_building_index {
-                    let entity = tx.load(&uid)?;
-                    entity["building_index"] = building_index.into();
-                    tx.save(&uid)?;
-
-                    // Refresh the settlement map so the new entity occupies its building slot.
-                    let district = tx.load(&hex_uid)?.clone();
-                    let rendered =
-                        render_entity(&builder.sandbox, &mut blueprint, tx, &district, true)?;
-                    let setuid = rendered["SettlementUUID"].as_str().unwrap().to_string();
-                    hexroll3_cartographer::watabou::refresh_city_map(
-                        tx,
-                        &builder.randomizer,
-                        &setuid,
-                    )?;
-                }
 
                 if let Some(on_roll) = tx.load(&uid)?.clone().get("$on_roll") {
                     if on_roll == "roll_settlement_map" {
@@ -276,24 +264,159 @@ pub fn append_feature_standalone(
                     }
                 }
 
-                {
-                    let rerolls = tx.load("rerolls").unwrap().clone();
-                    tx.emplace_and_save("rerolls", json!({"entities": []}))?;
-                    for r in rerolls["entities"].as_array().unwrap() {
-                        let uid = r.as_str().unwrap();
-                        if tx.load(uid).is_ok() {
-                            reroll(&builder, &mut blueprint, tx, uid, None)?;
-                        }
-                    }
-                }
-
-                Ok(uid.clone())
+                Ok(uid)
             }) {
-                Ok(uid) => Some(FeatureUidResponse(
-                    format!("{{ \"uuid\":\"{}\" }}", uid),
-                    maybe_coords,
-                    fetch_uid.clone(),
-                )),
+                Ok(uid) => Some(AppendResponse::MapScopeEntity(uid, fetch_uid.clone())),
+                Err(e) => {
+                    error!("{}", e.to_string());
+                    None
+                }
+            }
+        })
+        .is_err()
+    {
+        cursor_controller.done(&mut commands, *window);
+    }
+}
+
+pub fn append_ocean_hex_standalone(
+    trigger: On<StandaloneBackendEvent<AppendSandboxEntity>>,
+    sandbox: Res<StandaloneSandbox>,
+    mut commands: Commands,
+    effects: Res<EffectSystems>,
+    mut async_tasks: ResMut<AsyncBackendTasks<String, AppendResponse>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
+) {
+    let AppendSubject::Ocean { coords } = trigger.event().0.target else {
+        return;
+    };
+
+    commands.spawn_empty().insert(RollNewFeatureEffect(coords));
+    commands.run_system(effects.roll_feature_effect);
+
+    cursor_controller.loading(&mut commands, *window);
+
+    // Ocean appends use the sandbox root (sid) as the target entity.
+    let sid = sandbox.instance.sid.clone().unwrap();
+    let event = trigger.event().0.clone();
+
+    sandbox.cache.clone().invalidate_all();
+
+    let mut instance = sandbox.instance.clone();
+
+    if async_tasks
+        .spawn_standalone(sid.clone(), move || -> Option<AppendResponse> {
+            let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
+            hex_map.reconstruct(&mut instance);
+
+            let builder = SandboxBuilder::from_instance(&instance);
+            let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
+                return None;
+            };
+            blueprint.map_data_provider = map_data_providers();
+
+            match builder.sandbox.repo.mutate(|mut tx| {
+                let uid = append_and_reroll(
+                    &builder,
+                    &mut blueprint,
+                    &mut tx,
+                    &sid,
+                    &event.attr,
+                    &event.what,
+                )?;
+
+                // Stamp hex coordinates onto the new ocean entity.
+                let entity = tx.load(&uid)?;
+                let (x, y) = hexx_to_hexroll_coords(&coords);
+                entity["$coords"]["x"] = x.into();
+                entity["$coords"]["y"] = y.into();
+                tx.save(&uid)?;
+
+                Ok(uid)
+            }) {
+                Ok(uid) => Some(AppendResponse::HexScopeEntity(uid, coords, None)),
+                Err(e) => {
+                    error!("{}", e.to_string());
+                    None
+                }
+            }
+        })
+        .is_err()
+    {
+        cursor_controller.done(&mut commands, *window);
+    }
+}
+
+pub fn append_settlement_building_standlone(
+    trigger: On<StandaloneBackendEvent<AppendSandboxEntity>>,
+    sandbox: Res<StandaloneSandbox>,
+    mut commands: Commands,
+    mut async_tasks: ResMut<AsyncBackendTasks<String, AppendResponse>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
+) {
+    let AppendSubject::SettlementDistrict {
+        hex_coords,
+        district_uid,
+        building_index,
+    } = &trigger.event().0.target
+    else {
+        return;
+    };
+
+    cursor_controller.loading(&mut commands, *window);
+
+    let sid = sandbox.instance.sid.clone().unwrap();
+    let event = trigger.event().0.clone();
+    let district_uid = district_uid.clone();
+    let building_index = *building_index;
+    let hex_coords = *hex_coords;
+
+    sandbox.cache.clone().invalidate_all();
+
+    let mut instance = sandbox.instance.clone();
+
+    if async_tasks
+        .spawn_standalone(sid, move || -> Option<AppendResponse> {
+            let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
+            hex_map.reconstruct(&mut instance);
+
+            let builder = SandboxBuilder::from_instance(&instance);
+            let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
+                return None;
+            };
+            blueprint.map_data_provider = map_data_providers();
+
+            match builder.sandbox.repo.mutate(|mut tx| {
+                let uid = append_and_reroll(
+                    &builder,
+                    &mut blueprint,
+                    &mut tx,
+                    &district_uid,
+                    &event.attr,
+                    &event.what,
+                )?;
+
+                // Stamp building index onto the new entity and refresh the settlement map
+                // so the entity occupies its building slot.
+                let entity = tx.load(&uid)?;
+                entity["building_index"] = building_index.into();
+                tx.save(&uid)?;
+
+                let district = tx.load(&district_uid)?.clone();
+                let rendered =
+                    render_entity(&builder.sandbox, &mut blueprint, tx, &district, true)?;
+                let setuid = rendered["SettlementUUID"].as_str().unwrap().to_string();
+                hexroll3_cartographer::watabou::refresh_city_map(
+                    tx,
+                    &builder.randomizer,
+                    &setuid,
+                )?;
+
+                Ok(uid)
+            }) {
+                Ok(uid) => Some(AppendResponse::HexScopeEntity(uid, hex_coords, None)),
                 Err(e) => {
                     error!("{}", e.to_string());
                     None
@@ -328,6 +451,8 @@ pub fn remove_entity_standalone(
     let instance = sandbox.instance.clone();
     let maybe_context_uid = content_context.current_entity_uid.clone();
     let content_history_to_verify = content_context.history.clone();
+
+    sandbox.cache.clone().invalidate_all();
 
     if async_tasks
         .spawn_standalone(event.uid.clone(), move || -> Option<RemoveResponse> {
@@ -405,18 +530,37 @@ pub fn fetch_hex_standalone(
     cursor_controller.loading(&mut commands, *window);
     let anchor = trigger.event().0.anchor.clone();
     let instance = sandbox.instance.clone();
+    let cache = sandbox.cache.clone();
     if async_tasks
         .spawn_standalone(
             uid.clone(),
             move || -> Option<(ContentPageModel, FetchEntityReason, Option<String>)> {
-                let Ok(mut blueprint) = instance.blueprint.try_lock() else {
-                    error!("Error trying to lock the sandbox blueprint");
-                    return None;
+                if let Some((header_html, body_html)) = cache.get(&uid) {
+                    let ret = (
+                        ContentPageModel::from_entity_html(&uid, &(header_html + &body_html)),
+                        why.clone(),
+                        anchor.clone(),
+                    );
+                    return Some(ret);
+                }
+                let mut blueprint = if why == FetchEntityReason::SystemNavigation {
+                    let Ok(blueprint) = instance.blueprint.lock() else {
+                        error!("Error trying to lock the sandbox blueprint");
+                        return None;
+                    };
+                    blueprint
+                } else {
+                    let Ok(blueprint) = instance.blueprint.try_lock() else {
+                        error!("Error trying to lock the sandbox blueprint");
+                        return None;
+                    };
+                    blueprint
                 };
                 match instance.repo.inspect(|tx| {
                     let e = tx.load(&uid)?;
                     let (header_html, body_html) =
                         render_entity_html(&instance, &mut blueprint, tx, &e.value)?;
+                    cache.insert(uid.to_string(), (header_html.clone(), body_html.clone()));
                     let ret = (
                         ContentPageModel::from_entity_html(&uid, &(header_html + &body_html)),
                         why.clone(),
@@ -581,7 +725,12 @@ pub fn request_city_standalone(
     trigger: On<StandaloneBackendEvent<RequestCityOrTownFromBackend>>,
     sandbox: Res<StandaloneSandbox>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
 ) {
     let event = trigger.event().0.clone();
     let repo = sandbox.instance.repo.clone();
@@ -604,7 +753,14 @@ pub fn request_city_standalone(
     };
 
     if my_tasks
-        .spawn_standalone((trigger.0.uid.clone(), trigger.0.hex), task)
+        .spawn_standalone(
+            (
+                trigger.0.uid.clone(),
+                trigger.0.hex,
+                BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+            ),
+            task,
+        )
         .is_err()
     {
         commands
@@ -617,7 +773,12 @@ pub fn request_village_standalone(
     trigger: On<StandaloneBackendEvent<RequestVillageFromBackend>>,
     sandbox: Res<StandaloneSandbox>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
 ) {
     let event = trigger.event().0.clone();
     let repo = sandbox.instance.repo.clone();
@@ -643,7 +804,14 @@ pub fn request_village_standalone(
     };
 
     if my_tasks
-        .spawn_standalone((trigger.0.uid.clone(), trigger.0.hex), task)
+        .spawn_standalone(
+            (
+                trigger.0.uid.clone(),
+                trigger.0.hex,
+                BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+            ),
+            task,
+        )
         .is_err()
     {
         commands
@@ -656,14 +824,19 @@ pub fn request_dungeon_map_standalone(
     trigger: On<StandaloneBackendEvent<RequestDungeonFromBackend>>,
     sandbox: Res<StandaloneSandbox>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
 ) {
     let event = trigger.event().0.clone();
     let instance = &sandbox.instance;
     let repo = instance.repo.clone();
     let task = move || -> Option<(BattleMapConstructs, String)> {
         repo.mutate_ex(false, |tx| {
-            let data = prepare_dungeon_data(tx, &event.uid)?;
+            let data = prepare_dungeon_data(tx, &event.uid, event.layer.saturating_sub(1))?;
 
             Ok(if data.contains("areas") {
                 Some((
@@ -690,7 +863,14 @@ pub fn request_dungeon_map_standalone(
     };
 
     if my_tasks
-        .spawn_standalone((trigger.0.uid.clone(), trigger.0.hex), task)
+        .spawn_standalone(
+            (
+                trigger.0.uid.clone(),
+                trigger.0.hex,
+                BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+            ),
+            task,
+        )
         .is_err()
     {
         commands
@@ -706,6 +886,7 @@ pub fn request_a_reroll_standalone(
 ) {
     let event = trigger.event().0.clone();
     let mut instance = sandbox.instance.clone();
+    sandbox.cache.clone().invalidate_all();
     let class_override = event.class_override.clone();
     let uid = event.uid.clone();
     let is_map_reload_needed = event.is_map_reload_needed;
@@ -721,14 +902,25 @@ pub fn request_a_reroll_standalone(
                     return None;
                 };
 
-                blueprint.map_data_provider = |builder, mut blueprint, tx, class_name| {
-                    match class_name {
-                        "CaveMap" => Some(prep_cave_map(builder, &mut blueprint, tx)),
-                        "DungeonMap" => Some(prep_dungeon_map(builder, &mut blueprint, tx)),
-                        _ => None,
-                    }
-                    .transpose()
-                };
+                blueprint.map_data_provider =
+                    |builder, mut blueprint, tx, class_name, mut parent_context| {
+                        match class_name {
+                            "CaveMap" => Some(prep_cave_map(
+                                builder,
+                                &mut blueprint,
+                                tx,
+                                &mut parent_context,
+                            )),
+                            "DungeonMap" => Some(prep_dungeon_map(
+                                builder,
+                                &mut blueprint,
+                                tx,
+                                &mut parent_context,
+                            )),
+                            _ => None,
+                        }
+                        .transpose()
+                    };
 
                 if let Ok(uid) = builder.sandbox.repo.mutate(|tx| {
                     let map_context = extract_map_context(tx, &uid)?;
@@ -746,28 +938,14 @@ pub fn request_a_reroll_standalone(
                     )?;
 
                     if let Some(map_context) = map_context {
-                        apply_map_context(&instance, &mut hex_map, tx, map_context, &new_uid)?;
-                    }
-
-                    let entity = tx.load(&new_uid)?.clone();
-
-                    if let Some(on_reroll) = entity.get("$on_reroll") {
-                        if on_reroll == "remap_in_settlement" {
-                            let rendered = render_entity(
-                                &builder.sandbox,
-                                &mut blueprint,
-                                tx,
-                                &entity,
-                                true,
-                            )?;
-                            let setuid =
-                                rendered["SettlementUUID"].as_str().unwrap().to_string();
-                            hexroll3_cartographer::watabou::refresh_city_map(
-                                tx,
-                                &builder.randomizer,
-                                &setuid,
-                            )?;
-                        }
+                        apply_map_context(
+                            &instance,
+                            &mut blueprint,
+                            &mut hex_map,
+                            tx,
+                            map_context,
+                            &new_uid,
+                        )?;
                     }
 
                     Ok(new_uid)
@@ -797,6 +975,7 @@ pub fn request_hex_action_standlone(
 ) {
     let event = trigger.event().0.clone();
     let mut instance = sandbox.instance.clone();
+    sandbox.cache.clone().invalidate_all();
     let Some(hex_coords) = map.coords.get(&event.uid) else {
         error!("Hex coordinates not found for uid: {}", event.uid);
         return;
@@ -1072,6 +1251,8 @@ pub fn rename_entity_standalone(
     let instance = sandbox.instance.clone();
     let index = sandbox.index.clone();
 
+    sandbox.cache.clone().invalidate_all();
+
     if async_tasks
         .spawn_standalone(
             sandbox_uid.to_string(),
@@ -1320,7 +1501,7 @@ pub fn handle_user_triggered_rollback(
             content_context.current_entity_uid = None;
             content_context.current_hex_uid = None;
             commands.trigger(RequestMapFromBackend {
-                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
             });
         }
     }

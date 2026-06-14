@@ -38,6 +38,7 @@ use crate::hexmap::elements::{DungeonUnderlayer, HexMapToolState};
 use crate::shared::AppState;
 use crate::shared::labels::RulerLabelMarker;
 use crate::shared::settings::Config;
+use crate::shared::snapshot::ReleaseScreenSnapshot;
 use crate::shared::widgets::buttons::ToggleResourceWrapper;
 use crate::{
     audio::PlayBattlemapSound,
@@ -170,7 +171,7 @@ fn trigger_battlemaps_requests_when_visible(
     mut commands: Commands,
     visibility_controller: Res<MapVisibilityController>,
     map_resources: Res<crate::hexmap::elements::HexMapResources>,
-    vtt_data: Res<VttData>,
+    mut vtt_data: ResMut<VttData>,
     tiles: Res<HexMapTileMaterials>,
     panorbit: Single<(&bevy_editor_cam::prelude::EditorCam, &CameraTweenTarget)>,
     map_data: Res<HexMapData>,
@@ -209,8 +210,22 @@ fn trigger_battlemaps_requests_when_visible(
                     continue;
                 }
             }
-            let is_fully_revealed_hex = vtt_data.revealed_hex_layer(&hex_coords.hex) >= 0;
-            let is_dungeon_layer_visible = vtt_data.revealed_hex_layer(&hex_coords.hex) > 0;
+            let mut possible_layer = vtt_data.revealed_hex_layer(&hex_coords.hex);
+
+            // NOTE: Care for reroll cases where the new battlemap has less layers than
+            // before, and the reveal state is set for a higher layer.
+            if possible_layer > hex_coords.layers.saturating_sub(1) as i32 {
+                vtt_data
+                    .revealed
+                    .get_mut(&hex_coords.hex)
+                    .unwrap()
+                    .reset_layer();
+                possible_layer = vtt_data.revealed_hex_layer(&hex_coords.hex);
+            }
+
+            let is_fully_revealed_hex = possible_layer >= 0;
+            let layer = possible_layer.max(0) as usize;
+            let is_dungeon_layer_visible = layer > 0;
             let is_dungeon_overland =
                 *hex_type == HexFeature::Dungeon && !is_dungeon_layer_visible;
             let mut spawn_empty_battlemap = false;
@@ -218,19 +233,22 @@ fn trigger_battlemaps_requests_when_visible(
             let mut height_offset = 0.0;
             // NOTE: the following check is to ensure partially revealed hexes show a wilderness
             // battlemap for players
-            if (vtt_data.is_player() && is_dungeon_overland)
-                || (vtt_data.is_remote_player() && !is_fully_revealed_hex)
-            {
+            if vtt_data.is_player() && (is_dungeon_overland || !is_fully_revealed_hex) {
                 spawn_empty_battlemap = true;
             } else {
-                if *hex_type == HexFeature::Dungeon {
+                if *hex_type == HexFeature::Dungeon || layer > 0 {
                     if let Ok(mut entity) = commands.get_entity(hex) {
                         entity.try_insert(SubMapMarker);
                         entity.try_insert(DungeonFeatureContainer);
                     }
                     let uid = hex_uid.uid.clone();
                     is_expensive_hex = true;
-                    commands.trigger(RequestDungeonFromBackend(BattlemapRequest { uid, hex }))
+                    commands.trigger(RequestDungeonFromBackend(BattlemapRequest {
+                        uid,
+                        hex,
+                        layer,
+                        is_underlayer: false,
+                    }))
                 } else if *hex_type == HexFeature::City || *hex_type == HexFeature::Town {
                     if let Ok(mut entity) = commands.get_entity(hex) {
                         entity.try_insert(SubMapMarker);
@@ -239,8 +257,22 @@ fn trigger_battlemaps_requests_when_visible(
                     spawn_empty_battlemap = true;
                     height_offset = 11.0;
                     is_expensive_hex = true;
-                    commands
-                        .trigger(RequestCityOrTownFromBackend(BattlemapRequest { uid, hex }))
+                    commands.trigger(RequestCityOrTownFromBackend(BattlemapRequest {
+                        uid: uid.clone(),
+                        hex,
+                        layer,
+                        is_underlayer: false,
+                    }));
+                    if *hex_type == HexFeature::City && !vtt_data.is_player() {
+                        if map_data.hexes.get(&hex_coords.hex).unwrap().num_of_layers > 1 {
+                            commands.trigger(RequestDungeonFromBackend(BattlemapRequest {
+                                uid: uid.clone(),
+                                hex,
+                                layer,
+                                is_underlayer: true,
+                            }))
+                        }
+                    }
                 } else if *hex_type == HexFeature::Village {
                     if let Ok(mut entity) = commands.get_entity(hex) {
                         entity.try_insert(SubMapMarker);
@@ -249,7 +281,12 @@ fn trigger_battlemaps_requests_when_visible(
                     spawn_empty_battlemap = true;
                     height_offset = 11.0;
                     is_expensive_hex = true;
-                    commands.trigger(RequestVillageFromBackend(BattlemapRequest { uid, hex }))
+                    commands.trigger(RequestVillageFromBackend(BattlemapRequest {
+                        uid,
+                        hex,
+                        layer,
+                        is_underlayer: false,
+                    }))
                 } else if visibility_controller.are_battlemaps_visible() || is_dungeon_overland
                 {
                     spawn_empty_battlemap = true;
@@ -300,6 +337,7 @@ fn trigger_battlemaps_requests_when_visible(
                             0.0,
                         ),
                     ));
+                    commands.trigger(ReleaseScreenSnapshot);
                 }
                 // FIXME: if this is a battlemap on top of a non-revealed dungeon,
                 // do we need to insert another HexFeatureMap??

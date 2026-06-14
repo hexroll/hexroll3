@@ -106,6 +106,12 @@ impl PreparedHexTile {
             _ => false,
         }
     }
+    pub fn can_have_a_dungeon(&self) -> bool {
+        match self.feature {
+            HexFeature::City => true,
+            _ => false,
+        }
+    }
     pub fn can_source_a_river(&self) -> bool {
         self.hex_type == TerrainType::MountainsHex
             && self.metadata.is_rim
@@ -242,7 +248,7 @@ impl HexMapData {
 pub struct HexToInvalidateMarker;
 
 #[derive(Debug, Component)]
-pub struct HexToInvalidatePostLoadMarker(pub String);
+pub struct HexToInvalidatePostLoadMarker(pub Hex);
 
 #[derive(Debug, Resource)]
 pub struct HexEntityCallbacks {
@@ -258,7 +264,6 @@ pub struct HexMapResources {
     pub trail_material: Handle<TrailMaterial>,
     //
     pub water_material: Handle<SimpleBackgroundMaterial>,
-    pub ocean_material: Handle<BackgroundMaterial>,
     pub underworld_material: Handle<BackgroundMaterial>,
     pub region_labels_material: Handle<StandardMaterial>,
     pub realm_labels_material: Handle<StandardMaterial>,
@@ -286,8 +291,10 @@ pub struct HexEntity {
 }
 
 #[derive(Component)]
+//FIXME: rename to HexMetadataForFeature
 pub struct HexCoordsForFeature {
     pub hex: Hex,
+    pub layers: usize,
 }
 
 #[derive(Component)]
@@ -320,6 +327,7 @@ pub enum AppendSubject {
         coords: Hex,
     },
     SettlementDistrict {
+        hex_coords: Hex,
         district_uid: String,
         building_index: i32,
     },

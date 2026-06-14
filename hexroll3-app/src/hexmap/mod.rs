@@ -44,8 +44,6 @@ pub use data::HexFeature;
 pub use data::HexMapJson;
 pub use data::TerrainType;
 
-pub use hex_dial::LockableDialButton;
-
 pub use daynight::HexMapTime;
 pub use daynight::ToggleDayNight;
 

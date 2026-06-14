@@ -586,3 +586,21 @@ impl DialCoreAssets {
         DialCoreAssets { bg_mesh }
     }
 }
+#[derive(Component)]
+pub struct LockableDialButton(pub bool);
+
+pub trait MakeLockableDialButton {
+    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self;
+}
+
+impl MakeLockableDialButton for EntityCommands<'_> {
+    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self {
+        self.insert(LockableDialButton(cond))
+            .insert(if locked || !cond {
+                DialButtonState::Disabled
+            } else {
+                DialButtonState::Enabled
+            });
+        self
+    }
+}

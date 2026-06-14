@@ -478,8 +478,8 @@ fn show_game_mode_options(
                     for modal in modals.iter() {
                         commands.entity(modal).try_despawn();
                     }
-                    make_sandbox(&mut commands, &mut user_settings, v.clone());
                     commands.run_system_cached(setup_group_mode);
+                    make_sandbox(&mut commands, &mut user_settings, v.clone());
                     commands.run_system_cached(save_vtt_state);
                     commands.run_system_cached(show_new_sandbox_options);
                 },
@@ -505,9 +505,8 @@ fn show_game_mode_options(
                     for modal in modals.iter() {
                         commands.entity(modal).try_despawn();
                     }
-                    make_sandbox(&mut commands, &mut user_settings, input.clone());
-                    // Setup solo state
                     commands.run_system_cached(setup_solo_mode);
+                    make_sandbox(&mut commands, &mut user_settings, input.clone());
                     commands.run_system_cached(save_vtt_state);
                     commands.run_system_cached(show_advanced_generator);
                 },

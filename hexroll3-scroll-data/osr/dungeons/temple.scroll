@@ -87,6 +87,34 @@ TempleFeatureTier4 {
     ]
 }
 
+TempleLoreReclaimed {
+    Description! @ [
+        * A former ruin raised to glory once more, this ancient place has been repaired and decorated to venerate a new ruler.
+        * Power resonates from its ancient structure, a dark energy which crawls across the skin.
+        * Its stones bear the scars of conquest, a new owner making their mark for all to see.
+        * Terrible roars erupts from within when listening carefully.
+        * The skies above roil as if tortured, dark clouds alight with arcane lightning swirling down.
+    ]
+}
+
+TempleLoreInvaded {
+    Description! @ [
+        * The light which dwelt within its walls has been reduced to a glimmer, yet hope remains that the shadows within can be defeated.
+        * Angelic statues lie shattered and defaced around it, cast down by the invaders which now reside within.
+        * Its beautiful ancient mosaics have been defaced by crude, blasphemous symbols. The bones of slain acolytes lie scattered all around.
+        * Shattered crystals cover its floor, their artisanal plinths now home to decaying skulls carved with blasphemous symbols.
+    ]
+}
+
+TempleLoreDesecrated {
+    Description! @ [
+        * It has fallen to blood and darkness, its looming shadow a constant reminder of the malign forces within.
+        * The land around here is barren and dead, corrupted and poisoned by the evil which dwells within.
+        * The crimson stains upon its stones weave a morbid tale of the dark deeds it has witnessed.
+        * Obelisks crowned by leering. demonic skulls surround the place, each connected to the others by shallow, blood-stained channels in the ground.
+    ]
+}
+
 Temple(Dungeon) {
   Name! @ TempleName
   HexLink! = :Hex.uuid
@@ -99,6 +127,12 @@ Temple(Dungeon) {
     HexLink = &HexLink
     Coords = &Coords
   }
+
+  Lore! @@ [
+    * TempleLoreReclaimed
+    * TempleLoreInvaded
+    * TempleLoreDesecrated
+  ]
 
  | Dungeon
 

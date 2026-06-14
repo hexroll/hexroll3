@@ -80,6 +80,7 @@ DungeonRemains {
   AreaUUID = :AreaDescription.uuid
   Key @ DungeonDoorKey {
     AreaNumber = &RoomNumber
+    AreaFloor = &AreaFloor
     AreaUUID = &AreaUUID
   }
 

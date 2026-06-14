@@ -88,6 +88,7 @@ pub struct MapCoords {
     pub hex: String,
     pub x: f32,
     pub y: f32,
+    pub layer: usize,
     pub zoom: i32,
 }
 

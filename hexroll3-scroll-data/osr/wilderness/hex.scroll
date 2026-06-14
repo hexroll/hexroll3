@@ -128,13 +128,41 @@ Hex {
     {%if QuestObject.Findable%}{{QuestObject.HexDescription}}{%endif%}
 
     {%if Dungeon%}
-      {{reroller(Dungeon[0], "", False)}}
-      The <strong><a href="{{sandbox()}}/location/{{Dungeon[0].uuid}}">{{Dungeon[0].Header}}</a></strong> is hidden
-      {%if Terrain.Hideout%}{{Terrain.Hideout}}{%endif%} somewhere {{Terrain.Location}}.
-      <h5> Entrances </h5>
-      {{Dungeon[0].Entrances}}
 
-    {%elif Residency%}
+      {%if Settlement%}
+
+        The {{reroller(Settlement[0].uuid, Settlement[0].class, True)}} {{Settlement[0].Prefix}}
+        <a href="{{sandbox()}}/location/{{Settlement[0].uuid}}"><strong>{{Settlement[0].Header}}</strong></a>
+        {{Settlement[0].Connector}} {{Terrain.Location}}.
+        {{Settlement[0].Supplemental}}
+
+        <h5> Under the {{Settlement[0].class}} </h5>
+
+        {{reroller(Dungeon[0], "", False)}}
+        The <strong><a href="{{sandbox()}}/location/{{Dungeon[0].uuid}}">{{Dungeon[0].Header}}</a></strong> is hidden
+        under the city.
+
+        <h5> Entrances </h5>
+        {{Dungeon[0].CityEntrances}}
+
+      {%else%}
+
+        {{reroller(Dungeon[0], "", False)}}
+        The <strong><a href="{{sandbox()}}/location/{{Dungeon[0].uuid}}">{{Dungeon[0].Header}}</a></strong> is hidden
+        {%if Terrain.Hideout%}{{Terrain.Hideout}}{%endif%} somewhere {{Terrain.Location}}.
+
+        {%if Dungeon[0].Lore%}
+        {{reroller(Dungeon[0].Lore, "", False)}}
+        {{Dungeon[0].Lore.Description}}
+        {%endif%}
+
+        <h5> Entrances </h5>
+        {{Dungeon[0].Entrances}}
+
+      {%endif%}
+
+
+    {% elif Residency%}
       <p>
       {{reroller(Residency[0], "", False)}}
       {{Residency[0].Description}} {{Residency[0].Connector}} {{Terrain.Location}}.

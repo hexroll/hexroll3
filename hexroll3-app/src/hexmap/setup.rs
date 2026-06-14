@@ -97,10 +97,6 @@ pub fn setup(
         base_color: Color::srgba(0.0, 0.8, 1.0, 1.0).into(),
         layer_color: Color::srgba(0.0, 0.8, 1.0, 1.0).into(),
     });
-    let ocean_material = background_materials.add(BackgroundMaterial {
-        base_color: Color::srgba(0.0, 0.8, 1.0, 1.0).into(),
-        layer_color: Color::srgba(0.0, 0.8, 1.0, 1.0).into(),
-    });
     let underworld_material = background_materials.add(BackgroundMaterial {
         base_color: DUNGEON_FOG_COLOR.into(),
         layer_color: DUNGEON_FOG_COLOR.into(),
@@ -240,7 +236,6 @@ pub fn setup(
         trail_material,
 
         water_material,
-        ocean_material,
         underworld_material,
         region_labels_material,
         realm_labels_material,

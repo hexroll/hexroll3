@@ -61,6 +61,44 @@ TombFeatureTier4 {
     ]
 }
 
+TombOfAncientWizard {
+    Description! @ [
+        * Twisting tunnels, filled with crumbling lore, stretch like roots beneath ancient arcane ruins.
+        * Power bristles in the air around it, a powder keg of arcane potency waiting for a spark.
+        * Unearthly lights drift outside it, each one shifting prismatically as it travels.
+        * Stone tablets mark the approach, engraved with rows of glyphs.
+        * Glyphs alight with power within, arcane symbols appearing across the ancient stones.
+    ]
+}
+
+TombOfAncientPriest {
+    Description! @ [
+        * A grand tomb, its lower reaches swallowed by the land, harbours unholy secrets and terrible foes in the darkness.
+        * Centuries of burnt incense have infused the very stones of its old structure with the memories of religious ceremony.
+        * No bones, discarded equipment, or evidence of habitation are present around. Strange indeed given the number of people who have disappeared within.
+        * Toppled statues of ancient gods line the pathways to its crumbling remains. The feeling of being watched is ever-present inside.
+        * A droning miasma shrouds the apex of the tomb, blighting the journey upon ichor-slick steps for any who ascend.
+    ]
+}
+
+TombOfAncientWarlord {
+    Description! @ [
+        * A mighty edifice of stone filled with petroglyphs of the legendary warrior laid to rest within its haunted depths.
+        * Weapons of staggering variety have been placed outside. Of the most ancient, only fragments remain.
+        * Outside, an obelisk stretches to eclipse the sun. Hundreds of names are engraved upon its obsidian surface.
+        * Black roses line the path to it. The flowers also adorn the crest engraved upon its enterance walls.
+    ]
+}
+
+TombOfAncientNoble {
+    Description! @ [
+        * A palatial mausoleum, in crumbling disrepair. Though not all rest silently within.
+        * Ivy chokes the statues surrounding it. They all seem to depict the same noble personage.
+        * The gothic mausoleum is more akin to a manor than a memorial.
+        * A family crest marks its entrances.
+    ]
+}
+
 DungeonMap {}
 
 Tomb(Dungeon) {
@@ -70,6 +108,13 @@ Tomb(Dungeon) {
     <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="7"> </a>
   %>
   FactionLair = none
+
+  Lore! @@ [
+    * TombOfAncientWizard
+    * TombOfAncientPriest
+    * TombOfAncientWarlord
+    * TombOfAncientNoble
+  ]
 
   | Dungeon
 

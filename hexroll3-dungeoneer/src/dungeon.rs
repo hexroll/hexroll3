@@ -150,7 +150,7 @@ impl Rect {
 
     #[inline]
     fn size(&self) -> i32 {
-        ((self.b.x - self.a.x + 1).abs()) * ((self.b.y - self.a.y + 1).abs())
+        self.width() * self.height()
     }
 
     #[inline]
@@ -327,7 +327,7 @@ fn shared_span<T: MapArea, K: MapArea>(a1: &T, a2: &K) -> i32 {
     let a2r = a2.area().rect();
 
     if a1r.a.x == a1r.b.x {
-        if a2r.a.x == a2r.a.x {
+        if a2r.a.x == a2r.b.x {
             if (a1r.a.x - a2r.a.x).abs() != 1 {
                 return 0;
             } else {
@@ -347,7 +347,7 @@ fn shared_span<T: MapArea, K: MapArea>(a1: &T, a2: &K) -> i32 {
         }
     }
     if a1r.a.y == a1r.b.y {
-        if a2r.a.y == a2r.a.y {
+        if a2r.a.y == a2r.b.y {
             if (a1r.a.y - a2r.a.y).abs() != 1 {
                 return 0;
             } else {
@@ -478,8 +478,19 @@ const RIGHT_EDGE: i32 = 2;
 const TOP_EDGE: i32 = 4;
 const BOTTOM_EDGE: i32 = 8;
 
+pub enum DungeonSize {
+    Random,
+    KeepThingsSmall,
+    Scale(i32),
+}
+
+pub struct DungeonConfig {
+    pub size: DungeonSize,
+}
+
 pub struct DungeonBuilder {
     n_entrances: i32,
+    pub entrances_goal: u32,
     bias_square_rooms: bool,
     randomizers: Randomizers,
     passages: Vec<Passage>,
@@ -493,6 +504,7 @@ impl DungeonBuilder {
         let _ = &mut randomizers;
         Self {
             n_entrances: 0,
+            entrances_goal: 1,
             bias_square_rooms: true,
             randomizers,
             passages: Vec::new(),
@@ -901,7 +913,7 @@ impl DungeonBuilder {
                 }
                 if n_rooms_met != 2 {
                     self.passages.remove(i);
-                    break;
+                    continue;
                 }
             }
 
@@ -1143,8 +1155,8 @@ impl DungeonBuilder {
         }
         if (edges & RIGHT_EDGE) != 0 {
             self.passages.push(Passage::new(
-                Coords::new(half_width + 5, 0),
                 Coords::new(half_width + 1, 0),
+                Coords::new(half_width + 5, 0),
                 3,
             ));
         }
@@ -1157,8 +1169,8 @@ impl DungeonBuilder {
         }
         if (edges & BOTTOM_EDGE) != 0 {
             self.passages.push(Passage::new(
-                Coords::new(0, half_height + 5),
                 Coords::new(0, half_height + 1),
+                Coords::new(0, half_height + 5),
                 0,
             ));
         }
@@ -1605,11 +1617,11 @@ impl DungeonBuilder {
         n_entrances
     }
 
-    pub fn excavate_dungeon(&mut self, prefer_small_dungeons: bool) {
-        let config_roll = if prefer_small_dungeons {
-            self.rand(1, 2)
-        } else {
-            self.rand(1, 10)
+    pub fn excavate_dungeon(&mut self, config: DungeonConfig) {
+        let config_roll = match config.size {
+            DungeonSize::Random => self.rand(1, 10),
+            DungeonSize::KeepThingsSmall => self.rand(1, 2),
+            DungeonSize::Scale(v) => v,
         };
 
         match config_roll {
@@ -1653,58 +1665,22 @@ impl DungeonBuilder {
             to_be_numbered_rooms.push((a.area.center(), AreaId::Room(i)));
         }
 
-        let mut desired_entrances = 1;
         let num_of_rooms = to_be_numbered_rooms.len() as i32;
         if num_of_rooms > self.rand(6, 10) {
-            desired_entrances = 2;
+            self.entrances_goal = 2;
         }
         if num_of_rooms > 30 {
-            desired_entrances = 3;
+            self.entrances_goal = 3;
         }
-
-        let missing_entrances = if self.n_entrances < desired_entrances {
-            desired_entrances - self.n_entrances
-        } else {
-            0
-        };
-        let mut missing_entrances_mut = missing_entrances;
-        let mut assigned_entrances = 0;
 
         for i in 0..self.passages.len() {
             if self.passages[i].area.filtered {
                 continue;
             }
-            if assigned_entrances < desired_entrances {
-                if let Some(e) = self.passages[i].empty_end {
-                    to_be_numbered_rooms.push((
-                        self.passages[i].area.center(),
-                        AreaId::Passage(i),
-                    ));
-                    self.passages[i].entrance = Some(e);
-                    assigned_entrances += 1;
-                } else if missing_entrances_mut > 0
-                    && self.passages[i].area.size() > 5
-                {
-                    to_be_numbered_rooms.push((
-                        self.passages[i].area.center(),
-                        AreaId::Passage(i),
-                    ));
-                    self.passages[i].entrance = Some(PassageEnd {
-                        pos: self.passages[i].area.center(),
-                        dir: 0,
-                        type_: 1,
-                    });
-                    missing_entrances_mut -= 1;
-                    assigned_entrances += 1;
-                }
-            } else {
-                if let Some(e) = self.passages[i].empty_end {
-                    to_be_numbered_rooms.push((
-                        self.passages[i].area.center(),
-                        AreaId::Passage(i),
-                    ));
-                    self.passages[i].deadend = Some(e);
-                }
+            if let Some(e) = self.passages[i].empty_end {
+                to_be_numbered_rooms
+                    .push((self.passages[i].area.center(), AreaId::Passage(i)));
+                self.passages[i].entrance = Some(e);
             }
         }
 
@@ -1940,6 +1916,17 @@ impl DungeonBuilder {
         F: FnMut(&Passage, i32),
     {
         for p in &self.passages {
+            if p.area.filtered {
+                continue;
+            }
+            callback(p, p.area.number);
+        }
+    }
+    pub fn for_each_corridor_mut<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut Passage, i32),
+    {
+        for p in &mut self.passages {
             if p.area.filtered {
                 continue;
             }

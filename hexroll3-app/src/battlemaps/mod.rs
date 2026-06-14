@@ -49,6 +49,8 @@ pub use battlemaps::BattlemapsPlugin;
 pub struct BattlemapRequest {
     pub uid: String,
     pub hex: Entity,
+    pub layer: usize,
+    pub is_underlayer: bool,
 }
 
 #[derive(Event, Deref, Clone)]

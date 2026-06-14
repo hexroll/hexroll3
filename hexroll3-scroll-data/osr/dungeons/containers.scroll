@@ -132,6 +132,7 @@ DungeonContainers {
 DungeonTreasureTier1 (DungeonContainers) {
   Treasure! @ TreasureTypeTier1
   TreasureAreaNumber! = :AreaDescription.RoomNumber
+  TreasureAreaFloor! = :AreaDescription.RoomFloor
   TreasureDungeonName! = :Dungeon.Name
   TreasureDungeonUUID! = :Dungeon.uuid
   TreasureAreaUUID! = :AreaDescription.uuid
@@ -141,6 +142,7 @@ DungeonTreasureTier1 (DungeonContainers) {
 DungeonTreasureTier2 (DungeonContainers){
   Treasure! @ TreasureTypeTier2
   TreasureAreaNumber! = :AreaDescription.RoomNumber
+  TreasureAreaFloor! = :AreaDescription.RoomFloor
   TreasureDungeonName! = :Dungeon.Name
   TreasureDungeonUUID! = :Dungeon.uuid
   TreasureAreaUUID! = :AreaDescription.uuid
@@ -150,6 +152,7 @@ DungeonTreasureTier2 (DungeonContainers){
 DungeonTreasureTier3 (DungeonContainers){
   Treasure! @ TreasureTypeTier3
   TreasureAreaNumber! = :AreaDescription.RoomNumber
+  TreasureAreaFloor! = :AreaDescription.RoomFloor
   TreasureDungeonName! = :Dungeon.Name
   TreasureDungeonUUID! = :Dungeon.uuid
   TreasureAreaUUID! = :AreaDescription.uuid

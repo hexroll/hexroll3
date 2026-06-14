@@ -163,12 +163,19 @@ pub fn prepare_hex_map_data(
             let river_tile = get_curved_mesh_tile_stack(&h.rivers);
             let trail_tile = get_curved_mesh_tile_stack(&h.trails);
 
-            let num_of_layers =
+            // NOTE: Standalone sandboxes have layers reported from the data adapter.
+            // For legacy online sandboxes, we apply a fixed value. Since legacy dungeons
+            // have only one layer, the value is 2 (overland + a single dungeon floor)
+            // and for other features its a constant 1.
+            let num_of_layers = if let Some(layers) = h.layers {
+                layers + 1
+            } else {
                 if *h.feature.as_ref().unwrap_or(&HexFeature::None) == HexFeature::Dungeon {
                     2
                 } else {
                     1
-                };
+                }
+            };
 
             coords_by_uid.insert(h.uuid.clone(), coords);
 
@@ -442,17 +449,24 @@ pub fn post_map_loaded_handler(
             }
             next_hex_map_updater_state.set(HexMapSpawnerState::Enabled);
         }
-        PostMapLoadedOp::InvalidateVisible => {
+        PostMapLoadedOp::InvalidateVisible(maybe_uid) => {
             visible_hexes
                 .iter()
                 .for_each(|e| commands.entity(e).despawn());
             next_hex_map_updater_state.set(HexMapSpawnerState::Enabled);
+            if let Some(uid) = maybe_uid {
+                commands.trigger(FetchEntityFromStorage {
+                    uid: uid.to_string(),
+                    anchor: None,
+                    why: FetchEntityReason::SystemNavigation,
+                });
+            }
         }
         PostMapLoadedOp::FetchEntity(uid) => {
             commands.trigger(FetchEntityFromStorage {
                 uid: uid.to_string(),
                 anchor: None,
-                why: FetchEntityReason::SandboxLink,
+                why: FetchEntityReason::SystemNavigation,
             });
         }
     }

@@ -34,6 +34,7 @@ use rand::{
 };
 use serde_json::Value;
 
+use crate::generators::ParentContext;
 use crate::{
     generators::roll,
     parser::{parse_buffer, parse_file},
@@ -73,6 +74,7 @@ pub struct SandboxBlueprint {
         &mut SandboxBlueprint,
         &mut ReadWriteTransaction,
         &str,
+        &mut ParentContext,
     ) -> Result<Option<(String, Value)>>,
 }
 
@@ -81,7 +83,7 @@ impl SandboxBlueprint {
         SandboxBlueprint {
             classes: HashMap::new(),
             globals: HashMap::new(),
-            map_data_provider: |_, _, _, _| Ok(None),
+            map_data_provider: |_, _, _, _, _| Ok(None),
         }
     }
     pub fn parse_buffer(&mut self, buffer: &str) -> &mut Self {
@@ -141,8 +143,16 @@ impl SandboxInstance {
             // roll call will not fail, and later set the uid for root in a following
             // `store` call.
             tx.store("root", &serde_json::Value::Null)?;
-            let ret =
-                roll(&mut builder, &mut blueprint, tx, "main", "root", None);
+            let mut parent_context = ParentContext::default();
+            let ret = roll(
+                &mut builder,
+                &mut blueprint,
+                tx,
+                "main",
+                "root",
+                &mut parent_context,
+                None,
+            );
             tx.store("root", &serde_json::json!(ret.as_ref().unwrap()))?;
             tx.store("rerolls", &serde_json::json!({"entities":[]}))?;
             ret

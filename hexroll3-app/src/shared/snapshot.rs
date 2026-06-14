@@ -25,15 +25,27 @@
 
 use bevy::{
     asset::RenderAssetUsages,
+    platform::collections::HashSet,
     prelude::*,
     render::view::screenshot::{Screenshot, ScreenshotCaptured},
+    window::PrimaryWindow,
 };
+use hexx::Hex;
+
+use crate::{
+    hexmap::elements::HexMapData, shared::widgets::cursor::PointerExclusivityIsPreferred,
+};
+
+use super::{vtt::VttData, widgets::cursor::CursorController};
 
 #[derive(Event)]
 pub struct FreezeScreenSnapshot;
 
 #[derive(Event)]
 pub struct ReleaseScreenSnapshot;
+
+#[derive(Component)]
+pub struct SnapshotPendingRefresh(pub Hex);
 
 const SNAPSHOT_WATCHDOG_TIMEOUT_SECS: f32 = 5.0;
 const SNAPSHOT_FADE_DURATION_SECS: f32 = 0.3;
@@ -69,7 +81,7 @@ pub enum RemoteRefreshState {
 }
 
 #[derive(States, Default, PartialEq, Eq, Hash, Clone, Debug)]
-enum SnapshotState {
+pub enum SnapshotState {
     #[default]
     Idle,
     Capturing,
@@ -84,11 +96,14 @@ fn trigger_snapshot(
     mut commands: Commands,
     mut next_state: ResMut<NextState<SnapshotState>>,
     current_state: Res<State<SnapshotState>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     if *current_state != SnapshotState::Idle {
         return;
     }
     next_state.set(SnapshotState::Capturing);
+    cursor_controller.loading(&mut commands, *window);
 
     commands
         .spawn(Screenshot::primary_window())
@@ -101,6 +116,9 @@ fn on_screenshot_captured(
     mut images: ResMut<Assets<Image>>,
     current_state: Res<State<SnapshotState>>,
     mut next_state: ResMut<NextState<SnapshotState>>,
+    pending: Query<(Entity, &SnapshotPendingRefresh)>,
+    mut map_data: ResMut<HexMapData>,
+    mut vtt_data: ResMut<VttData>,
 ) {
     if *current_state == SnapshotState::Idle {
         return;
@@ -112,6 +130,7 @@ fn on_screenshot_captured(
     let handle = images.add(img);
 
     commands.spawn((
+        PointerExclusivityIsPreferred,
         Name::new("SnapshotOverlay"),
         SnapshotOverlay,
         ImageNode {
@@ -135,6 +154,16 @@ fn on_screenshot_captured(
 
     next_state.set(SnapshotState::Showing);
     commands.insert_resource(SnapshotWatchdogTimer::default());
+    debug!("Screen freeze set!");
+    let mut added: HashSet<Hex> = HashSet::new();
+    for (e, p) in pending {
+        if !added.contains(&p.0) {
+            map_data.force_refresh.push(p.0);
+            added.insert(p.0);
+        }
+        commands.entity(e).try_despawn();
+    }
+    vtt_data.invalidate_map = true;
 }
 
 fn snapshot_watchdog(
@@ -157,6 +186,8 @@ fn dismiss_snapshot(
     mut next_state: ResMut<NextState<SnapshotState>>,
     refresh_state: Res<State<RemoteRefreshState>>,
     mut next_refresh_state: ResMut<NextState<RemoteRefreshState>>,
+    window: Single<Entity, With<PrimaryWindow>>,
+    mut cursor_controller: ResMut<CursorController>,
 ) {
     if *refresh_state == RemoteRefreshState::Initiated {
         return;
@@ -167,6 +198,7 @@ fn dismiss_snapshot(
     next_state.set(SnapshotState::Idle);
     next_refresh_state.set(RemoteRefreshState::Idle);
     commands.insert_resource(ClearColor(Color::srgba(0.0, 0.0, 0.0, 0.0)));
+    cursor_controller.done(&mut commands, *window);
 }
 
 fn snapshot_fade_out(

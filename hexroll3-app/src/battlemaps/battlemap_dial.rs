@@ -37,6 +37,7 @@ use crate::{
     },
     shared::{
         layers::HEIGHT_OF_TOKENS,
+        snapshot::{FreezeScreenSnapshot, SnapshotPendingRefresh},
         vtt::{HexRevealState, VttData},
         widgets::{
             buttons::ToggleResourceWrapper,
@@ -503,22 +504,37 @@ pub fn dial_menu_layers_menu() -> impl Fn(
 
 fn make_layer_handler(
     layer: u32,
-) -> impl Fn(On<Pointer<Click>>, Commands, ResMut<HexMapData>, ResMut<VttData>) {
+) -> impl Fn(On<Pointer<Click>>, Commands, Res<HexMapData>, ResMut<VttData>) {
     return move |_: On<Pointer<Click>>,
                  mut commands: Commands,
-                 mut map_data: ResMut<HexMapData>,
+                 map_data: Res<HexMapData>,
                  mut vtt_data: ResMut<VttData>| {
         let Some(selected) = map_data.selected else {
             return;
         };
-        let new_state = HexRevealState::Full(Some(layer));
+        if let Some(hex_data) = map_data.hexes.get(&selected) {
+            if hex_data.num_of_layers == 1 {
+                return;
+            }
+        }
+        commands.trigger(FreezeScreenSnapshot);
+        let new_state = if let Some(s) = vtt_data.revealed.get(&selected) {
+            match s {
+                HexRevealState::Unrevealed(_) => HexRevealState::Unrevealed(Some(layer)),
+                HexRevealState::Partial(_) => HexRevealState::Partial(Some(layer)),
+                HexRevealState::Full(_) => HexRevealState::Full(Some(layer)),
+            }
+        } else {
+            HexRevealState::Unrevealed(Some(layer))
+        };
         vtt_data.revealed.insert(selected, new_state);
-        commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(HexState {
-            coords: selected,
-            is_ocean: false,
-            state: Some(new_state),
-        })));
-        map_data.force_refresh.push(selected);
-        vtt_data.invalidate_map = true;
+        if let Some(player_state) = new_state.player_state() {
+            commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(HexState {
+                coords: selected,
+                is_ocean: false,
+                state: Some(player_state),
+            })));
+        }
+        commands.spawn(SnapshotPendingRefresh(selected));
     };
 }

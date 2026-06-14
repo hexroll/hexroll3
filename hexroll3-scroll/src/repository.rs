@@ -55,6 +55,14 @@ impl Repository {
 
     pub fn open(&mut self, filename: &str) -> Result<&mut Self> {
         self.db = Some(Arc::new(Mutex::new(redb::Database::open(filename)?)));
+        match self.db.clone().unwrap().lock().unwrap().compact() {
+            Ok(compacted) => {
+                if compacted {
+                    log::info!("h3x file compacted")
+                }
+            }
+            Err(e) => println!("{:?}", e),
+        }
         Ok(self)
     }
 
@@ -112,7 +120,7 @@ impl Repository {
             .as_ref()
             .ok_or_else(|| anyhow!("Database not initialized"))?
             .try_lock()
-            .map_err(|_| anyhow!("Failed to acquire lock"))?
+            .map_err(|_| anyhow!("Failed to acquire lock in mutate_ex"))?
             .begin_write()
             .map_err(|_| anyhow!("Failed to begin write transaction"))?;
 
@@ -392,32 +400,28 @@ impl Entity for serde_json::Value {
     }
 }
 
+const LZ4_SENTINEL: u8 = 0x4C;
+
 fn json_bytes<T>(structure: T) -> Vec<u8>
 where
     T: serde::Serialize,
 {
-    let mut bytes: Vec<u8> = Vec::new();
-    ciborium::into_writer(&structure, &mut bytes).unwrap();
-    #[cfg(feature = "zstd")]
-    {
-        zstd::encode_all(bytes.as_slice(), 0).unwrap()
-    }
-    #[cfg(not(feature = "zstd"))]
-    {
-        bytes
-    }
+    let mut cbor_bytes: Vec<u8> = Vec::new();
+    ciborium::into_writer(&structure, &mut cbor_bytes).unwrap();
+    let mut compressed = lz4_flex::compress_prepend_size(&cbor_bytes);
+    compressed.insert(0, LZ4_SENTINEL);
+    compressed
 }
 
 fn bytes_json(bytes: &[u8]) -> serde_json::Value {
-    #[cfg(feature = "zstd")]
-    let cbor: ciborium::Value = {
-        let bytes = zstd::decode_all(bytes).unwrap();
-        ciborium::from_reader(bytes.as_slice()).unwrap()
+    let cbor_bytes = if bytes.first() == Some(&LZ4_SENTINEL) {
+        lz4_flex::decompress_size_prepended(&bytes[1..])
+            .expect("Failed to decompress entity data")
+    } else {
+        bytes.to_vec()
     };
-
-    #[cfg(not(feature = "zstd"))]
-    let cbor: ciborium::Value = ciborium::from_reader(bytes).unwrap();
-
+    let cbor: ciborium::Value =
+        ciborium::from_reader(cbor_bytes.as_slice()).unwrap();
     serde_json::to_value(cbor).unwrap()
 }
 

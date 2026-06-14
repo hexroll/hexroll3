@@ -137,6 +137,7 @@ pub struct MapHex {
     pub uuid: String,
     pub feature: Option<HexFeature>,
     pub feature_uuid: Option<String>,
+    pub layers: Option<usize>,
     pub trails: Option<Vec<u8>>,
     pub rivers: Option<Vec<u8>>,
     pub river_dir: Option<f32>,

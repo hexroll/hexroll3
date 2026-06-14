@@ -85,6 +85,7 @@ pub fn prepare_renderer(
     env.add_function("signed_modifier", func_signed_modifier);
     env.add_function("contains", func_contains);
     env.add_function("unique_join", func_unique_join);
+    env.add_function("conditional_ref", func_conditional_ref);
     env.add_function("join", func_join);
     if let Some(blueprint) = blueprint {
         let globals = blueprint.globals.clone();
@@ -574,6 +575,18 @@ fn func_stable_dice(
         return Ok(value.get_total() as i32);
     }
     Ok(0)
+}
+
+fn func_conditional_ref(
+    source: i32,
+    subsection: i32,
+    section: i32,
+) -> Result<String, minijinja::Error> {
+    if source != subsection {
+        return Ok(format!("{subsection}.{section}"));
+    } else {
+        return Ok(format!("{section}"));
+    }
 }
 
 fn func_html_link(

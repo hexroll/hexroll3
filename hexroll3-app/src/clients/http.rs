@@ -28,6 +28,7 @@ use std::fs::File;
 use bevy::prelude::*;
 
 use bevy::window::{CursorIcon, PrimaryWindow, SystemCursorIcon};
+use serde_json::Value;
 
 use crate::{
     battlemaps::{
@@ -58,11 +59,11 @@ use crate::{
     vtt::sync::{EventContext, EventSource},
 };
 
-use super::controller::SearchEntitiesInBackend;
+use super::controller::{BattlemapRequestType, SearchEntitiesInBackend};
 use super::{
     RemoteBackendEvent,
     controller::{
-        ClientState, FeatureUidResponse, PerformHexMapActionInBackend, PostMapLoadedOp,
+        AppendResponse, ClientState, PerformHexMapActionInBackend, PostMapLoadedOp,
         RequestMapFromBackend, RequestSandboxFromBackend, RequestVttSessionFromBackend,
         VttSessionResponse, VttStateApiController,
     },
@@ -280,7 +281,7 @@ pub fn append_feature(
     trigger: On<RemoteBackendEvent<AppendSandboxEntity>>,
     mut http_agent: ResMut<HttpAgent>,
     mut commands: Commands,
-    mut http_tasks: ResMut<AsyncBackendTasks<String, FeatureUidResponse>>,
+    mut http_tasks: ResMut<AsyncBackendTasks<String, AppendResponse>>,
     effects: Res<EffectSystems>,
     user_settings: Res<UserSettings>,
     window: Single<Entity, With<PrimaryWindow>>,
@@ -304,7 +305,7 @@ pub fn append_feature(
                 commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
                 commands.run_system(effects.roll_feature_effect);
             }
-            (uid.clone(), *coords, None, Some(uid.clone()))
+            (uid.clone(), None, None, Some(uid.clone()))
         }
         AppendSubject::Ocean { coords } => {
             commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
@@ -313,9 +314,15 @@ pub fn append_feature(
             (sandbox_uid.clone(), Some(*coords), None, None)
         }
         AppendSubject::SettlementDistrict {
+            hex_coords,
             district_uid,
             building_index,
-        } => (district_uid.clone(), None, Some(*building_index), None),
+        } => (
+            district_uid.clone(),
+            Some(*hex_coords),
+            Some(*building_index),
+            None,
+        ),
     };
 
     let mut json_data = serde_json::json!({
@@ -340,7 +347,19 @@ pub fn append_feature(
         api_key,
         json_data,
         sandbox_uid.clone(),
-        move |data| FeatureUidResponse(data, maybe_coords, fetch_uid.clone()),
+        move |data| {
+            if let Ok(parsed_data) = serde_json::from_str::<Value>(&data)
+                && let Some(uid) = parsed_data.get("uuid").and_then(Value::as_str)
+            {
+                if let Some(coords) = maybe_coords {
+                    AppendResponse::HexScopeEntity(uid.to_string(), coords, fetch_uid.clone())
+                } else {
+                    AppendResponse::MapScopeEntity(uid.to_string(), fetch_uid.clone())
+                }
+            } else {
+                AppendResponse::Unknown
+            }
+        },
     );
 }
 
@@ -544,7 +563,12 @@ pub fn request_dungeon_map(
     trigger: On<RemoteBackendEvent<RequestDungeonFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
@@ -581,7 +605,15 @@ pub fn request_dungeon_map(
 
     if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), task)
+            .spawn_cached(
+                data.clone(),
+                (
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+                ),
+                task,
+            )
             .is_err()
         {
             commands.entity(event.hex).reset_battlemap_loading_state();
@@ -592,7 +624,11 @@ pub fn request_dungeon_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (event.uid.clone(), event.hex),
+                (
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+                ),
                 task,
             )
             .is_err()
@@ -606,7 +642,12 @@ pub fn request_city_or_town_map(
     trigger: On<RemoteBackendEvent<RequestCityOrTownFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
@@ -622,12 +663,20 @@ pub fn request_city_or_town_map(
     let url = format!("{server_host}/city/{}/{}", sandbox_uid, event.uid);
     if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), move |data| {
+            .spawn_cached(
+                data.clone(),
                 (
-                    BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
-                    data.clone(),
-                )
-            })
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+                ),
+                move |data| {
+                    (
+                        BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
+                        data.clone(),
+                    )
+                },
+            )
             .is_err()
         {
             commands.entity(event.hex).reset_battlemap_loading_state();
@@ -638,7 +687,11 @@ pub fn request_city_or_town_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (event.uid.clone(), event.hex),
+                (
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+                ),
                 move |data| {
                     info!("Processing city map in task");
                     (
@@ -658,7 +711,12 @@ pub fn request_village_map(
     trigger: On<RemoteBackendEvent<RequestVillageFromBackend>>,
     mut commands: Commands,
     mut http_agent: ResMut<HttpAgent>,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     user_settings: Res<UserSettings>,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
@@ -675,15 +733,23 @@ pub fn request_village_map(
     let uid = event.uid.clone();
     if let Some(data) = cache.jsons.get(&event.uid) {
         if my_tasks
-            .spawn_cached(data.clone(), (event.uid.clone(), event.hex), move |data| {
+            .spawn_cached(
+                data.clone(),
                 (
-                    BattleMapConstructs::Village(VillageMapConstructs::from(
-                        BackendUid::from(uid.clone()),
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+                ),
+                move |data| {
+                    (
+                        BattleMapConstructs::Village(VillageMapConstructs::from(
+                            BackendUid::from(uid.clone()),
+                            data.clone(),
+                        )),
                         data.clone(),
-                    )),
-                    data.clone(),
-                )
-            })
+                    )
+                },
+            )
             .is_err()
         {
             commands.entity(event.hex).reset_battlemap_loading_state();
@@ -694,7 +760,11 @@ pub fn request_village_map(
                 &mut http_agent,
                 url,
                 api_key,
-                (event.uid.clone(), event.hex),
+                (
+                    event.uid.clone(),
+                    event.hex,
+                    BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+                ),
                 move |data| {
                     (
                         BattleMapConstructs::Village(VillageMapConstructs::from(

@@ -27,9 +27,10 @@ DungeonPortalDestination {
   AreaUUID! = none
   Portal = none
   Origin = none
+  OriginFloor = none
   OriginUUID = none
-  RoomNumber = :AreaDescription.RoomNumber
-  Location! = <{{RoomNumber}}>
+  RoomNumber! = :AreaDescription.RoomNumber
+  RoomFloor! = :AreaDescription.RoomFloor
   Active! = false
 }
 
@@ -43,17 +44,18 @@ DungeonPortal {
   Destination ? DungeonPortalDestination {
         Portal = &Portal
         Origin = &Origin
+        OriginFloor = &OriginFloor
         OriginUUID = &OriginUUID
         Active = <%
             {{capitalize(articlize(Portal))}} is a magical portal.
             Anyone stepping into the portal will be magically teleported into
-            <a href="{{sandbox()}}/location/{{OriginUUID}}"><strong>area {{Origin}}</strong></a>
+            <a href="{{sandbox()}}/location/{{OriginUUID}}"><strong>area {{conditional_ref(RoomFloor,OriginFloor,Origin)}}</strong></a>
         %>
   }
   Description! = <%
     {{capitalize(articlize(Portal))}} is a magical portal.
     Anyone stepping into the portal will be magically teleported
-    into <a href="{{sandbox()}}/location/{{Destination.AreaUUID}}"><strong>area {{Destination.Location}}</strong></a>
+    into <a href="{{sandbox()}}/location/{{Destination.AreaUUID}}"><strong>area {{conditional_ref(OriginFloor,Destination.RoomFloor,Destination.RoomNumber)}}</strong></a>
     %>
 }
 

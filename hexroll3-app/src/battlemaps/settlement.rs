@@ -174,9 +174,17 @@ impl SettlementMapConstructs {
     pub fn detect_trees(&mut self, f: &Feature) {
         if let Feature::MultiPoint { id, coordinates } = f {
             if id == "trees" {
+                let min_x = coordinates.iter().map(|c| c[0]).fold(f64::MAX, f64::min);
+                let max_x = coordinates.iter().map(|c| c[0]).fold(f64::MIN, f64::max);
+                let min_y = coordinates.iter().map(|c| c[1]).fold(f64::MAX, f64::min);
+                let max_y = coordinates.iter().map(|c| c[1]).fold(f64::MIN, f64::max);
+
+                let radius = ((max_x - min_x).max(max_y - min_y) / 2.0) as f32;
+
                 self.trees = coordinates
                     .iter()
                     .map(|c| Vec2::new(c[0] as f32, c[1] as f32))
+                    .filter(|v| v.length() <= radius)
                     .collect();
             }
         }

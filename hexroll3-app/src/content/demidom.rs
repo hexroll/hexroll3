@@ -1571,7 +1571,8 @@ pub fn render_demidom(
                                 &mut commands,
                                 demidom.clone(),
                                 context,
-                                font.with_font(context.theme.sigils_font.clone()),
+                                font.with_font(context.theme.sigils_font.clone())
+                                    .with_size(font.size * 1.2),
                                 c,
                             ) {
                                 ret.propagate(v);
@@ -2062,6 +2063,10 @@ impl TreeSink for Sink {
                     if &*attr.name.local == "zoom" {
                         coords.zoom =
                             attr.value.to_string().parse::<i32>().unwrap_or_default();
+                    }
+                    if &*attr.name.local == "data-level" {
+                        coords.layer =
+                            attr.value.to_string().parse::<usize>().unwrap_or_default();
                     }
                     if &*attr.name.local == "class" && attr.value.to_string() == "map-coords" {
                         link_type = LinkType::Coords;

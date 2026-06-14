@@ -152,35 +152,28 @@ impl VttHexRevealer for VttData {
         action: &HexRevealInstruction,
     ) -> Option<HexRevealState> {
         match self.revealed.get_mut(hex) {
-            Some(mut reveal_state) => match (&mut reveal_state, action) {
-                (HexRevealState::Partial, HexRevealInstruction::PromoteUntilPartial) => {
-                    Some(HexRevealState::Partial)
+            Some(reveal_state) => match (reveal_state.clone(), action) {
+                (HexRevealState::Unrevealed(v), _) => {
+                    *reveal_state = HexRevealState::Partial(v);
+                    reveal_state.player_state()
                 }
-                (HexRevealState::Partial, HexRevealInstruction::PromoteUntilFull) => {
-                    *reveal_state = HexRevealState::Full(Some(0));
-                    Some(HexRevealState::Full(Some(0)))
+                (HexRevealState::Partial(v), HexRevealInstruction::PromoteUntilFull) => {
+                    *reveal_state = HexRevealState::Full(v);
+                    reveal_state.player_state()
                 }
-                (HexRevealState::Full(_), HexRevealInstruction::Cycle) => {
-                    self.revealed.remove(hex);
+                (HexRevealState::Full(v), HexRevealInstruction::Cycle) => {
+                    *reveal_state = HexRevealState::Unrevealed(v);
                     None
                 }
-                (HexRevealState::Partial, HexRevealInstruction::Cycle) => {
-                    *reveal_state = HexRevealState::Full(Some(0));
-                    Some(HexRevealState::Full(Some(0)))
+                (HexRevealState::Partial(v), HexRevealInstruction::Cycle) => {
+                    *reveal_state = HexRevealState::Full(v);
+                    reveal_state.player_state()
                 }
-                (HexRevealState::Full(layer), HexRevealInstruction::PromoteUntilFull) => {
-                    Some(HexRevealState::Full(*layer))
+                (HexRevealState::Partial(v), HexRevealInstruction::SetFull) => {
+                    *reveal_state = HexRevealState::Full(v);
+                    reveal_state.player_state()
                 }
-                (HexRevealState::Full(layer), HexRevealInstruction::PromoteUntilPartial) => {
-                    Some(HexRevealState::Full(*layer))
-                }
-                (HexRevealState::Partial, HexRevealInstruction::SetFull) => {
-                    *reveal_state = HexRevealState::Full(Some(0));
-                    Some(HexRevealState::Full(Some(0)))
-                }
-                (HexRevealState::Full(layer), HexRevealInstruction::SetFull) => {
-                    Some(HexRevealState::Full(*layer))
-                }
+                (other, _) => other.player_state(),
             },
             None => match action {
                 HexRevealInstruction::SetFull => {
@@ -188,8 +181,8 @@ impl VttHexRevealer for VttData {
                     Some(HexRevealState::Full(Some(0)))
                 }
                 _ => {
-                    self.revealed.insert(*hex, HexRevealState::Partial);
-                    Some(HexRevealState::Partial)
+                    self.revealed.insert(*hex, HexRevealState::Partial(None));
+                    Some(HexRevealState::Partial(None))
                 }
             },
         }
@@ -228,7 +221,7 @@ impl VttHexRevealer for VttData {
                     self.revealed_ocean.insert(*hex);
                     Some(HexRevealState::Full(None))
                 } else {
-                    None
+                    Some(HexRevealState::Full(None))
                 }
             }
             HexRevealInstruction::SetFull => {
@@ -261,7 +254,8 @@ impl VttHexRevealer for VttData {
         };
         if let Some(current_state) = self.revealed.get(hex) {
             match current_state {
-                HexRevealState::Partial => {
+                HexRevealState::Unrevealed(_) => (base_transform, maybe_visible),
+                HexRevealState::Partial(_) => {
                     (base_transform.with_scale(Vec3::splat(0.5)), maybe_visible)
                 }
                 HexRevealState::Full(_) => (base_transform, Visibility::Hidden),

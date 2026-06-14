@@ -26,16 +26,23 @@
 use bevy::prelude::*;
 
 use crate::{
-    hexmap::elements::{
-        AppendSandboxEntity, AppendSubject, HexMapState, HexToInvalidatePostLoadMarker,
-        MainCamera, RemoveSandboxEntity,
+    hexmap::{
+        SandboxLock,
+        elements::{
+            AppendSandboxEntity, AppendSubject, HexMapState, MainCamera, RemoveSandboxEntity,
+        },
     },
     shared::{
+        settings::UserSettings,
         snapshot::FreezeScreenSnapshot,
         vtt::VttData,
         widgets::{
+            buttons::ToggleResourceWrapper,
             cursor::pointer_world_position,
-            dial::{DialAssets, DialMenuCommands, DialMenuOptions, MenuItemSpawner},
+            dial::{
+                DialAssets, DialMenuCommands, DialMenuOptions, MakeLockableDialButton,
+                MenuItemSpawner,
+            },
             modal::DiscreteAppState,
         },
     },
@@ -45,7 +52,7 @@ pub struct SettlementDialPlugin;
 impl Plugin for SettlementDialPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_observer(on_spawn_battlemap_dial);
+            .add_observer(on_spawn_settlement_dial);
     }
 }
 
@@ -93,10 +100,11 @@ pub struct SpawnSettlementDial {
     pub district_uid: String,
     pub building_index: i32,
     pub hex_entity: String,
+    pub hex_coords: hexx::Hex,
     pub building_uid: Option<String>,
 }
 
-fn on_spawn_battlemap_dial(
+fn on_spawn_settlement_dial(
     trigger: On<SpawnSettlementDial>,
     mut commands: Commands,
     mut dial_menu_commands: DialMenuCommands,
@@ -104,6 +112,8 @@ fn on_spawn_battlemap_dial(
     vtt_data: Res<VttData>,
     app_state: Res<State<DiscreteAppState>>,
     map_state: Res<State<HexMapState>>,
+    locked: Res<ToggleResourceWrapper<SandboxLock>>,
+    user_settings: Res<UserSettings>,
 ) {
     if vtt_data.is_remote_player()
         || *app_state != DiscreteAppState::Normal
@@ -128,62 +138,76 @@ fn on_spawn_battlemap_dial(
         calc_scale,
         is_visible,
     }) {
-        let hex_entity = trigger.hex_entity.clone();
         let district_uid = trigger.district_uid.clone();
+        let hex_coords = trigger.hex_coords.clone();
         commands.entity(menu_entity).with_children(move |c| {
             const MAX_ITEMS_IN_DIAL: i32 = 8;
-            c.spawn_empty().spawn_menu_item(
-                0,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Shop,
-                move |_: On<Pointer<Click>>, mut commands: Commands| {
-                    commands.trigger(FreezeScreenSnapshot);
-                    commands.trigger(AppendSandboxEntity {
-                        target: AppendSubject::SettlementDistrict {
-                            district_uid: district_uid.clone(),
-                            building_index,
-                        },
-                        attr: "shops".into(),
-                        what: "ShopPlaceholder".into(),
-                    });
-                    commands.spawn(HexToInvalidatePostLoadMarker(hex_entity.clone()));
-                },
-                &dial_assets,
-                "Generate a Shop",
-            );
-            let hex_entity = trigger.hex_entity.clone();
-            let district_uid = trigger.district_uid.clone();
-            c.spawn_empty().spawn_menu_item(
-                1,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Inn,
-                move |_: On<Pointer<Click>>, mut commands: Commands| {
-                    commands.trigger(FreezeScreenSnapshot);
-                    commands.trigger(AppendSandboxEntity {
-                        target: AppendSubject::SettlementDistrict {
-                            district_uid: district_uid.clone(),
-                            building_index,
-                        },
-                        attr: "Tavern".into(),
-                        what: "DistrictTavern".into(),
-                    });
-                    commands.spawn(HexToInvalidatePostLoadMarker(hex_entity.clone()));
-                },
-                &dial_assets,
-                "Generate an Inn",
-            );
-            if let Some(uid) = trigger.building_uid.clone() {
-                c.spawn_empty().spawn_menu_item(
-                    5,
+            c.spawn_empty()
+                .spawn_menu_item(
+                    0,
                     MAX_ITEMS_IN_DIAL,
-                    DialIcon::Trash,
+                    DialIcon::Shop,
                     move |_: On<Pointer<Click>>, mut commands: Commands| {
                         commands.trigger(FreezeScreenSnapshot);
-                        commands.trigger(RemoveSandboxEntity { uid: uid.clone() });
+                        commands.trigger(AppendSandboxEntity {
+                            target: AppendSubject::SettlementDistrict {
+                                hex_coords: hex_coords.clone(),
+                                district_uid: district_uid.clone(),
+                                building_index,
+                            },
+                            attr: "shops".into(),
+                            what: "ShopPlaceholder".into(),
+                        });
                     },
                     &dial_assets,
-                    "Clear Building",
+                    "Generate a Shop",
+                )
+                .make_conditional_and_lockable(
+                    locked.value.on(),
+                    user_settings.local.unwrap_or(false) && trigger.building_uid.is_none(),
                 );
+            let district_uid = trigger.district_uid.clone();
+            c.spawn_empty()
+                .spawn_menu_item(
+                    1,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Inn,
+                    move |_: On<Pointer<Click>>, mut commands: Commands| {
+                        commands.trigger(FreezeScreenSnapshot);
+                        commands.trigger(AppendSandboxEntity {
+                            target: AppendSubject::SettlementDistrict {
+                                hex_coords: hex_coords.clone(),
+                                district_uid: district_uid.clone(),
+                                building_index,
+                            },
+                            attr: "Tavern".into(),
+                            what: "DistrictTavern".into(),
+                        });
+                    },
+                    &dial_assets,
+                    "Generate an Inn",
+                )
+                .make_conditional_and_lockable(
+                    locked.value.on(),
+                    user_settings.local.unwrap_or(false) && false,
+                );
+            if let Some(uid) = trigger.building_uid.clone() {
+                c.spawn_empty()
+                    .spawn_menu_item(
+                        5,
+                        MAX_ITEMS_IN_DIAL,
+                        DialIcon::Trash,
+                        move |_: On<Pointer<Click>>, mut commands: Commands| {
+                            commands.trigger(FreezeScreenSnapshot);
+                            commands.trigger(RemoveSandboxEntity { uid: uid.clone() });
+                        },
+                        &dial_assets,
+                        "Clear Building",
+                    )
+                    .make_conditional_and_lockable(
+                        locked.value.on(),
+                        user_settings.local.unwrap_or(false) && trigger.building_uid.is_some(),
+                    );
             }
         });
     }

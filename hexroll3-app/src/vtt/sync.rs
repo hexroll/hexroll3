@@ -208,12 +208,14 @@ fn on_broadcast_state_to_peer(
     }
 
     for (coords, state) in vtt_data.revealed.iter() {
-        let msg = MapMessage::HexStateChange(HexState {
-            coords: *coords,
-            state: Some(*state),
-            is_ocean: false,
-        });
-        send_hex_message(&mut socket, peer, msg);
+        if let Some(player_state) = state.player_state() {
+            let msg = MapMessage::HexStateChange(HexState {
+                coords: *coords,
+                state: Some(player_state),
+                is_ocean: false,
+            });
+            send_hex_message(&mut socket, peer, msg);
+        }
     }
     for coords in vtt_data.revealed_ocean.iter() {
         let msg = MapMessage::HexStateChange(HexState {

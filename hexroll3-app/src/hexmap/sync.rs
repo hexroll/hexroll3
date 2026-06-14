@@ -32,6 +32,7 @@ use crate::{
     hexmap::elements::HexEntity,
     shared::{
         settings::UserSettings,
+        snapshot::FreezeScreenSnapshot,
         vtt::{HexRevealState, VttData},
     },
 };
@@ -114,7 +115,7 @@ pub fn on_map_message(
                         vtt_data.prune_duplicate_oceans();
 
                         commands.trigger(RequestMapFromBackend {
-                            post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                            post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
                         });
                     }
                 }
@@ -146,6 +147,7 @@ pub fn on_map_message(
                                 }
                             }
                         });
+                        commands.trigger(FreezeScreenSnapshot);
                         vtt_data.invalidate_map = true;
                     }
                 }
@@ -158,13 +160,29 @@ pub fn on_map_message(
                 } else {
                     vtt_data.revealed_ocean.insert(hex_message.coords);
                 }
+                // NOTE: When VTT peers receive HexStateChange message, they
+                // must verify the existance of an entity for that hex before
+                // appending the coords to force_refresh. Otherwise, a double-
+                // spawn will occur when the hex is revealed for the first time,
+                // and gets the first spawn from not being on the map, and the
+                // second spawn from the force_refresh request.
+                // (An alternative implementation would be to add a
+                // ForceRefresh component to an Entity)
+                for (_, hex) in hexes.iter() {
+                    if hex.hex == hex_message.coords {
+                        map_data.force_refresh.push(hex_message.coords);
+                    }
+                }
             } else {
                 vtt_data.revealed.remove(&hex_message.coords);
                 vtt_data.revealed_ocean.remove(&hex_message.coords);
-            }
-            for (entity, hex) in hexes.iter() {
-                if hex.hex == hex_message.coords {
-                    commands.entity(entity).try_despawn();
+                // NOTE: When unrevealing a hex, we must despawn it here
+                // since the only other way hexes get despawned is when they
+                // leave the viewport (in spawn.rs)
+                for (entity, hex) in hexes.iter() {
+                    if hex.hex == hex_message.coords {
+                        commands.entity(entity).try_despawn();
+                    }
                 }
             }
             vtt_data.invalidate_map = true;
@@ -221,6 +239,7 @@ pub fn on_map_message(
         }
         MapMessage::ReloadMap(hex_uid) => {
             if !user_settings.local.unwrap_or(false) {
+                commands.trigger(FreezeScreenSnapshot);
                 if let Some(uid) = hex_uid {
                     commands.trigger(RequestMapFromBackend {
                         post_map_loaded_op: PostMapLoadedOp::None,
@@ -229,8 +248,12 @@ pub fn on_map_message(
                     map_data.force_refresh.push(to_refresh);
                     vtt_data.invalidate_map = true;
                 } else {
+                    // NOTE: This ensures players, who previously received a revealed
+                    // hex sync for a materialized ocean, will now actually see the correct
+                    // entity on their map.
+                    vtt_data.prune_duplicate_oceans();
                     commands.trigger(RequestMapFromBackend {
-                        post_map_loaded_op: PostMapLoadedOp::None,
+                        post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
                     });
                 }
             }

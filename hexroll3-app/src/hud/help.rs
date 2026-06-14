@@ -198,7 +198,7 @@ trait KeyboardShortcutHelpSpawner {
 }
 
 impl KeyboardShortcutHelpSpawner for RelatedSpawnerCommands<'_, ChildOf> {
-    fn spawn_key_help(&mut self, keys: Vec<&str>, desc: &str, section: HelpSection) {
+    fn spawn_key_help(&mut self, keys: Vec<&str>, desc: &str, _section: HelpSection) {
         self.spawn((
             HelpSectionMarker,
             Node {

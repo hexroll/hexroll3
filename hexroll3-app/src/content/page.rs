@@ -175,10 +175,11 @@ impl ContentPageModel {
         let re = Regex::new(r#"> +<"#).unwrap();
         let data = re.replace_all(&data, "><").to_string();
         let parts: Vec<&str> = data.split("</h4>").collect();
-        let (header_html, body_html) = (
+        let (header_html, mut body_html) = (
             format!("{}</h4>", parts.get(0).unwrap()),
             parts[1..].join("</h4>"),
         );
+        body_html.push_str("<p></p><p></p>");
         let mut header_demidom = DemidomElements::default();
         let mut body_demidom = DemidomElements::default();
         header_demidom.parse_entity_html(&header_html);
@@ -236,6 +237,7 @@ fn resize_offscreen_node(
             offscreen.width = Val::Px(content_page_size.x as f32 * 0.8);
             page_cam.target = handle.clone().into();
             viewport.image = handle.clone();
+            // TODO: refresh content on resize?
         } else {
             warn!("Received a resize event without a window?")
         }
@@ -650,10 +652,10 @@ pub struct ContentDemidom {
 
 fn render_entity_page(
     page_model: &ContentPageModel,
-    header: Single<Entity, With<ContentHeader>>,
+    mut header: Single<(Entity, &mut Node), With<ContentHeader>>,
     page: Single<Entity, With<ContentText>>,
     off: Single<(Entity, &BackgroundColor), With<ContentPage>>,
-    viewport: Single<Entity, With<ContentViewport>>,
+    viewport: Single<(Entity, &ComputedNode), With<ContentViewport>>,
     mut page_camera: Single<&mut Camera, With<PageCamera>>,
     content_assets: &ContentAssets,
     content_stuff: &ContentContext,
@@ -664,7 +666,7 @@ fn render_entity_page(
 ) -> Option<DemidomResponse> {
     let data = &page_model.demidom;
     commands.entity(*page).despawn_related::<Children>();
-    commands.entity(*header).despawn_related::<Children>();
+    commands.entity(header.0).despawn_related::<Children>();
     // NOTE: ensure we apply the correct day/night theme in case
     // this has changed and we are refreshing the content page
     let page_theme = app_config.daytime_page_theme(&*content_dark_mode);
@@ -682,7 +684,7 @@ fn render_entity_page(
         page_camera.clear_color = ClearColorConfig::Custom(page_theme.bg);
     }
     commands
-        .entity(*viewport)
+        .entity(viewport.0)
         .try_insert(bevy_tweening::Animator::new(
             bevy_tweening::Tween::new(
                 EaseFunction::QuadraticIn,
@@ -720,9 +722,14 @@ fn render_entity_page(
         spoilers: content_stuff.spoilers,
         attachments: None,
     };
+    let fs = (18.0 + (((viewport.1.size().x - 500.0).min(500.0) / 500.0) * 6.0))
+        .min(24.0)
+        .max(18.0);
+    header.1.row_gap = Val::Px(((fs - 18.0) / 6.0) * -8.0);
     let font = DemidomContextFont {
         face: body_context.theme.regular_text_font.clone(),
-        size: 21.0,
+        // TODO: Make the font size or range configurable (was originally 21.0)
+        size: fs,
         background: None,
     };
     let possible_body_rendering_response = render_demidom(
@@ -744,7 +751,7 @@ fn render_entity_page(
     }
 
     let mut header_context = DemidomRenderContext {
-        parent: *header,
+        parent: header.0,
         theme: DemidomTheme {
             regular_text_font: content_assets.main_font.clone(),
             bold_text_font: content_assets.main_font_bold.clone(),
@@ -828,10 +835,10 @@ fn on_render_entity_content(
     trigger: On<RenderEntityContent>,
     mut commands: Commands,
     content_assets: Option<Res<ContentAssets>>,
-    header: Single<Entity, With<ContentHeader>>,
+    header: Single<(Entity, &mut Node), With<ContentHeader>>,
     page: Single<Entity, With<ContentText>>,
     off: Single<(Entity, &BackgroundColor), With<ContentPage>>,
-    viewport: Single<Entity, With<ContentViewport>>,
+    viewport: Single<(Entity, &ComputedNode), With<ContentViewport>>,
     page_camera: Single<&mut Camera, With<PageCamera>>,
     asset_server: Res<AssetServer>,
     mut next_content_mode: ResMut<NextState<ContentMode>>,
@@ -969,7 +976,7 @@ fn wasd_hex_navigation(
     commands.trigger(FetchEntityFromStorage {
         uid: neighbor_tile.uid.clone(),
         anchor: None,
-        why: FetchEntityReason::SandboxLink,
+        why: FetchEntityReason::SystemNavigation,
     });
 }
 

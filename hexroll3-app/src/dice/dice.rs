@@ -192,7 +192,7 @@ impl Plugin for DicePlugin {
                     roll_d20,
                     apply_force,
                     detect_roll.after(apply_force),
-                    resize_offscreen_node,
+                    on_resize_window_for_dice,
                 )
                     .run_if(in_state(AppState::Live)),
             )
@@ -284,26 +284,32 @@ enum DiceWall {
     Right,
 }
 
-fn resize_offscreen_node(
-    windows: Query<&Window>,
-    mut resize_events: MessageReader<bevy::window::WindowResized>,
+fn resize_dicebox_offscreen_node(
+    window: Single<&Window, With<PrimaryWindow>>,
     mut images: ResMut<Assets<Image>>,
     mut dice_resources: ResMut<DiceResources>,
     mut dice_cam: Single<&mut Camera, With<DiceBoxCamera>>,
     mut antialias_node: Single<&mut ImageNode, With<DiceAntialiasingNode>>,
 ) {
-    for resize_event in resize_events.read() {
-        let window = windows.get(resize_event.window).unwrap();
-        let window_size = window.physical_size();
-        if window_size.x < 128 || window_size.y < 128 {
-            return;
-        }
-        let render_target = images.add(create_render_target(&window_size));
-        dice_resources.render_target = render_target.clone();
-        dice_cam.target = render_target.clone().into();
-        antialias_node.image = render_target.clone().into();
+    let window_size = window.physical_size();
+    if window_size.x < 128 || window_size.y < 128 {
+        return;
+    }
+    let render_target = images.add(create_render_target(&window_size));
+    dice_resources.render_target = render_target.clone();
+    dice_cam.target = render_target.clone().into();
+    antialias_node.image = render_target.clone().into();
+}
+
+fn on_resize_window_for_dice(
+    mut resize_events: MessageReader<bevy::window::WindowResized>,
+    mut commands: Commands,
+) {
+    for _ in resize_events.read() {
+        commands.run_system_cached(resize_dicebox_offscreen_node);
     }
 }
+
 fn setup_dice_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -454,6 +460,7 @@ fn setup_dicebox(
             ..default()
         },
     ));
+    commands.run_system_cached(resize_dicebox_offscreen_node);
 }
 
 #[derive(Component)]

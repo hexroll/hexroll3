@@ -991,7 +991,7 @@ pub fn poll_generation_tasks(
                 }
                 map.generating = false;
                 commands.trigger(RequestMapFromBackend {
-                    post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+                    post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
                 });
                 next_tool_state.set(HexMapToolState::Selection);
             } else {

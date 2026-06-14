@@ -1312,7 +1312,7 @@ dependencies = [
 [[package]]
 name = "bevy_editor_cam"
 version = "0.6.0"
-source = "git+https://github.com/hexroll/bevy_editor_cam?branch=hexroll-trim-0.17#b9ac909c1fd091884972bef4773bf2b2d712c98f"
+source = "git+https://github.com/hexroll/bevy_editor_cam?branch=hexroll-trim-0.17#510cc9cd220f522485f79f90b0c606e39060dd5c"
 dependencies = [
  "bevy",
  "bevy_egui",
@@ -5178,6 +5178,7 @@ dependencies = [
  "html5ever",
  "lamport",
  "lyon",
+ "moka",
  "omagari",
  "rand 0.8.5",
  "regex",

@@ -36,6 +36,7 @@ use avian3d::prelude::{
 };
 
 use crate::content::solo_follow_navigation;
+use crate::shared::snapshot::ReleaseScreenSnapshot;
 use crate::{
     audio::{DungeonAudioSample, PlayDungeonSound},
     clients::model::FetchEntityReason,
@@ -85,15 +86,20 @@ impl Plugin for DungeonsPlugin {
 pub struct SpawnDungeonMap {
     pub hex: Entity,
     pub data: DungeonMapConstructs,
+    pub is_underlayer: bool,
 }
 
 const WALLS_Y_SCALE_FOR_LIGHTING: f32 = 5.0;
 const SECRET_DOOR_SVG: &str = include_str!("../../assets/svg/secret_door.svg");
 const CORNER_SVG: &str = include_str!("../../assets/svg/corner.svg");
+const STAIRS_SVG: &str = include_str!("../../assets/svg/stairs.svg");
+const INV_STAIRS_SVG: &str = include_str!("../../assets/svg/invstairs.svg");
 
 #[derive(Resource)]
 struct DungeonMapAssets {
     pillar_mesh: Handle<Mesh>,
+    stairs_mesh: Handle<Mesh>,
+    inv_stairs_mesh: Handle<Mesh>,
     dirt_mesh: Handle<Mesh>,
     corner_mesh: Handle<Mesh>,
     door_frame_mesh: Handle<Mesh>,
@@ -121,6 +127,8 @@ fn setup(
     let secret_door_mesh =
         meshes.add(make_filled_mesh_from_path(svg_to_path(SECRET_DOOR_SVG)));
     let secret_door_walls_mesh = meshes.add(Cuboid::new(1.0, 1.0, 0.2));
+    let stairs_mesh = meshes.add(make_filled_mesh_from_path(svg_to_path(STAIRS_SVG)));
+    let inv_stairs_mesh = meshes.add(make_filled_mesh_from_path(svg_to_path(INV_STAIRS_SVG)));
     let dirt_mesh = meshes.add(make_filled_mesh_from_path(svg_to_path(CORNER_SVG)));
     let size = 0.15;
     let corner_mesh = meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(size)));
@@ -163,6 +171,8 @@ fn setup(
     });
     commands.insert_resource(DungeonMapAssets {
         pillar_mesh,
+        stairs_mesh,
+        inv_stairs_mesh,
         dirt_mesh,
         corner_mesh,
         door_frame_mesh,
@@ -210,6 +220,7 @@ fn on_spawn_dungeon_map(
     let parent_node_id = parent_node.id();
     let is_player = vtt_data.mode.is_player();
     let is_remote_player = vtt_data.is_remote_player();
+    let underlayer_height_offset = if trigger.is_underlayer { 11.5 } else { 0.0 };
     let player_entity_visibility = if is_player {
         Visibility::Inherited
     } else {
@@ -225,7 +236,7 @@ fn on_spawn_dungeon_map(
         .insert(Visibility::Hidden)
         .insert(Transform::from_xyz(
             0.0,
-            HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0,
+            HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0 - underlayer_height_offset,
             0.0,
         ))
         .with_children(|commands| {
@@ -295,6 +306,35 @@ fn on_spawn_dungeon_map(
                         x,
                         y,
                     );
+                }
+
+                // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                // STAIRS
+                //
+                if let Some(e) = &area.e {
+                    const ROTATIONS: [f32; 4] = [
+                        2.0 * std::f32::consts::FRAC_PI_2,
+                        1.0 * std::f32::consts::FRAC_PI_2,
+                        0.0,
+                        3.0 * std::f32::consts::FRAC_PI_2,
+                    ];
+                    let rotation = Quat::from_rotation_y(ROTATIONS[e.d as usize]);
+                    commands.spawn((
+                        Mesh3d(if e.t == 2 {
+                            dungeon_assets.inv_stairs_mesh.clone()
+                        } else {
+                            dungeon_assets.stairs_mesh.clone()
+                        }),
+                        MeshMaterial3d(dungeon_assets.wall_material.clone()),
+                        NotShadowCaster,
+                        Transform::from_xyz(e.x as f32 + 0.5, 0.0, e.y as f32 + 0.5)
+                            .with_rotation(rotation)
+                            .with_scale(Vec3::splat(1.0)),
+                        Pickable {
+                            should_block_lower: false,
+                            is_hoverable: false,
+                        },
+                    ));
                 }
 
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,7 +570,7 @@ fn on_spawn_dungeon_map(
                                                             )
                                                             .with_scale(Vec3::new(
                                                                 1.2,
-                                                                y_scale_for_lighting,
+                                                                1.0,
                                                                 1.0,
                                                             )),
                                                         ));
@@ -567,7 +607,7 @@ fn on_spawn_dungeon_map(
                                                             )
                                                             .with_scale(Vec3::new(
                                                                 1.2,
-                                                                y_scale_for_lighting,
+                                                                1.0,
                                                                 1.0,
                                                             )),
                                                         ));
@@ -669,12 +709,12 @@ fn on_spawn_dungeon_map(
                         )
                         .pointer_on_hover();
                 }
-
-                q.queue_children(parent_node_id, move |pid, commands| {
-                    commands.entity(pid).try_insert(Visibility::default());
-                });
             }
         });
+    q.queue_children(parent_node_id, move |pid, commands| {
+        commands.entity(pid).try_insert(Visibility::default());
+        commands.trigger(ReleaseScreenSnapshot);
+    });
     if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
         entity.mark_battlemap_as_ready();
         entity.add_child(parent_node_id);
@@ -1038,6 +1078,8 @@ struct Area {
     y: i32,
     uuid: String,
     #[serde(default)]
+    e: Option<Entrance>,
+    #[serde(default)]
     d: Option<Position>,
     #[serde(default)]
     portals: Option<Vec<AreaPortal>>,
@@ -1095,6 +1137,15 @@ impl Area {
         let (x, y) = point;
         x == self.x + self.w && y == self.y + self.h
     }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize, Clone)]
+struct Entrance {
+    x: i32,
+    y: i32,
+    d: i32,
+    t: i32,
 }
 
 #[allow(dead_code)]

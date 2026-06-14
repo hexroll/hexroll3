@@ -27,7 +27,7 @@ use bevy::prelude::*;
 
 use crate::{
     dialogs::OpenSandboxOptionsModal,
-    hexmap::{LockableDialButton, SandboxLock},
+    hexmap::SandboxLock,
     hud::drawer::AutoDrawer,
     shared::{
         AppState,
@@ -38,7 +38,7 @@ use crate::{
                 ToggleResourceWrapper,
             },
             cursor::TooltipOnHover,
-            dial::DialButtonState,
+            dial::{DialButtonState, LockableDialButton},
         },
     },
     vtt::network::{NetworkingConnection, on_click_vtt},

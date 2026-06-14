@@ -400,6 +400,7 @@ impl MenuButtonSwitcher for EntityCommands<'_> {
         }
         self.observe(
             |trigger: On<ToggleButtonSwitcherEx>,
+             buttons: Query<Entity, (With<T>, Without<SwitchIcon>)>,
              mut icons: Query<(Entity, &T), With<SwitchIcon>>,
              current_states: Query<&T>,
              mut commands: Commands| {
@@ -441,7 +442,9 @@ impl MenuButtonSwitcher for EntityCommands<'_> {
                         value: next_state.clone(),
                     });
                 }
-                commands.entity(trigger.entity).insert(next_state);
+                for b in buttons.iter() {
+                    commands.entity(b).insert(next_state.clone());
+                }
             },
         );
         self

@@ -319,7 +319,7 @@ fn populate_search_results_panel(
                         commands.trigger(FetchEntityFromStorage {
                             uid: result.uuid.clone(),
                             anchor: Some(result.anchor.clone()),
-                            why: FetchEntityReason::SandboxLink,
+                            why: FetchEntityReason::SystemNavigation,
                         });
                     })
                     .make_selectable()

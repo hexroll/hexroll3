@@ -166,7 +166,7 @@ MissingPersonQuestTreasureMapReward {
     {% if Treasure %}
     a <strong>Treasure Map</strong>{%if Treasure%} leading to
     {{begin_spoiler()}}<a href="{{sandbox()}}/location/{{Treasure.TreasureAreaUUID}}">
-    <strong>area {{Treasure.TreasureAreaNumber}}</strong>
+    <strong>area {{conditional_ref(0,Treasure.TreasureAreaFloor,Treasure.TreasureAreaNumber)}}</strong>
     </a>
     in the
     <a href="{{sandbox()}}/location/{{Treasure.TreasureDungeonUUID}}">
@@ -182,6 +182,7 @@ MissingPersonQuestCell {
   DungeonName! = :Dungeon.Name
   DungeonUUID! = :Dungeon.uuid
   AreaNumber! = none
+  AreaFloor! = none
   AreaUUID! = :AreaDescription.uuid
   QuestTimeframe = none
   QuestRelation! = none
@@ -228,7 +229,7 @@ MissingPersonQuest(Quest) {
   }
   QuestgiverName = :Folk.Name
   QuestgiverLink = :Folk.HostingEntity
-  QuestSettlementName = *Settlement.NamePart
+  QuestSettlementName = :Settlement.NamePart
 
   Location ?  MissingPersonQuestCell {
           QuestTimeframe = &Timeframe
@@ -237,7 +238,7 @@ MissingPersonQuest(Quest) {
           QuestLink = *QuestgiverLink
           QuestPronounSubject = "{{QuestRelation.PronounSubject}}"
           QuestPronounPossessive = "{{QuestRelation.PronounPossessive}}"
-          QuestSettlementName = &QuestSettlementName
+          QuestSettlementName = *QuestSettlementName
           Hint = "a person is chained to the wall"
           Active = <%
             The <strong>chained person</strong> is
@@ -261,7 +262,7 @@ MissingPersonQuest(Quest) {
             is in
             <a href="{{sandbox()}}/location/{{AreaUUID}}">
             <strong>
-            area {{AreaNumber}}
+            area {{conditional_ref(0,AreaFloor,AreaNumber)}}
             </strong>
             </a>
           %>

@@ -47,6 +47,7 @@ use crate::{
         geometry::{make_filled_mesh_from_outline, make_mesh_from_outline},
         labels::spawn_area_labels,
         layers::{HEIGHT_OF_BATTLEMAP_ON_FEATURE, HexrollPhysicsLayer},
+        snapshot::ReleaseScreenSnapshot,
         spawnq::SpawnQueue,
         vtt::VttData,
         widgets::cursor::PointerOnHover,
@@ -74,6 +75,7 @@ impl Plugin for CavesPlugin {
 pub struct SpawnCaveMap {
     pub hex: Entity,
     pub data: CaveMapConstructs,
+    pub is_underlayer: bool,
 }
 
 /// Cave map constructs required to spawn a cave map
@@ -259,6 +261,7 @@ fn on_spawn_cave_map(
 
     let is_player = vtt_data.is_player();
     let is_remote_player = vtt_data.is_remote_player();
+    let underlayer_height_offset = if trigger.is_underlayer { 11.5 } else { 0.0 };
     battlemap_materials
         .get_mut(&cave_map_resources.floor_material)
         .unwrap()
@@ -269,8 +272,12 @@ fn on_spawn_cave_map(
         .insert(Name::new("CaveMap"))
         .insert(Visibility::default())
         .insert(
-            Transform::from_xyz(0.0, HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0, 0.0)
-                .with_scale(Vec3::splat(0.10)),
+            Transform::from_xyz(
+                0.0,
+                HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0 - underlayer_height_offset,
+                0.0,
+            )
+            .with_scale(Vec3::splat(0.10)),
         )
         .with_children(|commands| {
             commands.spawn((
@@ -339,6 +346,7 @@ fn on_spawn_cave_map(
             polygon: trigger.event().data.all_points.clone(),
         })
         .id();
+    commands.trigger(ReleaseScreenSnapshot);
 
     if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
         entity.mark_battlemap_as_ready();

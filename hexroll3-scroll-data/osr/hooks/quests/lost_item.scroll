@@ -42,6 +42,7 @@ Advert {
 
 QuestTreasureHiding {
   AreaNumber = none
+  AreaFloor = none
   DungeonName! = :Dungeon.Name
   DungeonUUID! = :Dungeon.uuid
   AreaUUID! = :AreaDescription.uuid
@@ -77,7 +78,7 @@ QuestSecret(Secret) {
 TreasureQuestSecret(QuestSecret) {
   Details! = <%
     * {{FolkContext.Name.Full}}’s {{Artifact.Appearance}}
-    is in area {{Location.RoomContext.Ref}} in the
+    is in area {{conditional_ref(0,Location.RoomContext.RefFloor,Location.RoomContext.Ref)}} in the
     {{Location.DungeonContext.Name.Title}}
   %>
 }
@@ -108,7 +109,7 @@ TreasureQuest(Quest) {
   QuestgiverName = :Folk.Name
   QuestgiverLink = :Folk.HostingEntity
   QuestgiverLinkURL = :Folk.LinkURL
-  QuestSettlementName = *Settlement.NamePart
+  QuestSettlementName = :Settlement.NamePart
 
   Artifact @ LostItem {
     Folk = *QuestgiverName
@@ -119,7 +120,7 @@ TreasureQuest(Quest) {
     QuestLink = *QuestgiverLink
     QuestTreasureContainer = &TreasureContainer
     QuestArtifact = *Artifact
-    QuestSettlementName = &QuestSettlementName
+    QuestSettlementName = *QuestSettlementName
     Active = <%
       {{QuestTreasureContainer}} contains
       <a href="{{sandbox()}}/location/{{QuestLink}}">
@@ -150,7 +151,7 @@ TreasureQuest(Quest) {
       is in
       <a href="{{sandbox()}}/location/{{AreaUUID}}">
       <strong>
-      area {{AreaNumber}}
+      area {{conditional_ref(0,AreaFloor,AreaNumber)}}
       </strong>
       </a>
     %>

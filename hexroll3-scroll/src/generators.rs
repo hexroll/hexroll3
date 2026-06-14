@@ -45,22 +45,35 @@ use crate::{frame::*, instance::*, repository::*, semantics::*};
 /// * `tx` - a read/write transaction.
 /// * `class_name` - The class name of the entity to roll.
 /// * `parent_uid` - The parent uid of the entity to roll.
+/// * `parent_context` - An ephemeral context to allow custom data sharing (e.g dungeon maps)
 /// * `injectors` - Optional injectors that add attributes or override attributes in the entity.
 ///
 /// # Returns
 ///
 /// A `Result` containing the unique identifier of the newly created entity, or an error if the process fails.
+#[derive(Default)]
+pub struct ParentContext {
+    pub ordinal: usize,
+    pub count: usize,
+    pub data: Value,
+}
 pub fn roll(
     builder: &SandboxBuilder,
     blueprint: &mut SandboxBlueprint,
     tx: &mut ReadWriteTransaction,
     class_name: &str,
     parent_uid: &str,
+    parent_context: &mut ParentContext,
     injectors: Option<&Injectors>,
 ) -> Result<String> {
     let (map_data, class) = {
-        let map_data =
-            (blueprint.map_data_provider)(builder, blueprint, tx, class_name)?;
+        let map_data = (blueprint.map_data_provider)(
+            builder,
+            blueprint,
+            tx,
+            class_name,
+            parent_context,
+        )?;
 
         let class = {
             if let Some((class_name, _)) = map_data.as_ref() {
@@ -86,7 +99,7 @@ pub fn roll(
 
         entity["class"] = serde_json::Value::from(class.name.as_str());
         if let Some((_, map_json)) = map_data {
-            entity["map_data"] = Value::String(map_json.to_string());
+            entity["$map_data"] = map_json;
         }
 
         // Run the entity commands for injectors and attributes

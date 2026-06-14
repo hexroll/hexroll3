@@ -54,6 +54,18 @@ Dungeon { ^ $dungeon_classes
     {% endif %}
   %>
 
+  CityEntrances! ~ <%
+    {% if EntrancesList %}
+    {% for e in EntrancesList %}
+    <p>
+      {{e.CityDescription}}
+    </p>
+    {% endfor %}
+    {% else %}
+    <p> There is no known entrance to this dungeon! </p>
+    {% endif %}
+  %>
+
 
     #dungeon_locks:
     << DungeonDoorLock
@@ -282,10 +294,12 @@ DungeonWanderingMonsters {
 AreaDescription {
   Feature @ &FeatureLevelClass {
     AreaNumber := &RoomNumber
+    AreaFloor := &RoomFloor
   }
 
   Key @ DungeonDoorKey {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
     AreaUUID = &uuid
   }
 
@@ -300,24 +314,29 @@ AreaDescription {
   ]
   Lever @ DungeonDoorLever {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
     AreaUUID = &uuid
   }
 
   Passphrase @ DungeonDoorPassphrase {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
     AreaUUID = &uuid
   }
 
   Cell @ MissingPersonQuestCell {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
   }
 
   TreasureHiding @ QuestTreasureHiding {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
   }
 
   PortalDestination @ DungeonPortalDestination {
     AreaNumber = &RoomNumber
+    AreaFloor = &RoomFloor
     AreaUUID = &uuid
   }
 
@@ -409,12 +428,15 @@ CorridorDescription {
     * Each step here sends countless creepy crawlies back into the dark.
   ]
   Description! ~ <%
-    {%if doors and doors%}
+    {%if doors or FloorEntrance%}
     <h5> Doorways </h5>
     <ul>
       {%for d in doors%}
       <li> {{reroller(d, "", True)}} {{d.DescriptionOpposite}} </li>
       {%endfor%}
+      {% if FloorEntrance%}
+      <li><a class="token" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}">SPAWN</a> {{FloorEntrance.Description}}</li>
+      {% endif %}
     </ul>
     {%endif%}
     <h5> Description </h5>
@@ -464,6 +486,7 @@ RoomDescription(AreaDescription) {
   Appearance @ DungeonAreaAppearance
 
   RoomType @ RoomType
+  Level = 1
 
   Debris @ RoomDebris
   | AreaDescription
@@ -476,6 +499,7 @@ RoomDescription(AreaDescription) {
       {{sandbox_breadcrumb()}}
       {{toc_breadcrumb()}}
       <a href="{{sandbox()}}/location/{{DungeonUUID}}">{{DungeonName.Title}}</a> >
+      Level # {{Level}} >
       Area # {{RoomNumber}}
       </span>
    %>
@@ -548,7 +572,10 @@ RoomDescription(AreaDescription) {
         {%if passage_5%}
         <li> {{passage_5.Description}} </li>
         {%endif%}
+
+        {{FloorExit.Details}}
       </ul>
+
 
       {{DescriptionText}}
 
@@ -699,6 +726,9 @@ DungeonDeadEndFeature {
         * DungeonRemains
     ]~{
       Origin := &AreaNumber
+      OriginFloor := &AreaFloor
+      AreaNumber := &AreaNumber
+      AreaFloor := &AreaFloor
       OriginUUID := &AreaUUID
     }
   Title ~ <%
@@ -740,3 +770,20 @@ FactionLair {
   Coords! = none
 }
 
+
+DungeonFloorEntrance {
+  AreaNumber = 0
+  AreaUUID! = none
+  HexClass = none
+  DungeonContext = none
+
+  Description! ~ <%There are stairs here leading in and out of the previous floor%>
+}
+
+DungeonFloorExit {
+  ExitType @ [
+    * is a concealed trap-door 
+    * is a staircase
+    * are stairs
+  ]
+}

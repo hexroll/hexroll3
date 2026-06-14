@@ -39,8 +39,8 @@ use crate::{
         widgets::{
             buttons::ToggleResourceWrapper,
             dial::{
-                DialAssets, DialButton, DialButtonState, DialMenuCommands, DialMenuOptions,
-                MenuItemSpawner, placeholder_click_handler,
+                DialAssets, DialButton, DialMenuCommands, DialMenuOptions,
+                MakeLockableDialButton, MenuItemSpawner, placeholder_click_handler,
             },
             modal::DiscreteAppState,
         },
@@ -260,9 +260,6 @@ fn spawn_dial_menu_when_selecting(
     }
 }
 
-#[derive(Component)]
-pub struct LockableDialButton(pub bool);
-
 fn on_spawn_hex_dial(
     trigger: On<SpawnHexDial>,
     locked: Res<ToggleResourceWrapper<SandboxLock>>,
@@ -399,11 +396,15 @@ fn dial_menu_roll_menu(
             commands.entity(e).despawn();
         }
         let entity_pointer = parents.get(trigger.entity).unwrap();
-        let (hex_is_empty, can_source_a_river) =
+        let (hex_is_empty, can_source_a_river, can_have_a_dungeon) =
             if let Some(prepared_hex) = map_data.hexes.get(&hex) {
-                (prepared_hex.is_empty(), prepared_hex.can_source_a_river())
+                (
+                    prepared_hex.is_empty(),
+                    prepared_hex.can_source_a_river(),
+                    prepared_hex.can_have_a_dungeon(),
+                )
             } else {
-                (false, false)
+                (false, false, false)
             };
         commands.entity(entity_pointer.parent()).with_children(|c| {
             const MAX_ITEMS_IN_DIAL: i32 = 12;
@@ -416,7 +417,10 @@ fn dial_menu_roll_menu(
                     &dial_assets,
                     "Roll a dungeon",
                 )
-                .make_conditional_and_lockable(locked.value.on(), hex_is_empty);
+                .make_conditional_and_lockable(
+                    locked.value.on(),
+                    hex_is_empty || can_have_a_dungeon,
+                );
             c.spawn_empty()
                 .spawn_menu_item(
                     8,
@@ -759,20 +763,5 @@ fn dial_menu_trash_menu() -> impl Fn(
                 )
                 .make_conditional_and_lockable(locked.value.on(), true);
         });
-    }
-}
-
-trait MakeLockableDialButton {
-    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self;
-}
-impl MakeLockableDialButton for EntityCommands<'_> {
-    fn make_conditional_and_lockable(&mut self, locked: bool, cond: bool) -> &mut Self {
-        self.insert(LockableDialButton(cond))
-            .insert(if locked || !cond {
-                DialButtonState::Disabled
-            } else {
-                DialButtonState::Enabled
-            });
-        self
     }
 }

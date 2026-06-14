@@ -184,7 +184,7 @@ impl Area {
                 if bedrock.contains(&n) || excavated_spots.contains(&n) {
                     continue;
                 }
-                if !bounds.inside(n.x, n.y) {
+                if !bounds.inside(n.x, n.y) && rng.gen_range(1..=9) != 1 {
                     continue;
                 }
                 if avoid_others
@@ -221,24 +221,32 @@ fn excavate_cave<R: Rng>(
     rng: &mut R,
     areas: &mut Vec<Area>,
     excavated_spots: &mut BTreeSet<Hex>,
-    scale_factor: i32,
+    config: &GenerationConfig,
 ) {
+    // NOTE: used to bound the bedrock generation
     let bounds = Bounds {
-        w: 40 / scale_factor,
-        h: 120 / scale_factor,
+        w: config.bounds_w,
+        h: config.bounds_h,
+    };
+
+    // NOTE: used to bound the outer caverns
+    let safer_bounds = Bounds {
+        w: (config.bounds_w as f32 * 0.9) as i32,
+        h: (config.bounds_h as f32 * 0.9) as i32,
     };
 
     let mut bedrock: BTreeSet<Hex> = BTreeSet::new();
 
     // Seed bedrock
-    for _ in 0..(2400 / scale_factor) {
+    // for _ in 0..(4000 / 1) {
+    for _ in 0..config.bedrock_iterations {
         let mut seed = bounds.rand_spot(rng);
         seed.softness = 0;
 
         let xb = 2 * 2;
         let yb = 4 * 3;
         if seed.x < xb && seed.x > -xb && seed.y < yb && seed.y > -yb {
-            if rng.gen_range(1..=3) != 1 {
+            if rng.gen_range(1..=config.center_bias) != 1 {
                 continue;
             }
         }
@@ -283,7 +291,8 @@ fn excavate_cave<R: Rng>(
     //?
     area.my_spots.insert(main);
 
-    for _ in 0..600 {
+    // for _ in 0..600 {
+    for _ in 0..config.main_iterations {
         area.expand(rng, &bedrock, excavated_spots, &bounds, false);
     }
     areas.push(area.clone());
@@ -309,10 +318,17 @@ fn excavate_cave<R: Rng>(
         //?
         chamber.my_spots.insert(start);
 
-        let steps = rng.gen_range(10..=40);
+        let steps =
+            rng.gen_range(config.chamber_steps_min..=config.chamber_steps_max);
         for _ in 0..steps {
             let fake_bedrock: BTreeSet<Hex> = BTreeSet::new();
-            chamber.expand(rng, &fake_bedrock, excavated_spots, &bounds, true);
+            chamber.expand(
+                rng,
+                &fake_bedrock,
+                excavated_spots,
+                &safer_bounds,
+                true,
+            );
         }
         areas.push(chamber);
     }
@@ -322,7 +338,7 @@ fn classify_caverns(
     caverns: &mut Vec<Area>,
     excavated_areas: &[Area],
     _excavated_spots2: &BTreeSet<Hex>,
-    _pressure_threshold: i32,
+    config: &GenerationConfig,
 ) {
     let mut staging: Vec<Area> = vec![];
 
@@ -376,7 +392,7 @@ fn classify_caverns(
             }
         }
 
-        if pressure >= 30 || backlog.is_empty() {
+        if pressure >= config.pressure_threshold || backlog.is_empty() {
             let mut a = Area::new();
             a.is_outer = true;
             for &collected in &area_hexes {
@@ -407,8 +423,34 @@ fn classify_caverns(
         }
     }
 
-    for cavern in staging {
-        if cavern.spots.len() > 3 {
+    let mut min_x = i32::max_value();
+    let mut max_x = i32::min_value();
+    let mut min_y = i32::max_value();
+    let mut max_y = i32::min_value();
+
+    for cavern in &staging {
+        if cavern.spots.len() > config.chamber_threshold {
+            let c_min_x = cavern.spots.iter().map(|h| h.x).min().unwrap_or(0);
+            let c_max_x = cavern.spots.iter().map(|h| h.x).max().unwrap_or(0);
+            let c_min_y = cavern.spots.iter().map(|h| h.y).min().unwrap_or(0);
+            let c_max_y = cavern.spots.iter().map(|h| h.y).max().unwrap_or(0);
+            min_x = min_x.min(c_min_x);
+            min_y = min_y.min(c_min_y);
+            max_x = max_x.max(c_max_x);
+            max_y = max_y.max(c_max_y);
+        }
+    }
+
+    for mut cavern in staging {
+        if cavern.spots.len() > config.chamber_threshold {
+            let c_min_x = cavern.spots.iter().map(|h| h.x).min().unwrap_or(0);
+            let c_max_x = cavern.spots.iter().map(|h| h.x).max().unwrap_or(0);
+            let c_min_y = cavern.spots.iter().map(|h| h.y).min().unwrap_or(0);
+            let c_max_y = cavern.spots.iter().map(|h| h.y).max().unwrap_or(0);
+            cavern.is_outer = c_min_x == min_x
+                || c_max_x == max_x
+                || c_min_y == min_y
+                || c_max_y == max_y;
             caverns.push(cavern);
         }
     }
@@ -641,30 +683,91 @@ pub struct CaveBuilder {
     pub caverns: Vec<Cavern>,
 }
 
+struct GenerationConfig {
+    bounds_w: i32,
+    bounds_h: i32,
+    center_bias: i32,
+    bedrock_iterations: i32,
+    main_iterations: i32,
+    chamber_steps_min: i32,
+    chamber_steps_max: i32,
+    pressure_threshold: i32,
+    chamber_threshold: usize,
+}
+const SLENDER: GenerationConfig = GenerationConfig {
+    bounds_w: 80,
+    bounds_h: 120,
+    center_bias: 1,
+    bedrock_iterations: 6000,
+    main_iterations: 1000,
+    chamber_steps_min: 10,
+    chamber_steps_max: 30,
+    pressure_threshold: 60,
+    chamber_threshold: 9,
+};
+
+const BIG: GenerationConfig = GenerationConfig {
+    bounds_w: 80,
+    bounds_h: 120,
+    center_bias: 2,
+    bedrock_iterations: 6000,
+    main_iterations: 1000,
+    chamber_steps_min: 10,
+    chamber_steps_max: 50,
+    pressure_threshold: 60,
+    chamber_threshold: 9,
+};
+
+const MEDIUM: GenerationConfig = GenerationConfig {
+    bounds_w: 40,
+    bounds_h: 70,
+    center_bias: 2,
+    bedrock_iterations: 2000,
+    main_iterations: 500,
+    chamber_steps_min: 10,
+    chamber_steps_max: 60,
+    pressure_threshold: 60,
+    chamber_threshold: 9,
+};
+
+const SMALL: GenerationConfig = GenerationConfig {
+    bounds_w: 40,
+    bounds_h: 60,
+    center_bias: 1,
+    bedrock_iterations: 1300,
+    main_iterations: 200,
+    chamber_steps_min: 20,
+    chamber_steps_max: 30,
+    pressure_threshold: 60,
+    chamber_threshold: 5,
+};
+
+const OPTIONS: [GenerationConfig; 4] = [SLENDER, BIG, MEDIUM, SMALL];
+
 impl CaveBuilder {
     pub fn new<R: Rng>(rng: &mut R, prefer_small_dungeons: bool) -> Self {
         let mut caverns: Vec<Area> = vec![];
         let mut excavated_areas: Vec<Area> = vec![];
         let mut excavated_spots: BTreeSet<Hex> = BTreeSet::new();
 
-        let scale_factor = if prefer_small_dungeons {
+        let index = if prefer_small_dungeons {
             3
         } else {
-            rng.gen_range(1..=2)
+            rng.gen_range(0..=2)
         };
 
         excavate_cave(
             rng,
             &mut excavated_areas,
             &mut excavated_spots,
-            scale_factor,
+            &OPTIONS[index],
         );
 
         classify_caverns(
             &mut caverns,
             &excavated_areas,
             &excavated_spots,
-            if scale_factor == 2 { 30 } else { 20 },
+            &OPTIONS[index],
         );
 
         let mut polygons: Vec<PolygonizedArea> = vec![];

@@ -402,7 +402,11 @@ fn parse_entity_attribute<
     }
     if let Some(attr) = attr {
         if let ClassNamesToRoll::Unset() = value {
-            unreachable!()
+            log::warn!(
+                "Potential placeholder detected in {} for {}",
+                class.name,
+                attr
+            );
         }
         let is_array = !matches!(min, CardinalityValue::Undefined)
             && !matches!(max, CardinalityValue::Undefined);
@@ -691,6 +695,12 @@ fn parse_entity(
             }
             Rule::roll_from_indirect => {
                 parse_entity_attribute::<AttrCommandRollEntity>(
+                    inner_pair,
+                    class_builder.borrow_mut(),
+                );
+            }
+            Rule::placeholder => {
+                parse_entity_attribute::<AttrCommandPlaceholder>(
                     inner_pair,
                     class_builder.borrow_mut(),
                 );

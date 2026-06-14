@@ -107,6 +107,7 @@ pub fn render_entity<T: ReadOnlyLoader>(
         tx,
         obj,
         is_root,
+        false,
         None,
     )
 }
@@ -142,6 +143,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
     tx: &T,
     obj: &serde_json::Value,
     is_root: bool,
+    is_contextual: bool,
     stopper: Option<&str>,
 ) -> anyhow::Result<serde_json::Value> {
     let uuid = obj["uid"].as_str().unwrap().to_string();
@@ -160,11 +162,10 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
     });
     for spec in class_spec.collects.iter() {
         if let Some(attr) = &spec.virtual_attribute {
-            if attr.is_optional && !is_root {
+            if attr.is_optional && (!is_root || is_contextual) {
                 continue;
             }
-            let all_uids =
-                load_all_unused_uids(tx, &uuid, &spec.class_name)?;
+            let all_uids = load_all_unused_uids(tx, &uuid, &spec.class_name)?;
             ctx[&attr.attr_name] = serde_json::Value::from(
                 all_uids
                     .iter()
@@ -176,6 +177,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                             blueprint,
                             tx,
                             &next.value,
+                            false,
                             false,
                             None,
                         )
@@ -201,7 +203,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
             } else {
                 (false, false, false)
             };
-        if is_optional && !is_root {
+        if is_optional && (!is_root || is_contextual) {
             continue;
         }
         ctx[attr_name] = match raw_value {
@@ -236,6 +238,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                                     tx,
                                     &next.value,
                                     false,
+                                    false,
                                     None,
                                 )
                             })
@@ -243,7 +246,7 @@ fn recursive_entity_renderer<T: ReadOnlyLoader>(
                     )
                 } else if let Some(id) = raw_value.as_array().unwrap().iter().next() {
                     let next = tx.retrieve(id.as_str().unwrap())?;
-                    recursive_entity_renderer(context, instance, blueprint, tx, &next.value, false, None)?
+                    recursive_entity_renderer(context, instance, blueprint, tx, &next.value, false, false, None)?
                 } else {
                     serde_json::json!({})
                 }
@@ -312,6 +315,7 @@ fn render_pointer_attribute<T: ReadOnlyLoader>(
         tx,
         &pointed_entity,
         true,
+        true,
         Some(attr),
     )?;
     Ok(pointed_render[attr].clone())
@@ -379,6 +383,7 @@ fn render_parent_attribute<T: ReadOnlyLoader>(
                 tx,
                 &data,
                 false,
+                true,
                 Some(parent_attr),
             )
         } else if v.is_object() {

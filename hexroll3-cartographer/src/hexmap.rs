@@ -1128,8 +1128,11 @@ pub fn generate_hex_map_json(
                             .and_then(|v| v.as_array())
                             .and_then(|v| v.first())
                         {
+                            if let Ok(d) = tx.retrieve(dungeon.as_str().unwrap()) {
                             v["feature"] = "Dungeon".into();
                             v["feature_uuid"] = dungeon.clone();
+                            v["layers"] = d.value["map"].as_array().and_then(|a| Some(a.len())).into();
+                            }
                         }
                         if let Some(city) = hex
                             .value
@@ -1196,11 +1199,14 @@ pub struct MapContextBuildingData {
     pub x_coords: Value,
     pub y_coords: Value,
     pub building_index: Value,
+    pub remap_in_settlement: bool,
 }
 
 pub struct MapContextLocationData {
     pub x_coords: Value,
     pub y_coords: Value,
+    pub doors: Option<Value>,
+    pub remap_in_settlement: bool,
 }
 
 pub enum MapContext {
@@ -1244,6 +1250,15 @@ pub fn extract_map_context(
         (None, None)
     };
 
+    let remap_in_settlement = if let Some(on_reroll) =
+        old_entity_obj.get("$on_reroll")
+        && on_reroll == "remap_in_settlement"
+    {
+        true
+    } else {
+        false
+    };
+
     if let Some(x_coords) = x_coords
         && let Some(y_coords) = y_coords
     {
@@ -1255,12 +1270,15 @@ pub fn extract_map_context(
                     .get("building_index")
                     .unwrap()
                     .clone(),
+                remap_in_settlement,
             };
             return Ok(Some(MapContext::BuildingData(building_data)));
         } else {
             let location_data = MapContextLocationData {
                 x_coords: x_coords,
                 y_coords: y_coords,
+                doors: old_entity_obj.get("doors").cloned(),
+                remap_in_settlement,
             };
             return Ok(Some(MapContext::LocationData(location_data)));
         }
@@ -1269,8 +1287,24 @@ pub fn extract_map_context(
     Ok(None)
 }
 
+pub fn remap_in_settlement(
+    instance: &SandboxInstance,
+    mut blueprint: &mut SandboxBlueprint,
+    tx: &mut ReadWriteTransaction,
+    uid: &str,
+) -> anyhow::Result<()> {
+    let builder = SandboxBuilder::from_instance(instance);
+    let entity = tx.load(uid)?.clone();
+    let rendered =
+        render_entity(&builder.sandbox, &mut blueprint, tx, &entity, true)?;
+    let setuid = rendered["SettlementUUID"].as_str().unwrap().to_string();
+    crate::watabou::refresh_city_map(tx, &builder.randomizer, &setuid)?;
+    Ok(())
+}
+
 pub fn apply_map_context(
     instance: &SandboxInstance,
+    blueprint: &mut SandboxBlueprint,
     hex_map: &mut HexMap,
     tx: &mut ReadWriteTransaction,
     map_context: MapContext,
@@ -1321,20 +1355,33 @@ pub fn apply_map_context(
             hex_map.stage_trails(tx).unwrap();
         }
         MapContext::BuildingData(data) => {
-            let entity = tx.load(uid)?;
-            let entity_obj = entity.as_object_mut().unwrap();
-            entity_obj["x_coords"] = data.x_coords;
-            entity_obj["y_coords"] = data.y_coords;
-            entity_obj
-                .insert("building_index".to_string(), data.building_index);
-            tx.save(uid)?;
+            {
+                let entity = tx.load(uid)?;
+                let entity_obj = entity.as_object_mut().unwrap();
+                entity_obj["x_coords"] = data.x_coords;
+                entity_obj["y_coords"] = data.y_coords;
+                entity_obj
+                    .insert("building_index".to_string(), data.building_index);
+                tx.save(uid)?;
+            }
+            if data.remap_in_settlement {
+                remap_in_settlement(instance, blueprint, tx, uid)?;
+            }
         }
         MapContext::LocationData(data) => {
-            let entity = tx.load(uid)?;
-            let entity_obj = entity.as_object_mut().unwrap();
-            entity_obj["x_coords"] = data.x_coords;
-            entity_obj["y_coords"] = data.y_coords;
-            tx.save(uid)?;
+            {
+                let entity = tx.load(uid)?;
+                let entity_obj = entity.as_object_mut().unwrap();
+                entity_obj["x_coords"] = data.x_coords;
+                entity_obj["y_coords"] = data.y_coords;
+                if let Some(doors) = data.doors {
+                    entity_obj.insert("doors".to_string(), doors);
+                }
+                tx.save(uid)?;
+            }
+            if data.remap_in_settlement {
+                remap_in_settlement(instance, blueprint, tx, uid)?;
+            }
         }
     }
     Ok(())

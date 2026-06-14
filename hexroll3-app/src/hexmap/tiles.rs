@@ -96,6 +96,7 @@ pub struct HexMapTileMaterials {
     pub terrain_rim_materials: HashMap<TerrainType, Handle<TileMaterial>>,
     pub terrain_feature_materials:
         HashMap<TerrainType, HashMap<HexFeature, Handle<TileMaterial>>>,
+    pub unrevealed_ocean_material: Handle<BackgroundMaterial>,
     pub tiles_z_offset: f32,
     pub use_rim_for_rivers: bool,
 }
@@ -144,6 +145,7 @@ fn load_hexmap_theme_resources(
     mut commands: Commands,
     mut tile_materials: ResMut<Assets<TileMaterial>>,
     mut background_materials: ResMut<Assets<BackgroundMaterial>>,
+    // mut simple_background_materials: ResMut<Assets<BackgroundMaterial>>,
     asset_server: Res<AssetServer>,
     all_labels: Query<Entity, With<MapLabel>>,
     curr_hex_map_spawner_state: Res<State<HexMapSpawnerState>>,
@@ -414,18 +416,24 @@ fn load_hexmap_theme_resources(
     .cloned()
     .collect();
 
+    let unrevealed_ocean_material = background_materials.add(BackgroundMaterial {
+        base_color: theme.clear_color_for_referee.day.into(),
+        layer_color: theme.clear_color_for_referee.night.into(),
+    });
+
     commands.insert_resource(HexMapTileMaterials {
         unified_terrain_colors,
         terrain_background_materials,
         terrain_materials,
         terrain_rim_materials,
         terrain_feature_materials,
+        unrevealed_ocean_material,
         tiles_z_offset: theme.tile_offset,
         use_rim_for_rivers: theme.use_rim_for_rivers,
     });
     if *curr_hex_map_spawner_state != HexMapSpawnerState::Unready {
         commands.trigger(crate::clients::controller::RequestMapFromBackend {
-            post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
+            post_map_loaded_op: PostMapLoadedOp::InvalidateVisible(None),
         });
     }
 }
