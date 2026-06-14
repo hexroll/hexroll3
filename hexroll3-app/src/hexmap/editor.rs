@@ -97,6 +97,7 @@ impl Plugin for MapEditorPlugin {
             budget: Knob::default(),
             volume: Knob::default(),
             intent: HashMap::new(),
+            factions: 0,
         })
         .add_systems(
             OnEnter(HexMapToolState::Edit),
@@ -175,6 +176,7 @@ pub struct MapEditor {
     pub budget: Knob,
     pub volume: Knob,
     pub intent: HashMap<TerrainType, i32>,
+    pub factions: u32,
 }
 
 fn get_feature_ratio_for_realm_type(realm_type: &str, feature_type: HexFeature) -> f32 {
@@ -293,6 +295,7 @@ pub fn draw_tiles(
                         river_tile: None,
                         trail_tile: None,
                         feature: HexFeature::None,
+                        num_of_layers: 1,
                         user_placed_feature: false,
                         metadata: HexMetadata {
                             harbor: None,

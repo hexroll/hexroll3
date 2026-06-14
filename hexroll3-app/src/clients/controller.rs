@@ -43,7 +43,7 @@ use crate::{
         context::{ContentContext, Spoilers},
     },
     hexmap::{
-        HexMapJson, MapMessage,
+        HexMapJson, HexState, MapMessage,
         elements::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
             HexMapData, HexMarkerEntity, HexRevealPattern, HexToInvalidateMarker,
@@ -56,7 +56,7 @@ use crate::{
         camera::GimbalshotCameraMovement,
         layers::HEIGHT_OF_HEX_MARKER,
         settings::{AppSettings, CONFIG_DIR, UserSettings},
-        vtt::{LoadVttState, VttData},
+        vtt::{HexMapMode, HexRevealState, LoadVttState, VttData, VttSessionType},
         widgets::{
             buttons::{ToggleButtonSwitcherEx, ToggleResourceWrapper},
             cursor::CursorController,
@@ -247,6 +247,8 @@ pub fn receive_hex_map(
                             ));
                         });
                     }
+                } else {
+                    commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
                 }
                 let maybe_hex = if vtt_data.is_solo() && vtt_data.revealed.is_empty() {
                     data.hexes
@@ -257,8 +259,10 @@ pub fn receive_hex_map(
                     None
                 };
                 for (e, hex_to_invalidate) in invalidate.iter() {
-                    data.force_refresh
-                        .push(*data.coords.get(&hex_to_invalidate.0).unwrap());
+                    if post_map_loaded_op != PostMapLoadedOp::InvalidateVisible {
+                        data.force_refresh
+                            .push(*data.coords.get(&hex_to_invalidate.0).unwrap());
+                    }
                     commands.entity(e).try_despawn();
                 }
                 commands.insert_resource(data);
@@ -345,6 +349,7 @@ pub fn receive_appended_feature(
     content_mode: Res<State<ContentMode>>,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
+    mut vtt_data: ResMut<VttData>,
 ) {
     http_tasks.poll_responses(|_, data| {
         cursor_controller.done(&mut commands, *window);
@@ -358,6 +363,20 @@ pub fn receive_appended_feature(
                     }
                 }
                 if let Some(uid) = parsed_data.get("uuid").and_then(Value::as_str) {
+                    if let Some(hex_coords) = data.1 {
+                        // NOTE: Oceans have a special care here. If we have just
+                        // materialized a previously revealed ocean hex, we must
+                        // upgrade it to a standard hex and refresh any VTT peers.
+                        if vtt_data.ocean_upgrade(&hex_coords) {
+                            commands.trigger(SyncMapForPeers(MapMessage::HexStateChange(
+                                HexState {
+                                    coords: hex_coords,
+                                    is_ocean: false,
+                                    state: Some(HexRevealState::Full(Some(0))),
+                                },
+                            )));
+                        }
+                    }
                     commands.trigger(RequestMapFromBackend {
                         post_map_loaded_op: if content_mode.get() == &ContentMode::MapOnly
                             && data.2.is_some()
@@ -368,7 +387,6 @@ pub fn receive_appended_feature(
                         },
                     });
                 }
-                commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
             }
         }
     });
@@ -558,6 +576,7 @@ pub fn receive_remove_entity_results(
     mut http_tasks: ResMut<AsyncBackendTasks<String, RemoveResponse>>,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
+    mut content_context: ResMut<ContentContext>,
 ) {
     http_tasks.poll_responses(|_key, data| {
         if data.is_some() {
@@ -565,6 +584,17 @@ pub fn receive_remove_entity_results(
                 post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
             });
             commands.trigger(SyncMapForPeers(MapMessage::ReloadMap(None)));
+
+            if let Some(parent_id) = &data.as_ref().unwrap().maybe_parent_id {
+                commands.trigger(FetchEntityFromStorage {
+                    uid: parent_id.clone(),
+                    anchor: None,
+                    why: FetchEntityReason::Refresh,
+                });
+            }
+            data.unwrap().history_to_invalidate.iter().for_each(|v| {
+                content_context.invalidate_history_entry(v);
+            });
         }
         cursor_controller.done(&mut commands, *window);
     });
@@ -584,6 +614,9 @@ pub fn on_render_entity_completed(
     map: Res<HexMapData>,
     mut content_stuff: ResMut<ContentContext>,
 ) {
+    if trigger.fetch_reason == FetchEntityReason::TokenMovement {
+        return;
+    }
     if let Some(coords) = &trigger.map_coords {
         content_stuff.current_hex_uid = Some(coords.hex.clone());
         commands.trigger(GimbalshotCameraMovement {
@@ -717,9 +750,12 @@ pub fn backend_router<T>(
 
 pub fn setup_solo_mode(
     mut commands: Commands,
+    mut vtt_data: ResMut<VttData>,
     content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
     spoilers: Res<ToggleResourceWrapper<Spoilers>>,
 ) {
+    vtt_data.mode = HexMapMode::RefereeAsPlayer;
+    vtt_data.session_type = Some(VttSessionType::Solo);
     commands.insert_resource(ToggleResourceWrapper {
         value: HexRevealPattern::Solo,
     });
@@ -743,9 +779,12 @@ pub fn setup_solo_mode(
 
 pub fn setup_group_mode(
     mut commands: Commands,
+    mut vtt_data: ResMut<VttData>,
     content_spoilers_entity: Query<Entity, With<ContentSpoilersMarker>>,
     spoilers: Res<ToggleResourceWrapper<Spoilers>>,
 ) {
+    vtt_data.mode = HexMapMode::RefereeViewing;
+    vtt_data.session_type = Some(VttSessionType::Group);
     commands.insert_resource(ToggleResourceWrapper {
         value: HexRevealPattern::Flower,
     });

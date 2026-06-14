@@ -41,7 +41,7 @@ pub fn spawn_realm_borderlines(
     assets: Res<HexMapResources>,
     vtt_data: Res<VttData>,
 ) {
-    if map_data.realm_borderlines.is_empty() || vtt_data.is_solo() {
+    if map_data.realm_borderlines.is_empty() || vtt_data.is_player() {
         return;
     }
     let batch_size = map_data.realm_borderlines.len().min(5);

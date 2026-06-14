@@ -252,7 +252,7 @@ fn on_intro_scene_spawned(
                 line_height: LineHeight::Px(15.0),
                 ..default()
             },
-            Text::new("Ennies Silver Award winner for best digital aid, 2024. Copyright (c) 2021-2025 All Rights Reserved. Handmade with love by humans."),
+            Text::new("Ennies Silver Award winner for best digital aid, 2024. Copyright (c) 2021-2026 All Rights Reserved. Handmade with love by humans."),
             TextLayout::new_with_justify(Justify::Center),
         ));
 

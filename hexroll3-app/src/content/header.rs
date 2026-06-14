@@ -240,11 +240,11 @@ pub fn make_header_bundle(
                         });
                     if current.value == Spoilers::Hidden {
                         masks.iter_mut().for_each(|(mut node, _)| {
-                            node.display = Display::DEFAULT;
+                            node.display = Display::None;
                         });
                     } else {
                         masks.iter_mut().for_each(|(mut node, _)| {
-                            node.display = Display::None;
+                            node.display = Display::DEFAULT;
                         });
                     }
                 },

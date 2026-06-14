@@ -128,7 +128,8 @@ pub fn spawn_tile<T>(
                     // get their usual hex background color.
                     MeshMaterial3d(map_resources.underworld_material.clone()),
                     Transform::from_xyz(0.0, -1.0, 0.0), // When revealed and not loaded
-                ));
+                ))
+                .battlemap_dial_provider(false);
             } else {
                 base.with_child((
                     Mesh3d(map_resources.mesh.clone()),

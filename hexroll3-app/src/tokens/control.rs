@@ -50,8 +50,11 @@ use crate::{
         layers::HEIGHT_OF_TOKENS,
         settings::{AppSettings, Config, RulersMode},
         spawnq::SpawnQueue,
-        vtt::{HexMapMode, VttData},
-        widgets::{buttons::ToggleResourceWrapper, cursor::pointer_world_position},
+        vtt::{HexMapMode, PlayerPreview, VttData},
+        widgets::{
+            buttons::{ToggleEventWrapper, ToggleResourceWrapper},
+            cursor::pointer_world_position,
+        },
     },
     tokens::TOKEN_ROTATION_ZOOM_LIMIT,
     vtt::sync::EventContext,
@@ -62,7 +65,7 @@ use super::{
     TOKEN_DESELECTION_ZOOM_THRESHOLD, TOKEN_MOVEMENT_ZOOM_LIMIT, TeleportSelectedTokens,
     Token, TokenMeshEntity, TokenMessage, TokenUpdateMessage,
     initiative::*,
-    library::TokenLibrary,
+    library::{TokenLibrary, TokenTemplates},
     spawn::{PlayerShadowMaskPointLight, make_player_light},
     token_dial::SpawnTokenDial,
     tokens::{ActiveToken, TokenIsLocked, Torch},
@@ -88,11 +91,12 @@ impl Plugin for TokenControlPlugin {
         .add_systems(Update, token_interaction.after(update_dragging_detector))
         .add_observer(on_update_token_label)
         .add_observer(on_teleport_selected_tokens)
-        .add_observer(on_duplicate_last_spawned_token);
+        .add_observer(on_duplicate_last_spawned_token)
+        .add_observer(on_player_preview_toggle);
     }
 }
 #[derive(Component)]
-struct TokenTarget;
+pub struct TokenTarget;
 
 #[derive(Component)]
 struct TokenJoint;
@@ -102,6 +106,9 @@ struct FollowingToken;
 
 #[derive(Component)]
 struct LastSelectedToken;
+
+#[derive(Component)]
+struct TokenPreviousTranslation(Vec3);
 
 #[derive(Component, Default, PartialEq)]
 pub enum TokenInteractionMode {
@@ -239,6 +246,7 @@ fn begin_token_movement() -> impl Fn(
                 commands
                     .entity(trigger.entity)
                     .insert(RulerDragData::from_start_pos(transform.translation))
+                    .insert(TokenPreviousTranslation(transform.translation))
                     .remove::<ColliderDisabled>()
                     .insert(RigidBody::Dynamic);
                 commands.spawn((
@@ -259,6 +267,7 @@ fn begin_token_movement() -> impl Fn(
                                 .entity(o)
                                 .remove::<ColliderDisabled>()
                                 .insert(FollowingToken)
+                                .insert(TokenPreviousTranslation(t.translation))
                                 .insert(RigidBody::Dynamic);
                             commands.spawn((
                                 TokenJoint,
@@ -326,7 +335,8 @@ fn end_token_movement() -> impl Fn(
             .remove::<CollidingEntities>()
             .insert(CollidingEntities::default())
             .insert(RigidBody::Static)
-            .insert(ColliderDisabled);
+            .insert(ColliderDisabled)
+            .remove::<TokenPreviousTranslation>();
         for o in other.iter() {
             if o != trigger.entity {
                 commands
@@ -335,7 +345,8 @@ fn end_token_movement() -> impl Fn(
                     .insert(ColliderDisabled)
                     .remove::<CollidingEntities>()
                     .insert(CollidingEntities::default())
-                    .remove::<FollowingToken>();
+                    .remove::<FollowingToken>()
+                    .remove::<TokenPreviousTranslation>();
             }
         }
         for tgt in targets.iter() {
@@ -447,16 +458,47 @@ fn snap_to_quarter(value: f32) -> f32 {
 
 fn update_dragged_token_position(
     mut commands: Commands,
-    tokens: Query<
-        (Entity, &Transform, &Token),
+    mut tokens: Query<
+        (
+            Entity,
+            &mut Transform,
+            &Token,
+            Option<&mut TokenPreviousTranslation>,
+        ),
         (Without<ColliderDisabled>, Without<TokenIsLocked>),
     >,
     mut rulers: Query<&mut RulerDragData>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    library: Res<TokenLibrary>,
+    templates: Res<Assets<TokenTemplates>>,
 ) {
-    for (entity, transform, token) in tokens.iter() {
+    let Some(templates_library) = templates.get(&library.token_templates_handle) else {
+        return;
+    };
+    for (entity, mut transform, token, maybe_prev) in tokens.iter_mut() {
         if let Ok(mut ruler) = rulers.get_mut(entity) {
             ruler.move_to(transform.translation.with_y(5.0));
         }
+
+        // Orient the token toward its movement direction.
+        if let Some(mut prev) = maybe_prev {
+            let initial_rotation = templates_library
+                .templates
+                .get(&token.token_name.to_lowercase())
+                .and_then(|v| Some(v.rotation))
+                .unwrap_or_default();
+            let delta = transform.translation.xz() - prev.0.xz();
+            if delta.length_squared() > 0.001 {
+                let target_rotation = Quat::from_rotation_y(
+                    f32::atan2(-delta.x, -delta.y) + initial_rotation.to_radians(),
+                );
+                if keyboard.pressed(KeyCode::ShiftLeft) {
+                    transform.rotation = transform.rotation.slerp(target_rotation, 0.15);
+                }
+            }
+            prev.0 = transform.translation;
+        }
+
         commands.trigger(EventContext::from(TokenMessage::Update(
             TokenUpdateMessage::from_token_id(token.token_id).with_transform(*transform),
         )));
@@ -883,4 +925,30 @@ pub fn on_update_token_label(
             );
         }
     }
+}
+
+pub fn on_player_preview_toggle(
+    trigger: On<ToggleEventWrapper<PlayerPreview>>,
+    mut commands: Commands,
+    tokens: Query<(Entity, &Token)>,
+    masks: Query<Entity, With<PlayerShadowMaskPointLight>>,
+) {
+    if trigger.event().value == PlayerPreview::On {
+        for (token_entity, token_data) in tokens {
+            if token_data.light > 0.0 {
+                commands.entity(token_entity).with_child((
+                    make_player_light(0.0),
+                    Transform::from_xyz(0.0, 0.5, 0.0),
+                    PlayerShadowMaskPointLight::PostSpawnSetup(Timer::from_seconds(
+                        0.1,
+                        TimerMode::Once,
+                    )),
+                ));
+            }
+        }
+    } else {
+        for mask_entity in masks {
+            commands.entity(mask_entity).try_despawn();
+        }
+    };
 }

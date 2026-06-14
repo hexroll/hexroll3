@@ -64,6 +64,7 @@ pub struct TokenTemplate {
     pub light_radius: f32,
     pub token_size: f32,
     pub player_enabled: bool,
+    pub rotation: f32,
 }
 
 #[derive(Asset, TypePath, Debug, Deserialize)]

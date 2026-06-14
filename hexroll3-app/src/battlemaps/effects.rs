@@ -152,7 +152,7 @@ fn invoke_effect(
                                         vfx: vfx.clone(),
                                         pos: Vec3::new(
                                             point.x,
-                                            HEIGHT_OF_TOKENS + 0.99,
+                                            HEIGHT_OF_TOKENS + 5.00,
                                             point.z,
                                         ),
                                     },

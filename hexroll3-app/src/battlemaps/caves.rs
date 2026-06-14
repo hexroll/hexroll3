@@ -33,6 +33,7 @@ use serde::Deserialize;
 use crate::{
     audio::{DungeonAudioSample, PlayDungeonSound},
     clients::model::{BackendUid, FetchEntityReason},
+    content::solo_follow_navigation,
     hexmap::{
         BackgroundMaterial,
         elements::{
@@ -305,6 +306,7 @@ fn on_spawn_cave_map(
                 ));
                 if !is_remote_player {
                     area_floor
+                        .observe(solo_follow_navigation(c.uid.clone()))
                         .observe(
                             |trigger: On<Pointer<Click>>,
                              camera_motion_state: Res<DraggingMotionDetector>,

@@ -52,7 +52,6 @@ use super::{
     editor::{MapEditor, PenType},
     elements::{HexMapState, HexMapToolState, y_inverted_hexmap_layout},
     selecting::{detect_click, track_hex_under_cursor},
-    tune_editor_for_realm_type,
 };
 
 pub struct HexDialPlugin;

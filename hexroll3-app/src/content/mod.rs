@@ -76,6 +76,7 @@ impl Plugin for ContentPlugin {
 
 pub use header::ContentSpoilersMarker;
 pub use page::ContentPageModel;
+pub use page::solo_follow_navigation;
 
 #[derive(Event)]
 // Triggered when the page renderer is done spawning all content elements

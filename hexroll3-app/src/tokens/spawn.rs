@@ -210,7 +210,8 @@ fn on_spawn_token(
     commands.entity(e).add_child(t);
 
     let we_need_to_spawn_a_shadow_mask_point_light = trigger.event.token.light > 0.0
-        && trigger.event.token.mobility.is_player_controllable();
+        && trigger.event.token.mobility.is_player_controllable()
+        && vtt_data.is_player();
     if we_need_to_spawn_a_shadow_mask_point_light {
         let t = commands
             .spawn((

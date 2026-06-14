@@ -35,6 +35,7 @@ use avian3d::prelude::{
     Collider, ColliderConstructor, ColliderDisabled, CollisionLayers, RigidBody,
 };
 
+use crate::content::solo_follow_navigation;
 use crate::{
     audio::{DungeonAudioSample, PlayDungeonSound},
     clients::model::FetchEntityReason,
@@ -508,71 +509,74 @@ fn on_spawn_dungeon_map(
 
                                                 door.with_children(|c| {
                                                     if p.type_ == 2 {
-                                                        c.spawn_empty()
-                                                            .insert(player_entity_visibility)
-                                                            .insert(PlayerBattlemapEntity)
-                                                            .insert(
-                                                                Transform::from_xyz(
-                                                                    -0.25, -2.0, -0.65,
-                                                                )
-                                                                .with_rotation(
-                                                                    Quat::from_rotation_y(0.0),
-                                                                )
-                                                                .with_scale(Vec3::new(
-                                                                    1.2, 1.0, 1.0,
-                                                                )),
+                                                        let mut secret_door_barrier = c.spawn((
+                                                            player_entity_visibility,
+                                                            PlayerBattlemapEntity,
+                                                            DungeonWall,
+                                                            Mesh3d(
+                                                                secret_door_walls_mesh.clone(),
+                                                            ),
+                                                            MeshMaterial3d(
+                                                                wall_material.clone(),
+                                                            ),
+                                                            RigidBody::Static,
+                                                            Collider::cuboid(1.0, 1.0, 0.3),
+                                                            CollisionLayers::new(
+                                                                [HexrollPhysicsLayer::Walls],
+                                                                [HexrollPhysicsLayer::Tokens],
+                                                            ),
+                                                            Transform::from_xyz(
+                                                                0.0, 0.0, -0.15,
                                                             )
-                                                            .with_children(|c| {
-                                                                c.spawn((
-                                                                    DungeonWall,
-                                                                    Mesh3d(
-                                                                        secret_door_walls_mesh
-                                                                            .clone(),
-                                                                    ),
-                                                                    MeshMaterial3d(
-                                                                        wall_material.clone(),
-                                                                    ),
-                                                                    Transform::from_xyz(
-                                                                        0.25, 0.0, 0.0,
-                                                                    )
-                                                                    .with_scale(Vec3::new(
-                                                                        1.0,
-                                                                        y_scale_for_lighting,
-                                                                        1.0,
-                                                                    )),
-                                                                ));
-                                                            });
-                                                        c.spawn_empty()
-                                                            .insert(player_entity_visibility)
-                                                            .insert(PlayerBattlemapEntity)
-                                                            .insert(
-                                                                Transform::from_xyz(
-                                                                    -0.25, -2.0, 0.15,
-                                                                )
-                                                                .with_rotation(
-                                                                    Quat::from_rotation_y(0.0),
-                                                                ),
+                                                            .with_scale(Vec3::new(
+                                                                1.2,
+                                                                y_scale_for_lighting,
+                                                                1.0,
+                                                            )),
+                                                        ));
+                                                        if is_door_open {
+                                                            secret_door_barrier
+                                                                .insert(Visibility::Hidden);
+                                                            secret_door_barrier
+                                                                .insert(ColliderDisabled);
+                                                        }
+                                                        let mut secret_door_barrier = c.spawn((
+                                                            player_entity_visibility,
+                                                            PlayerBattlemapEntity,
+                                                            DungeonWall,
+                                                            Mesh3d(
+                                                                secret_door_walls_mesh.clone(),
+                                                            ),
+                                                            MeshMaterial3d(
+                                                                wall_material.clone(),
+                                                            ),
+                                                            RigidBody::Static,
+                                                            avian3d::prelude::ColliderDensity(
+                                                                2000.0,
+                                                            ),
+                                                            avian3d::prelude::CollisionMargin(
+                                                                0.1,
+                                                            ),
+                                                            Collider::cuboid(1.0, 1.0, 0.2),
+                                                            CollisionLayers::new(
+                                                                [HexrollPhysicsLayer::Walls],
+                                                                [HexrollPhysicsLayer::Tokens],
+                                                            ),
+                                                            Transform::from_xyz(
+                                                                0.0, 0.0, 0.15,
                                                             )
-                                                            .with_children(|c| {
-                                                                c.spawn((
-                                                                    DungeonWall,
-                                                                    Mesh3d(
-                                                                        secret_door_walls_mesh
-                                                                            .clone(),
-                                                                    ),
-                                                                    MeshMaterial3d(
-                                                                        wall_material.clone(),
-                                                                    ),
-                                                                    Transform::from_xyz(
-                                                                        0.25, 0.0, 0.0,
-                                                                    )
-                                                                    .with_scale(Vec3::new(
-                                                                        1.0,
-                                                                        y_scale_for_lighting,
-                                                                        1.0,
-                                                                    )),
-                                                                ));
-                                                            });
+                                                            .with_scale(Vec3::new(
+                                                                1.2,
+                                                                y_scale_for_lighting,
+                                                                1.0,
+                                                            )),
+                                                        ));
+                                                        if is_door_open {
+                                                            secret_door_barrier
+                                                                .insert(Visibility::Hidden);
+                                                            secret_door_barrier
+                                                                .insert(ColliderDisabled);
+                                                        }
                                                     }
                                                 });
                                                 if !is_remote_player {
@@ -638,6 +642,7 @@ fn on_spawn_dungeon_map(
                 ));
                 if !is_remote_player {
                     area_floor
+                        .observe(solo_follow_navigation(prepared_area.area.uuid.clone()))
                         .observe(
                             |trigger: On<Pointer<Click>>,
                              camera_motion_state: Res<DraggingMotionDetector>,

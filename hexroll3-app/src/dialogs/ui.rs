@@ -28,12 +28,13 @@ use hexx::Hex;
 use rand::distributions::Alphanumeric;
 use rand::{Rng, seq::index::sample};
 
+use crate::clients::http::save_vtt_state;
 use crate::clients::{setup_group_mode, setup_solo_mode};
 use crate::hexmap::{
     HexFeature, spawn_feature_knobs, spawn_terrain_knobs, spawn_volume_knobs,
-    tune_editor_for_realm_type, tune_editor_terrain_for_realm_type,
+    tune_editor_for_realm_type, tune_editor_params_for_realm_type,
+    tune_editor_terrain_for_realm_type,
 };
-use crate::shared::vtt::VttSessionType;
 use crate::shared::widgets::knob::{KnobMain, ResetKnob};
 use crate::vtt::network::NetworkContext;
 use crate::{
@@ -346,7 +347,9 @@ fn show_new_sandbox_options(
                             next_tool_state.set(HexMapToolState::Edit);
                             editor.pen = PenType::TerrainMaker;
                             editor.terrain = TerrainType::MountainsHex;
+                            editor.realm_type = format!("RealmType{}", realm_type);
                             tune_editor_terrain_for_realm_type(&mut editor, realm_type.as_str());
+                            tune_editor_params_for_realm_type(&mut editor, realm_type.as_str());
                             editor.budget.target = 0;
                             next_state.set(DiscreteAppState::Normal);
                         },
@@ -470,16 +473,14 @@ fn show_game_mode_options(
                       mut commands: Commands,
                       mut next_state: ResMut<NextState<DiscreteAppState>>,
                       mut user_settings: ResMut<UserSettings>,
-                      mut vtt_data: ResMut<VttData>,
                       modals: Query<Entity, With<ModalWindow>>| {
                     next_state.set(DiscreteAppState::Normal);
                     for modal in modals.iter() {
                         commands.entity(modal).try_despawn();
                     }
                     make_sandbox(&mut commands, &mut user_settings, v.clone());
-                    vtt_data.mode = HexMapMode::RefereeViewing;
-                    vtt_data.session_type = Some(VttSessionType::Group);
                     commands.run_system_cached(setup_group_mode);
+                    commands.run_system_cached(save_vtt_state);
                     commands.run_system_cached(show_new_sandbox_options);
                 },
             );
@@ -499,7 +500,6 @@ fn show_game_mode_options(
                       mut commands: Commands,
                       mut next_state: ResMut<NextState<DiscreteAppState>>,
                       mut user_settings: ResMut<UserSettings>,
-                      mut vtt_data: ResMut<VttData>,
                       modals: Query<Entity, With<ModalWindow>>| {
                     next_state.set(DiscreteAppState::Normal);
                     for modal in modals.iter() {
@@ -507,9 +507,8 @@ fn show_game_mode_options(
                     }
                     make_sandbox(&mut commands, &mut user_settings, input.clone());
                     // Setup solo state
-                    vtt_data.mode = HexMapMode::RefereeAsPlayer;
-                    vtt_data.session_type = Some(VttSessionType::Solo);
                     commands.run_system_cached(setup_solo_mode);
+                    commands.run_system_cached(save_vtt_state);
                     commands.run_system_cached(show_advanced_generator);
                 },
             );

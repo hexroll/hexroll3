@@ -260,8 +260,8 @@ impl MenuItemSpawner for EntityCommands<'_> {
                 Name::new("DialButton"),
                 DialButton,
                 Mesh3d(dial_assets.menu_item_billboard.clone()),
-                Transform::from_xyz(pos.x, pos.y, -1.0),
-                Animator::new(scale_tween),
+                // NOTE: scale down the buttons to prevet jitter due to overlap
+                Transform::from_xyz(pos.x, pos.y, -1.0).with_scale(Vec3::splat(0.90)),
             ))
             .with_child((
                 DialButtonIcon,
@@ -271,6 +271,7 @@ impl MenuItemSpawner for EntityCommands<'_> {
                     should_block_lower: false,
                     is_hoverable: false,
                 },
+                Animator::new(scale_tween),
             ))
             .tooltip_on_hover(tooltip, 1.0)
             .observe(mouse_over())
@@ -316,7 +317,6 @@ impl MenuItemSpawner for EntityCommands<'_> {
                 Mesh3d(dial_assets.menu_color_disc.clone()),
                 Transform::from_xyz(pos.x, pos.y, -1.0)
                     .with_rotation(Quat::from_rotation_x(3.1415)),
-                Animator::new(scale_tween),
             ))
             .with_child((
                 Mesh3d(dial_assets.menu_color_disc.clone()),
@@ -329,6 +329,7 @@ impl MenuItemSpawner for EntityCommands<'_> {
                     should_block_lower: false,
                     is_hoverable: false,
                 },
+                Animator::new(scale_tween),
             ))
             .observe(mouse_over())
             .observe(mouse_out())

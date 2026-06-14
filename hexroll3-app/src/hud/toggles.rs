@@ -45,6 +45,7 @@ use crate::{
 
 use super::{
     drawer::{HasRelatedDrawer, make_auto_drawer_sensor},
+    help::HelpOverlay,
     menu::MenuIconMarker,
 };
 
@@ -58,8 +59,9 @@ pub fn on_show_toggles(
     Res<AssetServer>,
     Query<&TogglesMenuMarker>,
     Res<AppSettings>,
+    Query<&HelpOverlay>,
 ) {
-    move |mut trigger, mut commands, asset_server, existing_menu, settings| {
+    move |mut trigger, mut commands, asset_server, existing_menu, settings, existing_help| {
         trigger.propagate(false);
         if !existing_menu.is_empty() {
             return;
@@ -154,7 +156,12 @@ pub fn on_show_toggles(
                         },
                     );
 
-                spawn_help_toggle(c, create_toggle_icon_frame_bundle(), asset_server.as_ref());
+                spawn_help_toggle(
+                    c,
+                    create_toggle_icon_frame_bundle(),
+                    asset_server.as_ref(),
+                    !existing_help.is_empty(),
+                );
 
                 spawn_audio_toggle(
                     c,
@@ -268,12 +275,17 @@ pub fn spawn_help_toggle<T>(
     c: &mut RelatedSpawnerCommands<'_, ChildOf>,
     bundle: T,
     asset_server: &AssetServer,
+    help_overlay_is_on: bool,
 ) where
     T: Bundle,
 {
     c.spawn(bundle)
         .menu_button_switch_ex::<HelpToggle>(
-            HelpToggle::default(),
+            if help_overlay_is_on {
+                HelpToggle::On
+            } else {
+                HelpToggle::Off
+            },
             vec![
                 asset_server.load("icons/icon-help-off.ktx2"),
                 asset_server.load("icons/icon-help-on.ktx2"),

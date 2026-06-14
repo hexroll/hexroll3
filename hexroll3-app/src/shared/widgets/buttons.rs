@@ -251,7 +251,7 @@ pub struct ToggleButtonSwitcherEx {
     pub insert_state_as_resource: bool,
 }
 
-#[derive(Event)]
+#[derive(Event, Default)]
 pub struct ToggleEventWrapper<T> {
     pub value: T,
 }

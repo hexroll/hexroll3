@@ -64,6 +64,7 @@ pub use editor::spawn_volume_knobs;
 pub use builder::GenerateHexMap;
 pub use builder::terrain_generator;
 pub use builder::tune_editor_for_realm_type;
+pub use builder::tune_editor_params_for_realm_type;
 pub use builder::tune_editor_terrain_for_realm_type;
 
 pub use selecting::reveal_hex;

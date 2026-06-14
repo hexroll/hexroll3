@@ -226,7 +226,7 @@ pub fn detect_click(
                                 // - - - - - - - - - - - - - - - - - - - - - - -
                                 // Clicking a not-yet-generated ocean hex
                                 } else {
-                                    if let Some(sandbox_uid) = &user_settings.sandbox {
+                                    if let Some(_sandbox_uid) = &user_settings.sandbox {
                                         commands.trigger(AppendSandboxEntity {
                                             target: AppendSubject::Ocean {
                                                 coords: coord.clone(),

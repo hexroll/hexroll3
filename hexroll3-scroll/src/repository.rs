@@ -203,6 +203,7 @@ impl Default for Repository {
 }
 
 pub trait ReadOnlyLoader {
+    fn exists(&self, uid: &str) -> Result<bool>;
     fn retrieve(&self, uid: &str) -> Result<JsonValue>;
 }
 
@@ -217,6 +218,13 @@ pub struct ReadOnlyTransaction {
 }
 
 impl<'a> ReadOnlyLoader for ReadWriteTransaction<'a> {
+    fn exists(&self, uid: &str) -> Result<bool> {
+        if let Ok(maybe) = self.table.get(uid.to_string()) {
+            Ok(maybe.is_some())
+        } else {
+            Err(anyhow!("error when trying to locate {}", uid))
+        }
+    }
     fn retrieve(&self, uid: &str) -> Result<JsonValue> {
         if let Some(cached) = self.cache.get(uid) {
             Ok(JsonValue {
@@ -323,6 +331,13 @@ impl<'a> ReadWriteTransaction<'a> {
 }
 
 impl ReadOnlyLoader for ReadOnlyTransaction {
+    fn exists(&self, uid: &str) -> Result<bool> {
+        if let Ok(maybe) = self.table.get(uid.to_string()) {
+            Ok(maybe.is_some())
+        } else {
+            Err(anyhow!("error when trying to locate {}", uid))
+        }
+    }
     fn retrieve(&self, uid: &str) -> Result<JsonValue> {
         if let Some(cached) = self.cache.get(uid) {
             Ok(JsonValue {

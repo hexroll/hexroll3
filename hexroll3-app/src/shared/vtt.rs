@@ -79,8 +79,12 @@ pub struct VttData {
 
 impl VttData {
     pub fn patch_ephemeral_state(&mut self, existing_data: &VttData) {
-        self.mode = if self.is_solo() {
-            HexMapMode::RefereeAsPlayer
+        self.mode = if let Some(session_type) = &self.session_type {
+            if *session_type == VttSessionType::Solo {
+                HexMapMode::RefereeAsPlayer
+            } else {
+                HexMapMode::RefereeViewing
+            }
         } else {
             existing_data.mode.clone()
         };
@@ -107,15 +111,31 @@ impl VttData {
         self.mode.is_player()
     }
 
-    pub fn revealed_hex_layer(&self, hex: &Hex) -> u32 {
+    pub fn revealed_hex_layer(&self, hex: &Hex) -> i32 {
         if let Some(state) = self.revealed.get(hex) {
             return match state {
-                HexRevealState::Partial => 0,
-                HexRevealState::Full(Some(layer)) => *layer,
+                HexRevealState::Partial => -1,
+                HexRevealState::Full(Some(layer)) => *layer as i32,
                 HexRevealState::Full(None) => 1,
             };
         } else {
             return 0;
+        }
+    }
+
+    pub fn prune_duplicate_oceans(&mut self) {
+        self.revealed_ocean
+            .retain(|v| !self.revealed.contains_key(v));
+    }
+
+    pub fn ocean_upgrade(&mut self, hex_coords: &Hex) -> bool {
+        if self.revealed_ocean.contains(hex_coords) {
+            self.revealed
+                .insert(*hex_coords, HexRevealState::Full(Some(0)));
+            self.revealed_ocean.remove(hex_coords);
+            true
+        } else {
+            false
         }
     }
 }
@@ -145,9 +165,6 @@ pub enum HexMapMode {
 impl HexMapMode {
     pub fn is_player(&self) -> bool {
         *self == HexMapMode::Player || *self == HexMapMode::RefereeAsPlayer
-    }
-    pub fn is_solo_old(&self) -> bool {
-        *self == HexMapMode::RefereeAsPlayer
     }
     pub fn is_referee(&self) -> bool {
         match self {

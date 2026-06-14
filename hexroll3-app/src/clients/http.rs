@@ -59,7 +59,6 @@ use crate::{
 };
 
 use super::controller::SearchEntitiesInBackend;
-use super::setup_solo_mode;
 use super::{
     RemoteBackendEvent,
     controller::{
@@ -69,6 +68,7 @@ use super::{
     },
     model::{FetchEntityReason, RerollEntity, SearchResponse},
 };
+use super::{setup_group_mode, setup_solo_mode};
 
 pub struct ApiClientPlugin;
 
@@ -77,7 +77,7 @@ impl Plugin for ApiClientPlugin {
         app // -->
             .insert_resource(HttpAgent::default())
             .insert_resource(VttStateApiController::Unloaded)
-            .add_systems(Update, handle_save_vtt_state)
+            .add_systems(Update, save_vtt_state_delay_watch)
             // ---------------------------------------------------------------------------------------------
             // API request and response handlers
             // ---------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ impl Plugin for ApiClientPlugin {
             // Rename a sandbox entity
             .add_observer(rename_entity)
             // Save vtt state
-            .add_observer(save_vtt_state)
+            .add_observer(on_save_vtt_state)
             .register_api_callback::<_, String, StoreStateResponse>(receive_vtt_store_response)
             // Load vtt state
             .add_observer(load_vtt_state)
@@ -298,25 +298,25 @@ pub fn append_feature(
     let url = format!("{server_host}/append/");
 
     // Resolve the target into the pieces the HTTP backend needs.
-    let (entity_uid, maybe_coords, maybe_building_index, fetch_uid) =
-        match &event.target {
-            AppendSubject::Hex { uid, coords } => {
-                if let Some(coords) = coords {
-                    commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
-                    commands.run_system(effects.roll_feature_effect);
-                }
-                (uid.clone(), *coords, None, Some(uid.clone()))
-            }
-            AppendSubject::Ocean { coords } => {
+    let (entity_uid, maybe_coords, maybe_building_index, fetch_uid) = match &event.target {
+        AppendSubject::Hex { uid, coords } => {
+            if let Some(coords) = coords {
                 commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
                 commands.run_system(effects.roll_feature_effect);
-                // HTTP server identifies the root entity by the sandbox name.
-                (sandbox_uid.clone(), Some(*coords), None, None)
             }
-            AppendSubject::SettlementDistrict { district_uid, building_index } => {
-                (district_uid.clone(), None, Some(*building_index), None)
-            }
-        };
+            (uid.clone(), *coords, None, Some(uid.clone()))
+        }
+        AppendSubject::Ocean { coords } => {
+            commands.spawn_empty().insert(RollNewFeatureEffect(*coords));
+            commands.run_system(effects.roll_feature_effect);
+            // HTTP server identifies the root entity by the sandbox name.
+            (sandbox_uid.clone(), Some(*coords), None, None)
+        }
+        AppendSubject::SettlementDistrict {
+            district_uid,
+            building_index,
+        } => (district_uid.clone(), None, Some(*building_index), None),
+    };
 
     let mut json_data = serde_json::json!({
         "instance": sandbox_uid,
@@ -383,7 +383,7 @@ pub fn rename_entity(
 pub struct StoreStateResponse;
 pub struct LoadStateResponse(pub ClientState);
 
-pub fn save_vtt_state(
+pub fn on_save_vtt_state(
     _trigger: On<StoreVttState>,
     mut controller: ResMut<VttStateApiController>,
     vtt_data: Res<VttData>,
@@ -393,67 +393,70 @@ pub fn save_vtt_state(
     }
 }
 
-pub fn handle_save_vtt_state(
+pub fn save_vtt_state_delay_watch(
+    mut controller: ResMut<VttStateApiController>,
+    time: Res<Time>,
+    mut commands: Commands,
+) {
+    if let VttStateApiController::Staged(timer) = &mut *controller {
+        if timer.tick(time.delta()).is_finished() {
+            commands.run_system_cached(save_vtt_state);
+            *controller = VttStateApiController::Idle;
+        }
+    }
+}
+
+pub fn save_vtt_state(
     mut http_agent: ResMut<HttpAgent>,
     mut controller: ResMut<VttStateApiController>,
     mut http_tasks: ResMut<AsyncBackendTasks<String, StoreStateResponse>>,
     settings: Res<AppSettings>,
     vtt_data: Res<VttData>,
     tokens: Query<(&Token, &Transform)>,
-    time: Res<Time>,
     user_settings: Res<UserSettings>,
 ) {
     let Some(sandbox_uid) = &user_settings.sandbox else {
         return;
     };
-    if let VttStateApiController::Staged(timer) = &mut *controller {
-        if timer.tick(time.delta()).is_finished() {
-            debug!("Save state timer expired.");
-            let tokens: Vec<TokenState> = tokens
-                .iter()
-                .map(|(token, transform)| TokenState {
-                    token: token.clone(),
-                    transform: transform.clone(),
-                })
-                .collect();
-            let client_state = ClientState {
-                settings: settings.clone(),
-                vtt: vtt_data.clone(),
-                tokens,
-            };
-            let json_data = serde_json::json!(client_state);
+    let tokens: Vec<TokenState> = tokens
+        .iter()
+        .map(|(token, transform)| TokenState {
+            token: token.clone(),
+            transform: transform.clone(),
+        })
+        .collect();
+    let client_state = ClientState {
+        settings: settings.clone(),
+        vtt: vtt_data.clone(),
+        tokens,
+    };
+    let json_data = serde_json::json!(client_state);
 
-            // TODO: local data handling will eventually use a to-be-implemented
-            // AsyncStandaloneTasks type.
-            // It was important enough to add sooner than later so that we can safely
-            // get rid of http vtt state management without users loosing any data.
-            let config_path = ClientState::path(sandbox_uid);
-            let file =
-                File::create(config_path).expect("Failed to create vtt state data file");
-            let writer = std::io::BufWriter::new(file);
-            serde_json::to_writer_pretty(writer, &json_data)
-                .expect("Failed to write vtt state data file");
-
-            if user_settings.local.unwrap_or(false) {
-                *controller = VttStateApiController::Idle;
-                return;
-            }
-            let server_host = &user_settings.server;
-            let api_key = Some(user_settings.key.as_ref().unwrap().clone());
-            let url = format!("{server_host}/state/{}/{}", sandbox_uid, "default3");
-
-            http_tasks.spawn_post(
-                &mut http_agent,
-                url,
-                api_key,
-                json_data,
-                sandbox_uid.clone(),
-                move |_data| StoreStateResponse {},
-            );
-
-            *controller = VttStateApiController::Idle;
-        }
+    // TODO: local data handling will eventually use a to-be-implemented
+    // AsyncStandaloneTasks type.
+    // It was important enough to add sooner than later so that we can safely
+    // get rid of http vtt state management without users loosing any data.
+    let config_path = ClientState::path(sandbox_uid);
+    let file = File::create(config_path).expect("Failed to create vtt state data file");
+    let writer = std::io::BufWriter::new(file);
+    serde_json::to_writer_pretty(writer, &json_data)
+        .expect("Failed to write vtt state data file");
+    if user_settings.local.unwrap_or(false) {
+        *controller = VttStateApiController::Idle;
+        return;
     }
+    let server_host = &user_settings.server;
+    let api_key = Some(user_settings.key.as_ref().unwrap().clone());
+    let url = format!("{server_host}/state/{}/{}", sandbox_uid, "default3");
+
+    http_tasks.spawn_post(
+        &mut http_agent,
+        url,
+        api_key,
+        json_data,
+        sandbox_uid.clone(),
+        move |_data| StoreStateResponse {},
+    );
 }
 
 pub fn receive_vtt_store_response(
@@ -516,6 +519,8 @@ pub fn receive_vtt_load_response(
             vtt_data.patch_ephemeral_state(&existing_vtt_data);
             if vtt_data.is_solo() {
                 commands.run_system_cached(setup_solo_mode);
+            } else {
+                commands.run_system_cached(setup_group_mode);
             }
             vtt_data.invalidate_map = true;
             commands.insert_resource(vtt_data);

@@ -172,7 +172,6 @@ fn on_spawn_battlemap_dial(
                 &dial_assets,
                 "Generate an Inn",
             );
-            let hex_entity = trigger.hex_entity.clone();
             if let Some(uid) = trigger.building_uid.clone() {
                 c.spawn_empty().spawn_menu_item(
                     5,
@@ -180,8 +179,7 @@ fn on_spawn_battlemap_dial(
                     DialIcon::Trash,
                     move |_: On<Pointer<Click>>, mut commands: Commands| {
                         commands.trigger(FreezeScreenSnapshot);
-                        let uid = commands.trigger(RemoveSandboxEntity { uid: uid.clone() });
-                        // commands.spawn(HexToInvalidatePostLoadMarker(hex_entity.clone()));
+                        commands.trigger(RemoveSandboxEntity { uid: uid.clone() });
                     },
                     &dial_assets,
                     "Clear Building",

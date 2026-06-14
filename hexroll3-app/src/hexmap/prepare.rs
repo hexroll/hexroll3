@@ -163,6 +163,13 @@ pub fn prepare_hex_map_data(
             let river_tile = get_curved_mesh_tile_stack(&h.rivers);
             let trail_tile = get_curved_mesh_tile_stack(&h.trails);
 
+            let num_of_layers =
+                if *h.feature.as_ref().unwrap_or(&HexFeature::None) == HexFeature::Dungeon {
+                    2
+                } else {
+                    1
+                };
+
             coords_by_uid.insert(h.uuid.clone(), coords);
 
             let (hex_tile_material, _) =
@@ -188,6 +195,7 @@ pub fn prepare_hex_map_data(
                     river_tile,
                     trail_tile,
                     feature: h.feature.clone().unwrap_or(HexFeature::None),
+                    num_of_layers,
                     user_placed_feature: false,
                     metadata: HexMetadata {
                         harbor: h.feature.as_ref().and_then(|feature| {
@@ -527,10 +535,14 @@ fn color_from_uid(uid: &str) -> Color {
     let hash = uid
         .bytes()
         .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
-
-    let hue = (hash & 0xFFFF) as f32 / 65535.0 * 360.0;
-    let saturation = 0.75;
-    let lightness = 0.50;
-
-    Color::hsl(hue, saturation, lightness)
+    const BLUE_START: f32 = 200.0;
+    const BLUE_END: f32 = 260.0;
+    const AVAILABLE: f32 = 360.0 - (BLUE_END - BLUE_START); // 300°
+    let raw = (hash & 0xFFFF) as f32 / 65535.0 * AVAILABLE;
+    let hue = if raw < BLUE_START {
+        raw
+    } else {
+        raw + (BLUE_END - BLUE_START)
+    };
+    Color::hsl(hue, 0.75, 0.50)
 }

@@ -71,6 +71,7 @@ pub struct SearchResultItem {
 
 #[derive(Event, Clone, PartialEq)]
 pub enum FetchEntityReason {
+    TokenMovement,
     SandboxLink,
     History,
     Refresh,

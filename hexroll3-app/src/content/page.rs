@@ -61,11 +61,13 @@ use crate::{
         layers::{RENDER_LAYER_CONTENT_OFFSCREEN, RENDER_LAYER_CONTENT_ONSCREEN},
         settings::Config,
         tweens::UiImageNodeAlphaLens,
+        vtt::VttData,
         widgets::{
             buttons::{MenuButtonDisabled, ToggleResourceWrapper},
             cursor::{CursorController, PointerOnHover},
         },
     },
+    tokens::TokenTarget,
 };
 
 use super::{
@@ -969,4 +971,33 @@ fn wasd_hex_navigation(
         anchor: None,
         why: FetchEntityReason::SandboxLink,
     });
+}
+
+pub fn solo_follow_navigation(
+    area_uid: String,
+) -> impl Fn(
+    On<Pointer<Move>>,
+    Query<&TokenTarget>,
+    Commands,
+    Res<State<ContentMode>>,
+    Res<ContentContext>,
+    Res<VttData>,
+) {
+    move |_, token_target, mut commands, content_mode, content_context, vtt_data| {
+        if vtt_data.is_solo() {
+            if !token_target.is_empty() {
+                if *content_mode == ContentMode::SplitScreen {
+                    if let Some(content_uid) = &content_context.current_entity_uid
+                        && content_uid != &area_uid
+                    {
+                        commands.trigger(FetchEntityFromStorage {
+                            uid: area_uid.to_string(),
+                            anchor: None,
+                            why: FetchEntityReason::TokenMovement,
+                        });
+                    }
+                }
+            }
+        }
+    }
 }

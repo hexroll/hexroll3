@@ -36,9 +36,13 @@ pub struct FreezeScreenSnapshot;
 pub struct ReleaseScreenSnapshot;
 
 const SNAPSHOT_WATCHDOG_TIMEOUT_SECS: f32 = 5.0;
+const SNAPSHOT_FADE_DURATION_SECS: f32 = 0.3;
 
 #[derive(Resource, Default)]
 struct SnapshotWatchdogTimer(f32);
+
+#[derive(Component)]
+struct SnapshotFadingOut(f32);
 
 pub struct SnapshotPlugin;
 
@@ -51,7 +55,8 @@ impl Plugin for SnapshotPlugin {
             .add_systems(
                 Update,
                 snapshot_watchdog.run_if(in_state(SnapshotState::Showing)),
-            );
+            )
+            .add_systems(Update, snapshot_fade_out);
     }
 }
 
@@ -80,7 +85,6 @@ fn trigger_snapshot(
     mut next_state: ResMut<NextState<SnapshotState>>,
     current_state: Res<State<SnapshotState>>,
 ) {
-    // commands.insert_resource(ClearColor(Color::BLACK));
     if *current_state != SnapshotState::Idle {
         return;
     }
@@ -140,7 +144,7 @@ fn snapshot_watchdog(
 ) {
     timer.0 += time.delta_secs();
     if timer.0 >= SNAPSHOT_WATCHDOG_TIMEOUT_SECS {
-        warn!("SnapshotOverlay watchdog: overlay shown for too long, force-releasing");
+        warn!("Snapshot overlay shown for too long - force despawning");
         commands.remove_resource::<SnapshotWatchdogTimer>();
         commands.trigger(ReleaseScreenSnapshot);
     }
@@ -149,7 +153,7 @@ fn snapshot_watchdog(
 fn dismiss_snapshot(
     _: On<ReleaseScreenSnapshot>,
     mut commands: Commands,
-    overlay: Query<Entity, With<SnapshotOverlay>>,
+    overlay: Query<Entity, (With<SnapshotOverlay>, Without<SnapshotFadingOut>)>,
     mut next_state: ResMut<NextState<SnapshotState>>,
     refresh_state: Res<State<RemoteRefreshState>>,
     mut next_refresh_state: ResMut<NextState<RemoteRefreshState>>,
@@ -157,11 +161,25 @@ fn dismiss_snapshot(
     if *refresh_state == RemoteRefreshState::Initiated {
         return;
     }
-    debug!("Screen freeze released!");
     for entity in overlay.iter() {
-        commands.entity(entity).despawn();
+        commands.entity(entity).insert(SnapshotFadingOut(0.0));
     }
     next_state.set(SnapshotState::Idle);
     next_refresh_state.set(RemoteRefreshState::Idle);
     commands.insert_resource(ClearColor(Color::srgba(0.0, 0.0, 0.0, 0.0)));
+}
+
+fn snapshot_fade_out(
+    mut commands: Commands,
+    mut overlays: Query<(Entity, &mut ImageNode, &mut SnapshotFadingOut)>,
+    time: Res<Time>,
+) {
+    for (entity, mut image_node, mut fade) in overlays.iter_mut() {
+        fade.0 += time.delta_secs();
+        let alpha = (1.0 - fade.0 / SNAPSHOT_FADE_DURATION_SECS).max(0.0);
+        image_node.color = Color::WHITE.with_alpha(alpha);
+        if alpha <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
 }

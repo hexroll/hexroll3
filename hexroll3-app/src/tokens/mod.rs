@@ -43,6 +43,7 @@ impl Plugin for TokensPlugin {
 }
 
 pub use control::BattlemapsSnapping;
+pub use control::TokenTarget;
 pub use control::update_token_material;
 pub use sync::TokenMessage;
 pub use sync::TokenUpdateMessage;

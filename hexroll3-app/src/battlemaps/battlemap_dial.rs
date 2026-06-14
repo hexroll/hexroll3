@@ -416,66 +416,87 @@ pub struct BattlemapSelection {
 pub fn dial_menu_layers_menu() -> impl Fn(
     On<Pointer<Click>>,
     Commands,
+    Res<HexMapData>,
     Query<&ChildOf>,
     Query<Entity, With<DialButton>>,
     Res<DialAssets<DialIcon>>,
 ) {
-    move |trigger, mut commands, parents, prev, dial_assets| {
+    move |trigger, mut commands, map_data, parents, prev, dial_assets| {
         for e in prev.iter() {
             commands.entity(e).despawn();
         }
         let entity_pointer = parents.get(trigger.entity).unwrap();
+        let Some(selected) = map_data.selected else {
+            return;
+        };
+        let num_of_layers = if let Some(hex_data) = map_data.hexes.get(&selected) {
+            hex_data.num_of_layers
+        } else {
+            1
+        };
         commands.entity(entity_pointer.parent()).with_children(|c| {
-            const MAX_ITEMS_IN_DIAL: i32 = 8;
-            c.spawn_empty().spawn_menu_item(
-                0,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::LayerOverland,
-                make_layer_handler(0),
-                &dial_assets,
-                "Reveal Overland Layer",
-            );
-            c.spawn_empty().spawn_menu_item(
-                1,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer1,
-                make_layer_handler(1),
-                &dial_assets,
-                "Reveal Layer 1",
-            );
+            const MAX_ITEMS_IN_DIAL: i32 = 7;
+            if num_of_layers > 0 {
+                c.spawn_empty().spawn_menu_item(
+                    0,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::LayerOverland,
+                    make_layer_handler(0),
+                    &dial_assets,
+                    "Reveal Overland Layer",
+                );
+            }
+            if num_of_layers > 1 {
+                c.spawn_empty().spawn_menu_item(
+                    1,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Layer1,
+                    make_layer_handler(1),
+                    &dial_assets,
+                    "Reveal Layer 1",
+                );
+            }
             // .make_conditional_and_lockable(&locked, true);
-            c.spawn_empty().spawn_menu_item(
-                2,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer2,
-                make_layer_handler(2),
-                &dial_assets,
-                "Reveal Layer 2",
-            );
-            c.spawn_empty().spawn_menu_item(
-                3,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer3,
-                make_layer_handler(3),
-                &dial_assets,
-                "Reveal Layer 3",
-            );
-            c.spawn_empty().spawn_menu_item(
-                4,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer4,
-                make_layer_handler(4),
-                &dial_assets,
-                "Reveal Layer 4",
-            );
-            c.spawn_empty().spawn_menu_item(
-                5,
-                MAX_ITEMS_IN_DIAL,
-                DialIcon::Layer5,
-                make_layer_handler(5),
-                &dial_assets,
-                "Reveal Layer 5",
-            );
+            if num_of_layers > 2 {
+                c.spawn_empty().spawn_menu_item(
+                    2,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Layer2,
+                    make_layer_handler(2),
+                    &dial_assets,
+                    "Reveal Layer 2",
+                );
+            }
+            if num_of_layers > 3 {
+                c.spawn_empty().spawn_menu_item(
+                    3,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Layer3,
+                    make_layer_handler(3),
+                    &dial_assets,
+                    "Reveal Layer 3",
+                );
+            }
+            if num_of_layers > 4 {
+                c.spawn_empty().spawn_menu_item(
+                    4,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Layer4,
+                    make_layer_handler(4),
+                    &dial_assets,
+                    "Reveal Layer 4",
+                );
+            }
+            if num_of_layers > 5 {
+                c.spawn_empty().spawn_menu_item(
+                    5,
+                    MAX_ITEMS_IN_DIAL,
+                    DialIcon::Layer5,
+                    make_layer_handler(5),
+                    &dial_assets,
+                    "Reveal Layer 5",
+                );
+            }
         });
     }
 }

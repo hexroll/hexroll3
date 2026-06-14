@@ -41,6 +41,7 @@ use crate::{
         controller::{SearchEntitiesInBackend, ShowSearchResults},
         model::{FetchEntityReason, SearchResponse},
     },
+    content::ContentMode,
     hexmap::elements::FetchEntityFromStorage,
     hud::drawer::AutoDrawer,
     shared::{
@@ -82,7 +83,7 @@ fn on_open_and_focus(
 }
 
 #[derive(Component)]
-struct SearchText;
+pub struct SearchText;
 
 #[derive(Component)]
 struct SearchBar;
@@ -449,12 +450,23 @@ fn search_hotkey(
     input_mode: Res<InputMode>,
     keyboard: Res<ButtonInput<KeyCode>>,
     vtt_data: Res<VttData>,
+    focus: Res<InputFocus>,
+    search_bar: Single<Entity, With<SearchBar>>,
+    search_text: Single<Entity, (With<SearchText>, Without<SearchBar>)>,
+    mut next_content_mode: ResMut<NextState<ContentMode>>,
 ) {
     if vtt_data.is_remote_player() {
         return;
     }
     if keyboard.just_released(KeyCode::Backquote) && input_mode.keyboard_available() {
+        next_content_mode.set(ContentMode::MapOnly);
         commands.trigger(OpenSearchBarAndFocus);
+    }
+    if keyboard.just_pressed(KeyCode::Escape) && focus.0 == Some(*search_text) {
+        commands.insert_resource(InputFocus(None));
+        commands
+            .entity(*search_bar)
+            .try_remove::<AutoDrawerButManual>();
     }
 }
 

@@ -39,6 +39,7 @@ use hexroll3_cartographer::{
 
 use hexroll3_scroll::{
     ValueUuidExt,
+    frame::load_all_unused_uids,
     generators::*,
     instance::{SandboxInstance, *},
     renderer::{render_entity, render_entity_html},
@@ -305,7 +306,12 @@ pub fn append_feature_standalone(
     }
 }
 
-pub struct RemoveResponse;
+pub struct RemoveResponse {
+    pub removed_entity: String,
+    pub maybe_parent_id: Option<String>,
+    pub history_to_invalidate: Vec<String>,
+}
+
 // ---------------------------------------------------------------------------------------------------------
 pub fn remove_entity_standalone(
     trigger: On<StandaloneBackendEvent<RemoveSandboxEntity>>,
@@ -314,11 +320,14 @@ pub fn remove_entity_standalone(
     mut async_tasks: ResMut<AsyncBackendTasks<String, RemoveResponse>>,
     window: Single<Entity, With<PrimaryWindow>>,
     mut cursor_controller: ResMut<CursorController>,
+    content_context: Res<ContentContext>,
 ) {
     cursor_controller.loading(&mut commands, *window);
 
     let event = trigger.event().0.clone();
     let instance = sandbox.instance.clone();
+    let maybe_context_uid = content_context.current_entity_uid.clone();
+    let content_history_to_verify = content_context.history.clone();
 
     if async_tasks
         .spawn_standalone(event.uid.clone(), move || -> Option<RemoveResponse> {
@@ -329,8 +338,8 @@ pub fn remove_entity_standalone(
             };
 
             match builder.sandbox.repo.mutate(|tx| {
+                let entity = tx.load(&event.uid)?.clone();
                 let maybe_settlement_related = {
-                    let entity = tx.load(&event.uid)?.clone();
                     let rendered =
                         render_entity(&builder.sandbox, &mut blueprint, tx, &entity, true)?;
                     rendered["SettlementUUID"]
@@ -346,9 +355,27 @@ pub fn remove_entity_standalone(
                         &setuid,
                     )?;
                 }
-                Ok(())
+                let maybe_parent_id = match maybe_context_uid.as_ref() {
+                    Some(content_uid) if !tx.exists(content_uid)? => {
+                        entity["parent_uid"].as_str().map(|s| s.to_string())
+                    }
+                    _ => None,
+                };
+
+                let mut history_to_invalidate: Vec<String> = Vec::new();
+                for history_entry_to_verify in content_history_to_verify.iter() {
+                    if !tx.exists(&history_entry_to_verify)? {
+                        history_to_invalidate.push(history_entry_to_verify.clone());
+                    }
+                }
+
+                Ok((maybe_parent_id, history_to_invalidate))
             }) {
-                Ok(_) => Some(RemoveResponse),
+                Ok((maybe_parent_id, history_to_invalidate)) => Some(RemoveResponse {
+                    removed_entity: event.uid.clone(),
+                    maybe_parent_id,
+                    history_to_invalidate,
+                }),
                 Err(e) => {
                     error!("{}", e.to_string());
                     None
@@ -846,8 +873,6 @@ pub fn request_search_standalone(
         .is_err()
     {}
 }
-
-use hexroll3_scroll::frame::{FrameConvertor, load_all_unused_uids};
 
 fn find_term(
     instance: &SandboxInstance,

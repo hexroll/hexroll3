@@ -585,6 +585,7 @@ fn place_region(
             river_tile: None,
             trail_tile: None,
             feature: HexFeature::None,
+            num_of_layers: 1,
             user_placed_feature: false,
             metadata: HexMetadata {
                 harbor: None,
@@ -703,6 +704,7 @@ pub fn generate_hex_map(
         );
     }
     commands.insert_resource(generation_tracker.clone());
+    let factions = editor.factions;
 
     let task_pool = AsyncComputeTaskPool::get();
     let task = task_pool.spawn(async move {
@@ -866,6 +868,14 @@ pub fn generate_hex_map(
                             );
                         }
 
+                        if let Ok(red_button) = generation_tracker.red_button.lock() {
+                            if *red_button {
+                                return anyhow::Result::Err(anyhow::anyhow!(
+                                    "Map generation aborted"
+                                ));
+                            }
+                        }
+
                         let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
                             return anyhow::Result::Err(anyhow::anyhow!(
                                 "Error trying to lock the sandbox blueprint"
@@ -918,6 +928,23 @@ pub fn generate_hex_map(
                         }
                     }
                 }
+
+                info!("Creating faction");
+                let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
+                    return anyhow::Result::Err(anyhow::anyhow!(
+                        "Error trying to lock the sandbox blueprint"
+                    ));
+                };
+                append(
+                    &builder,
+                    &mut blueprint,
+                    tx,
+                    &realm_uid,
+                    "factions",
+                    None,
+                    factions,
+                )?;
+
                 hex_map.stage_trails(tx)?;
 
                 Ok(())
@@ -1062,6 +1089,25 @@ pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
     editor.realm_type = format!("RealmType{}", realm_type);
     tune_editor_terrain_for_realm_type(editor, realm_type);
     tune_editor_features_for_realm_type(editor, realm_type);
+    tune_editor_params_for_realm_type(editor, realm_type);
+}
+
+pub fn tune_editor_params_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
+    match realm_type {
+        "Lands" => {
+            editor.factions = 2;
+        }
+        "Kingdom" => {
+            editor.factions = 3;
+        }
+        "Empire" => {
+            editor.factions = 4;
+        }
+        "Duchy" => {
+            editor.factions = 1;
+        }
+        _ => {}
+    }
 }
 
 pub fn tune_editor_terrain_for_realm_type(editor: &mut MapEditor, realm_type: &str) {

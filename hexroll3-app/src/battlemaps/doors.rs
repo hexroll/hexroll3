@@ -123,8 +123,14 @@ pub fn update_material_out(
 
 pub fn close_door(
     door_uid: String,
-) -> impl Fn(On<Pointer<Click>>, Commands, Query<(Entity, &DoorData)>, ResMut<VttData>) {
-    move |_trigger, mut commands, doors, mut vtt_data| {
+) -> impl Fn(
+    On<Pointer<Click>>,
+    Commands,
+    Query<(Entity, &DoorData)>,
+    ResMut<VttData>,
+    Query<&Children>,
+) {
+    move |_trigger, mut commands, doors, mut vtt_data, children| {
         if vtt_data.is_remote_player() {
             return;
         }
@@ -134,6 +140,9 @@ pub fn close_door(
                     .entity(e)
                     .insert(Visibility::Inherited)
                     .remove::<ColliderDisabled>();
+                children.iter_descendants(e).for_each(|e| {
+                    commands.entity(e).remove::<ColliderDisabled>();
+                });
                 vtt_data.open_doors.remove(&door_uid);
                 commands.trigger(SyncMapForPeers(MapMessage::DoorStateChange(DoorState {
                     door_uid: door_uid.clone(),
@@ -146,9 +155,15 @@ pub fn close_door(
 
 pub fn open_door(
     door_uid: String,
-) -> impl Fn(On<Pointer<Click>>, Commands, Query<&ChildOf>, Query<&mut Visibility>, ResMut<VttData>)
-{
-    move |trigger, mut commands, mut query, mut visibilities, mut vtt_data| {
+) -> impl Fn(
+    On<Pointer<Click>>,
+    Commands,
+    Query<&ChildOf>,
+    Query<&mut Visibility>,
+    ResMut<VttData>,
+    Query<&Children>,
+) {
+    move |trigger, mut commands, mut query, mut visibilities, mut vtt_data, children| {
         if vtt_data.is_remote_player() {
             return;
         }
@@ -156,6 +171,11 @@ pub fn open_door(
             commands.entity(trigger.entity).insert(ColliderDisabled);
             let mut vis = visibilities.get_mut(trigger.entity).unwrap();
             *vis = Visibility::Hidden;
+
+            children.iter_descendants(trigger.entity).for_each(|e| {
+                commands.entity(e).insert(ColliderDisabled);
+            });
+
             vtt_data.open_doors.insert(door_uid.clone());
             commands.trigger(SyncMapForPeers(MapMessage::DoorStateChange(DoorState {
                 door_uid: door_uid.clone(),

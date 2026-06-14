@@ -54,6 +54,15 @@ impl ContentContext {
         self.current_entity_uid = Some(uid);
     }
 
+    pub fn invalidate_history_entry(&mut self, uid: &str) {
+        self.history.retain(|v| v != uid);
+        if let Some(current_uid) = &self.current_entity_uid
+            && current_uid == uid
+        {
+            self.current_entity_uid = None;
+        }
+    }
+
     pub fn invalidate_last_history_entry(&mut self) {
         if let Some(history_uid) = self.history.last()
             && let Some(current_uid) = &self.current_entity_uid

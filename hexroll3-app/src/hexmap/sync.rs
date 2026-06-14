@@ -91,6 +91,7 @@ pub fn on_map_message(
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
     visible_hexes: Query<(Entity, &HexEntity), With<HexEntity>>,
     user_settings: Res<UserSettings>,
+    children: Query<&Children>,
 ) {
     match trigger.event() {
         MapMessage::Cache(cache_type) => match cache_type {
@@ -106,6 +107,12 @@ pub fn on_map_message(
                     if let Ok(map_data) = serde_json::from_str::<HexMapJson>(&vtt_data.buffer)
                     {
                         vtt_data.cache = Some(map_data);
+
+                        // NOTE: This ensures players, who previously received a revealed
+                        // hex sync for a materialized ocean, will now actually see the correct
+                        // entity on their map.
+                        vtt_data.prune_duplicate_oceans();
+
                         commands.trigger(RequestMapFromBackend {
                             post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
                         });
@@ -175,11 +182,23 @@ pub fn on_map_message(
                             .entity(e)
                             .insert(Visibility::Hidden)
                             .insert(ColliderDisabled);
+                        children.iter_descendants(e).for_each(|e| {
+                            commands
+                                .entity(e)
+                                .insert(ColliderDisabled)
+                                .insert(Visibility::Hidden);
+                        });
                     } else {
                         commands
                             .entity(e)
                             .insert(Visibility::Inherited)
                             .remove::<ColliderDisabled>();
+                        children.iter_descendants(e).for_each(|e| {
+                            commands
+                                .entity(e)
+                                .remove::<ColliderDisabled>()
+                                .insert(Visibility::Inherited);
+                        });
                     }
                 }
             }

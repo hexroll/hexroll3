@@ -35,6 +35,13 @@ use bevy::{
 
 use crate::hexmap::elements::MainCamera;
 
+pub struct TooltipPlugin;
+impl Plugin for TooltipPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, (tooltips_system, orphan_tooltips_cleanup));
+    }
+}
+
 #[derive(Component)]
 // Use this component to indicate your widget or ui element prefers
 // having pointer exclusivity, blocking other ui elements from responding
@@ -196,6 +203,17 @@ pub fn pointer_world_position(
     None
 }
 
+pub fn orphan_tooltips_cleanup(
+    mut commands: Commands,
+    tooltip_nodes: Query<(Entity, &TooltipOrigin)>,
+) {
+    for (tooltip_entity, TooltipOrigin(origin)) in tooltip_nodes.iter() {
+        if commands.get_entity(*origin).is_err() {
+            commands.entity(tooltip_entity).try_despawn();
+        }
+    }
+}
+
 pub fn tooltips_system(
     mut commands: Commands,
     tooltips: Query<(Entity, &Tooltip, &TooltipState)>,
@@ -216,6 +234,7 @@ pub fn tooltips_system(
                     let tooltip_entity = commands
                         .spawn((
                             Name::new(format!("Tooltip: {}", tooltip.text)),
+                            TooltipOrigin(e),
                             Node {
                                 position_type: PositionType::Absolute,
                                 left: Val::Px(pos.x),
@@ -266,6 +285,9 @@ pub enum TooltipState {
     Pending(f32, Vec2),
     Show(Entity),
 }
+
+#[derive(Component)]
+pub struct TooltipOrigin(Entity);
 
 #[derive(Component)]
 pub struct Tooltip {

@@ -75,7 +75,11 @@ use hexroll3_app::{
         snapshot::SnapshotPlugin,
         spawnq::SpawnQueuePlugin,
         tweens::SharedTweensPlugin,
-        widgets::{cursor::CursorController, list::ListPlugin, modal::ModalPlugin},
+        widgets::{
+            cursor::{CursorController, TooltipPlugin},
+            list::ListPlugin,
+            modal::ModalPlugin,
+        },
     },
     tokens::TokensPlugin,
     vtt::VttPlugin,
@@ -203,11 +207,8 @@ fn main() {
         .add_plugins(HexMap)
         .add_plugins(ContentPlugin)
         .add_plugins(TokensPlugin)
+        .add_plugins(TooltipPlugin)
         .add_systems(Update, update_input_mode)
-        .add_systems(
-            Update,
-            hexroll3_app::shared::widgets::cursor::tooltips_system,
-        )
         .add_systems(
             Update,
             update_loading_state.run_if(in_state(AppState::Intro)),

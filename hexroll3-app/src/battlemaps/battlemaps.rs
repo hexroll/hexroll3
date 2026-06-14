@@ -209,15 +209,17 @@ fn trigger_battlemaps_requests_when_visible(
                     continue;
                 }
             }
-            let is_revealed = vtt_data.revealed_hex_layer(&hex_coords.hex) > 0;
-            let is_unrevealed_dungeon = *hex_type == HexFeature::Dungeon && !is_revealed;
+            let is_fully_revealed_hex = vtt_data.revealed_hex_layer(&hex_coords.hex) >= 0;
+            let is_dungeon_layer_visible = vtt_data.revealed_hex_layer(&hex_coords.hex) > 0;
+            let is_dungeon_overland =
+                *hex_type == HexFeature::Dungeon && !is_dungeon_layer_visible;
             let mut spawn_empty_battlemap = false;
             let mut is_expensive_hex = false;
             let mut height_offset = 0.0;
             // NOTE: the following check is to ensure partially revealed hexes show a wilderness
             // battlemap for players
-            if (vtt_data.is_player() && is_unrevealed_dungeon)
-                || (vtt_data.is_remote_player() && !is_revealed)
+            if (vtt_data.is_player() && is_dungeon_overland)
+                || (vtt_data.is_remote_player() && !is_fully_revealed_hex)
             {
                 spawn_empty_battlemap = true;
             } else {
@@ -248,14 +250,13 @@ fn trigger_battlemaps_requests_when_visible(
                     height_offset = 11.0;
                     is_expensive_hex = true;
                     commands.trigger(RequestVillageFromBackend(BattlemapRequest { uid, hex }))
-                } else if visibility_controller.are_battlemaps_visible()
-                    || is_unrevealed_dungeon
+                } else if visibility_controller.are_battlemaps_visible() || is_dungeon_overland
                 {
                     spawn_empty_battlemap = true;
                     height_offset = 5.0;
                 }
             }
-            if spawn_empty_battlemap || is_unrevealed_dungeon {
+            if spawn_empty_battlemap || is_dungeon_overland {
                 // NOTE: Spawn empty battlemap
                 let mut parent_node = commands.spawn_empty();
                 let parent_node_id = parent_node.id();
@@ -271,7 +272,7 @@ fn trigger_battlemaps_requests_when_visible(
                     .insert(Visibility::default())
                     .insert(Transform::from_xyz(
                         0.0,
-                        if is_unrevealed_dungeon {
+                        if is_dungeon_overland {
                             // -3.1
                             -4.2
                         } else {
@@ -282,7 +283,7 @@ fn trigger_battlemaps_requests_when_visible(
                     ))
                     .battlemap_dial_provider(false);
 
-                if is_unrevealed_dungeon {
+                if is_dungeon_overland {
                     parent_node.with_child((
                         Mesh3d(map_resources.mesh.clone()),
                         MeshMaterial3d(
@@ -295,7 +296,7 @@ fn trigger_battlemaps_requests_when_visible(
                         ),
                         Transform::from_xyz(
                             0.0,
-                            if is_unrevealed_dungeon { -1.0 } else { -10.0 },
+                            if is_dungeon_overland { -1.0 } else { -10.0 },
                             0.0,
                         ),
                     ));
@@ -317,7 +318,7 @@ fn trigger_battlemaps_requests_when_visible(
                     hex_entity: hex,
                     biome: hex_terrain.clone(),
                     feature: hex_type.clone(),
-                    is_revealed,
+                    is_revealed: is_fully_revealed_hex,
                 });
             }
         }
