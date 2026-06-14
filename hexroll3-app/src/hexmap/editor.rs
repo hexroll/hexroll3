@@ -52,7 +52,7 @@ use super::{
     HexmapTheme,
     builder::{
         BackgroundMapGenerationTasks, GenerateHexMap, GenerationWorkload, detect_abort,
-        generate_hex_map, poll_generation_tasks, tester,
+        generate_hex_map, interactive_terrain_generator, poll_generation_tasks,
     },
 };
 
@@ -105,7 +105,10 @@ impl Plugin for MapEditorPlugin {
             OnExit(HexMapToolState::Edit),
             (destroy_drawing_hud, exit_edit_mode_teardown),
         )
-        .add_systems(Update, tester.run_if(in_state(HexMapToolState::Edit)))
+        .add_systems(
+            Update,
+            interactive_terrain_generator.run_if(in_state(HexMapToolState::Edit)),
+        )
         .add_systems(Update, add_features.run_if(in_state(HexMapToolState::Edit)))
         .add_observer(on_add_features)
         .add_observer(on_del_features)
@@ -154,6 +157,15 @@ impl PenType {
 pub struct Knob {
     pub target: i32,
     pub current: i32,
+}
+
+impl Knob {
+    pub fn from(value: i32) -> Self {
+        Self {
+            target: value,
+            current: 0,
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -1512,7 +1524,7 @@ pub fn spawn_terrain_knobs(
         "Jungles Probability",
         &asset_server,
         64.0,
-        Color::srgb_u8(199, 230, 250),
+        Color::srgb_u8(106, 190, 112),
     );
     c.spawn_empty().spawn_knob_ex::<MapEditor>(
         false,
@@ -1530,7 +1542,7 @@ pub fn spawn_terrain_knobs(
         "Tundras Probability",
         &asset_server,
         64.0,
-        Color::srgb_u8(106, 190, 112),
+        Color::srgb_u8(199, 230, 250),
     );
 }
 

@@ -49,17 +49,20 @@ use crate::{
     clients::model::{FetchEntityReason, RerollEntity},
     content::ContentMode,
     dice::RollDice,
-    hexmap::elements::{AppendSandboxEntity, FetchEntityFromStorage, HexMapData},
+    hexmap::elements::{AppendSandboxEntity, FetchEntityFromStorage, HexMapData, MainCamera},
     shared::{
         camera::MapCoords,
+        layers::HEIGHT_OF_TOKENS,
         tweens::{UiNodeSizeLens, UiNodeSizeLensMode, UiTransformRotationLens},
         widgets::{cursor::PointerOnHover, link::ContentHoverLink},
     },
+    tokens::SpawnTokenFromLibrary,
 };
 
 use super::{
     EditableAttributeParams, EditableProxy, NpcAnchor, ThemeBackgroundColor,
-    clipboard::CopyOnRightClick, header::EditableTitleInput, spoiler::ContentIsSpoiler,
+    clipboard::CopyOnRightClick, context::ContentContext, header::EditableTitleInput,
+    spoiler::ContentIsSpoiler,
 };
 
 #[derive(Clone, Debug)]
@@ -119,6 +122,7 @@ pub enum ElementType {
     Icon(LinkAttributes),
     DiceRoller(LinkAttributes),
     EntityRoller(RollerAttributes),
+    Spawner(String, MapCoords),
     Table(TableType),
     TableRow,
     TableCell,
@@ -220,6 +224,7 @@ pub struct DemidomIcons {
     pub map_icon: Handle<Image>,
     pub dice_icon: Handle<Image>,
     pub chevron_icon: Handle<Image>,
+    pub skull_icon: Handle<Image>,
 }
 
 #[derive(Clone)]
@@ -500,6 +505,48 @@ impl DemidomRenderContext {
             .insert(ChildOf(self.parent))
             .hover_effect()
             .observe(roller_click())
+            .id();
+    }
+
+    pub fn spawn_token_spawner(
+        &mut self,
+        commands: &mut Commands,
+        attrs: String,
+        font_size: f32,
+        visible: bool,
+        coords: MapCoords,
+    ) {
+        let size = font_size * (30.0 / 24.0);
+        let _link_box = commands
+            .spawn((
+                ImageNode {
+                    color: Color::srgba_u8(255, 255, 255, 255),
+                    image: self.theme.icons.skull_icon.clone(),
+                    ..default()
+                },
+                Node {
+                    width: Val::Px(size),
+                    height: Val::Px(size),
+                    align_self: AlignSelf::Center,
+                    margin: UiRect {
+                        left: Val::Px(0.0),
+                        right: Val::Px(size / 6.0),
+                        top: Val::Px(0.0),
+                        bottom: Val::Px(0.0),
+                    },
+                    ..default()
+                },
+                Pickable {
+                    should_block_lower: true,
+                    ..default()
+                },
+                BorderRadius::all(Val::Px(size / 6.0)),
+                BackgroundColor(self.theme.link_background),
+                ThemeBackgroundColor(self.theme.link_background),
+            ))
+            .insert(ChildOf(self.parent))
+            .hover_effect()
+            .observe(spawner_click(coords))
             .id();
     }
 
@@ -1096,6 +1143,15 @@ pub fn render_demidom(
                     attributes.clone(),
                     font.size,
                     context.unlocked,
+                );
+            }
+            ElementType::Spawner(attributes, coords) => {
+                context.spawn_token_spawner(
+                    &mut commands,
+                    attributes.clone(),
+                    font.size,
+                    context.unlocked,
+                    coords.clone(),
                 );
             }
             ElementType::Small => {
@@ -1991,6 +2047,7 @@ impl TreeSink for Sink {
                     Roller,
                     NpcAnchor,
                     Other,
+                    Spawner,
                 }
                 let mut link_type = LinkType::Other;
                 for attr in attrs {
@@ -2018,6 +2075,9 @@ impl TreeSink for Sink {
                     }
                     if &*attr.name.local == "class" && attr.value.to_string() == "btn-icon" {
                         link_type = LinkType::Roller;
+                    }
+                    if &*attr.name.local == "class" && attr.value.to_string() == "token" {
+                        link_type = LinkType::Spawner;
                     }
                     if &*attr.name.local == "class" && attr.value.to_string() == "npc-anchor" {
                         link_type = LinkType::NpcAnchor;
@@ -2065,6 +2125,7 @@ impl TreeSink for Sink {
                     LinkType::Icon => ElementType::Icon(LinkAttributes { href }),
                     LinkType::Dice => ElementType::DiceRoller(LinkAttributes { href }),
                     LinkType::Roller => ElementType::EntityRoller(roller_attrs),
+                    LinkType::Spawner => ElementType::Spawner("".to_string(), coords),
                     LinkType::Coords => ElementType::Coords(coords),
                     LinkType::NpcAnchor => ElementType::Anchor(id),
                     LinkType::Other => ElementType::NoOp,
@@ -2396,6 +2457,28 @@ pub fn roller_click()
                 commands.trigger(RerollEntity::from_roller_attributes(link));
             }
         }
+    }
+}
+
+pub fn spawner_click(
+    coords: MapCoords,
+) -> impl Fn(
+    On<Pointer<Click>>,
+    Commands,
+    Single<&Transform, With<MainCamera>>,
+    Res<HexMapData>,
+    Res<ContentContext>,
+) {
+    move |trigger, mut commands, t, hex_map, context| {
+        if let Some(pos) =
+            // &context.current_hex_uid.as_ref().unwrap(),
+            hex_map.get_canonical_pos(&coords.hex, Vec2::new(coords.x, coords.y))
+        {
+            commands.trigger(SpawnTokenFromLibrary {
+                pos: Vec3::new(pos.x + 0.5, HEIGHT_OF_TOKENS, pos.y + 0.5),
+            });
+        }
+        // let pos = t.translation;
     }
 }
 

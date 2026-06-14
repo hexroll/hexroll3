@@ -73,7 +73,7 @@ fn detect_esc_from_split(
             motion_inputs,
         } => match motion_inputs {
             bevy_editor_cam::prelude::inputs::MotionInputs::Zoom { zoom_inputs: _ } => {
-                next_content_mode.set(ContentMode::MapOnly);
+                // next_content_mode.set(ContentMode::MapOnly);
             }
             _ => {}
         },

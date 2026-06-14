@@ -131,7 +131,7 @@ fn on_spawn_token(
                 Transform::from_xyz(0.0, 1.0, 0.0),
             ))
             .observe(postprocess_spawned_token);
-            if !vtt_data.is_player() {
+            if !vtt_data.is_remote_player() {
                 let pin_height_entropy_to_prevent_flickering = rand::random::<f32>() * 100.0;
                 c.spawn((
                     Text3d::new("©"),

@@ -45,6 +45,13 @@ pub struct StoreVttState;
 #[derive(Event, Clone)]
 pub struct LoadVttState;
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+pub enum VttSessionType {
+    #[default]
+    Group,
+    Solo,
+}
+
 #[derive(Debug, Resource, Default, Serialize, Deserialize, Clone)]
 // When adding ephemeral data, ensure to set it
 // in patch_ephemeral_state below
@@ -58,6 +65,8 @@ pub struct VttData {
     pub revealed: HashMap<Hex, HexRevealState>,
     pub revealed_ocean: HashSet<Hex>,
     pub open_doors: HashSet<String>,
+    // #[serde(skip)]
+    pub session_type: Option<VttSessionType>,
     #[serde(skip)]
     pub invalidate_map: bool,
     #[serde(skip)]
@@ -70,14 +79,44 @@ pub struct VttData {
 
 impl VttData {
     pub fn patch_ephemeral_state(&mut self, existing_data: &VttData) {
-        self.mode = existing_data.mode.clone();
+        self.mode = if self.is_solo() {
+            HexMapMode::RefereeAsPlayer
+        } else {
+            existing_data.mode.clone()
+        };
+        // NOTE: This is needed for the initial solo-mode setup.
+        if self.session_type.is_none() {
+            self.session_type = existing_data.session_type.clone();
+        }
         self.node_name = existing_data.node_name.clone();
         self.cache = existing_data.cache.clone();
         self.edit_mode = existing_data.edit_mode;
     }
+    pub fn is_solo(&self) -> bool {
+        let Some(session_type) = &self.session_type else {
+            return false;
+        };
+        *session_type == VttSessionType::Solo
+    }
+
+    pub fn is_remote_player(&self) -> bool {
+        self.mode.is_player() && !self.is_solo()
+    }
 
     pub fn is_player(&self) -> bool {
         self.mode.is_player()
+    }
+
+    pub fn revealed_hex_layer(&self, hex: &Hex) -> u32 {
+        if let Some(state) = self.revealed.get(hex) {
+            return match state {
+                HexRevealState::Partial => 0,
+                HexRevealState::Full(Some(layer)) => *layer,
+                HexRevealState::Full(None) => 1,
+            };
+        } else {
+            return 0;
+        }
     }
 }
 
@@ -87,7 +126,7 @@ pub enum HexRevealState {
     #[serde(rename = "PT")]
     Partial,
     #[serde(rename = "FL")]
-    Full,
+    Full(Option<u32>),
 }
 
 #[derive(Debug, PartialEq, Default, Serialize, Deserialize, Clone)]
@@ -106,6 +145,9 @@ pub enum HexMapMode {
 impl HexMapMode {
     pub fn is_player(&self) -> bool {
         *self == HexMapMode::Player || *self == HexMapMode::RefereeAsPlayer
+    }
+    pub fn is_solo_old(&self) -> bool {
+        *self == HexMapMode::RefereeAsPlayer
     }
     pub fn is_referee(&self) -> bool {
         match self {

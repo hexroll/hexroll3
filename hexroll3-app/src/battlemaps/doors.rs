@@ -99,7 +99,7 @@ pub fn update_material_on(
     new_material: Handle<StandardMaterial>,
 ) -> impl Fn(On<Pointer<Over>>, Query<&mut MeshMaterial3d<StandardMaterial>>, Res<VttData>) {
     move |trigger, mut query, vtt_data| {
-        if vtt_data.is_player() {
+        if vtt_data.is_remote_player() {
             return;
         }
         if let Ok(mut material) = query.get_mut(trigger.entity) {
@@ -112,7 +112,7 @@ pub fn update_material_out(
     new_material: Handle<StandardMaterial>,
 ) -> impl Fn(On<Pointer<Out>>, Query<&mut MeshMaterial3d<StandardMaterial>>, Res<VttData>) {
     move |trigger, mut query, vtt_data| {
-        if vtt_data.is_player() {
+        if vtt_data.is_remote_player() {
             return;
         }
         if let Ok(mut material) = query.get_mut(trigger.entity) {
@@ -125,7 +125,7 @@ pub fn close_door(
     door_uid: String,
 ) -> impl Fn(On<Pointer<Click>>, Commands, Query<(Entity, &DoorData)>, ResMut<VttData>) {
     move |_trigger, mut commands, doors, mut vtt_data| {
-        if vtt_data.is_player() {
+        if vtt_data.is_remote_player() {
             return;
         }
         for (e, d) in doors.iter() {
@@ -149,7 +149,7 @@ pub fn open_door(
 ) -> impl Fn(On<Pointer<Click>>, Commands, Query<&ChildOf>, Query<&mut Visibility>, ResMut<VttData>)
 {
     move |trigger, mut commands, mut query, mut visibilities, mut vtt_data| {
-        if vtt_data.is_player() {
+        if vtt_data.is_remote_player() {
             return;
         }
         if let Ok(_t) = query.get_mut(trigger.entity) {

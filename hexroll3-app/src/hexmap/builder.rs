@@ -43,7 +43,7 @@ use crate::{
     },
     hexmap::{
         data::{HexFeature, HexMetadata, TerrainType},
-        editor::get_tile_material,
+        editor::{Knob, get_tile_material},
         elements::*,
         tiles::HexMapTileMaterials,
     },
@@ -219,7 +219,58 @@ fn pick_terrain_by_intent(
     (*best_terrains[rng.gen_range(0..best_terrains.len())]).clone()
 }
 
-pub fn tester(
+pub fn terrain_generator(
+    mut map: &mut HexMapData,
+    tiles: &Res<HexMapTileMaterials>,
+    editor: &mut MapEditor,
+    existing_pool_ids: &HashSet<i32>,
+) {
+    let current_region_count = existing_pool_ids.len() as i32;
+    let mut next_pool_id = existing_pool_ids.iter().copied().max().unwrap_or(0) + 1;
+    let regions_needed = editor.budget.target - current_region_count;
+    for _ in 0..regions_needed {
+        if place_next_region(&mut map, tiles, editor, next_pool_id) {
+            next_pool_id += 1;
+        }
+    }
+}
+
+fn place_next_region(
+    map: &mut HexMapData,
+    tiles: &Res<HexMapTileMaterials>,
+    editor: &mut MapEditor,
+    next_pool_id: i32,
+) -> bool {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let terrain = pick_terrain_by_intent(&editor.intent, map, &mut rng);
+    let half_range = editor.volume.target.min(3).max(1);
+    let count = rng.gen_range(
+        editor.volume.target.max(1) - half_range..=editor.volume.target.max(1) + half_range,
+    );
+    let mut attempts = 0;
+    loop {
+        if place_region(
+            map,
+            tiles,
+            terrain.clone(),
+            count as usize,
+            None,
+            next_pool_id,
+            attempts > 0,
+        ) {
+            editor.budget.current += 1;
+            return true;
+        }
+        attempts += 1;
+        if attempts > 10 {
+            warn!("could not place region after 10 attempts, skipping");
+            return false;
+        }
+    }
+}
+
+pub fn interactive_terrain_generator(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut map: ResMut<HexMapData>,
@@ -228,7 +279,6 @@ pub fn tester(
     mut editor: ResMut<MapEditor>,
     spawned_hexes: Query<(Entity, &HexEntity)>,
 ) {
-    use rand::Rng;
     let mut rng = rand::thread_rng();
 
     let existing_pool_ids: HashSet<i32> = map
@@ -245,38 +295,7 @@ pub fn tester(
 
     if regions_needed > 0 && intent_is_configured {
         let next_pool_id = existing_pool_ids.iter().copied().max().unwrap_or(0) + 1;
-        let mut added_any = false;
-        for _ in 0..regions_needed {
-            let terrain = pick_terrain_by_intent(&editor.intent, &map, &mut rng);
-            // TODO: Use filter knob values here.
-            // let count = rng.gen_range(12..=18);
-            let count = rng
-                .gen_range(editor.volume.target.max(4) - 3..=editor.volume.target.max(4) + 3);
-            let mut attempts = 0;
-            loop {
-                if place_region(
-                    &mut map,
-                    &tiles,
-                    terrain.clone(),
-                    count as usize,
-                    None,
-                    next_pool_id,
-                    attempts > 0,
-                ) {
-                    // next_pool_id += 1;
-                    added_any = true;
-                    break;
-                }
-                attempts += 1;
-                if attempts > 10 {
-                    warn!("tester: could not place region after 10 attempts, skipping");
-                    break;
-                }
-            }
-            editor.budget.current += 1;
-            break;
-        }
-        if added_any {
+        if place_next_region(&mut map, &tiles, &mut editor, next_pool_id) {
             vtt_data.invalidate_map = true;
         }
     } else if regions_needed < 0 && intent_is_configured {
@@ -1021,4 +1040,79 @@ fn partition_hexes_to_regions(map: &HexMapData) -> (Vec<(TerrainType, Vec<Hex>)>
         }
     }
     (regions, new_coords.len())
+}
+
+pub fn tune_editor_for_realm_type(editor: &mut MapEditor, realm_type: &str) {
+    editor.realm_type = format!("RealmType{}", realm_type);
+    match realm_type {
+        "Lands" => {
+            editor.budget.target = 20;
+            editor.volume.target = 15;
+            editor.intent.insert(TerrainType::JungleHex, 10);
+            editor.intent.insert(TerrainType::SwampsHex, 3);
+            editor.intent.insert(TerrainType::MountainsHex, 7);
+            editor.intent.insert(TerrainType::PlainsHex, 5);
+            editor.intent.insert(TerrainType::TundraHex, 0);
+            editor.intent.insert(TerrainType::ForestHex, 0);
+            editor.intent.insert(TerrainType::DesertHex, 4);
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(20));
+            editor.knobs.insert(HexFeature::City, Knob::from(0));
+            editor.knobs.insert(HexFeature::Town, Knob::from(2));
+            editor.knobs.insert(HexFeature::Village, Knob::from(10));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
+        }
+        "Kingdom" => {
+            editor.budget.target = 17;
+            editor.volume.target = 12;
+            editor.intent.insert(TerrainType::JungleHex, 0);
+            editor.intent.insert(TerrainType::SwampsHex, 3);
+            editor.intent.insert(TerrainType::MountainsHex, 6);
+            editor.intent.insert(TerrainType::PlainsHex, 10);
+            editor.intent.insert(TerrainType::TundraHex, 1);
+            editor.intent.insert(TerrainType::ForestHex, 7);
+            editor.intent.insert(TerrainType::DesertHex, 0);
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(16));
+            editor.knobs.insert(HexFeature::City, Knob::from(2));
+            editor.knobs.insert(HexFeature::Town, Knob::from(5));
+            editor.knobs.insert(HexFeature::Village, Knob::from(10));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(6));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(10));
+        }
+        "Empire" => {
+            editor.budget.target = 27;
+            editor.volume.target = 17;
+            editor.intent.insert(TerrainType::JungleHex, 4);
+            editor.intent.insert(TerrainType::SwampsHex, 3);
+            editor.intent.insert(TerrainType::MountainsHex, 6);
+            editor.intent.insert(TerrainType::PlainsHex, 8);
+            editor.intent.insert(TerrainType::TundraHex, 2);
+            editor.intent.insert(TerrainType::ForestHex, 7);
+            editor.intent.insert(TerrainType::DesertHex, 3);
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(23));
+            editor.knobs.insert(HexFeature::City, Knob::from(5));
+            editor.knobs.insert(HexFeature::Town, Knob::from(10));
+            editor.knobs.insert(HexFeature::Village, Knob::from(15));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(9));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(15));
+        }
+        "Duchy" => {
+            editor.budget.target = 12;
+            editor.volume.target = 8;
+            editor.intent.insert(TerrainType::JungleHex, 0);
+            editor.intent.insert(TerrainType::SwampsHex, 0);
+            editor.intent.insert(TerrainType::MountainsHex, 6);
+            editor.intent.insert(TerrainType::PlainsHex, 7);
+            editor.intent.insert(TerrainType::TundraHex, 2);
+            editor.intent.insert(TerrainType::ForestHex, 7);
+            editor.intent.insert(TerrainType::DesertHex, 0);
+            editor.knobs.insert(HexFeature::Dungeon, Knob::from(10));
+            editor.knobs.insert(HexFeature::City, Knob::from(1));
+            editor.knobs.insert(HexFeature::Town, Knob::from(3));
+            editor.knobs.insert(HexFeature::Village, Knob::from(10));
+            editor.knobs.insert(HexFeature::Inn, Knob::from(3));
+            editor.knobs.insert(HexFeature::Residency, Knob::from(5));
+        }
+        _ => {}
+    }
 }

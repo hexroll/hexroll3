@@ -163,6 +163,12 @@ fn on_broadcast_state_to_peer(
         if let Some(map_data_cache) = map_data.cache.as_ref() {
             let raw = serde_json::to_string(map_data_cache)
                 .expect("Failed to convert JSON object to string");
+            let content_hash = {
+                use std::hash::{DefaultHasher, Hash, Hasher};
+                let mut h = DefaultHasher::new();
+                raw.hash(&mut h);
+                h.finish()
+            };
             let chunkomatic = Chunkomatic::from_string(raw);
             chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
                 let msg = crate::hexmap::MapMessage::Cache(
@@ -171,6 +177,7 @@ fn on_broadcast_state_to_peer(
                             chunk: chunk.to_string(),
                             part: chunk_index + 1,
                             total: total_chunks,
+                            hash: content_hash,
                         },
                     ),
                 );
@@ -180,6 +187,7 @@ fn on_broadcast_state_to_peer(
         // NOTE: Serverless cache sync
         {
             for (key, json) in cache.jsons.iter() {
+                let content_hash = cache.hashes.get(key).copied().unwrap_or(0);
                 let chunkomatic = Chunkomatic::from_string(json.clone());
                 chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
                     let msg = crate::hexmap::MapMessage::Cache(
@@ -189,6 +197,7 @@ fn on_broadcast_state_to_peer(
                                 chunk: chunk.to_string(),
                                 part: chunk_index + 1,
                                 total: total_chunks,
+                                hash: content_hash,
                             },
                         ),
                     );
@@ -209,7 +218,7 @@ fn on_broadcast_state_to_peer(
     for coords in vtt_data.revealed_ocean.iter() {
         let msg = MapMessage::HexStateChange(HexState {
             coords: *coords,
-            state: Some(HexRevealState::Full),
+            state: Some(HexRevealState::Full(None)),
             is_ocean: true,
         });
         send_hex_message(&mut socket, peer, msg);

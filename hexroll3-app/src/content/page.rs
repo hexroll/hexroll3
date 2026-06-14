@@ -683,6 +683,7 @@ fn render_entity_page(
         map_icon: asset_server.load("icons/icon-region.ktx2"),
         dice_icon: asset_server.load("icons/icon-dice.ktx2"),
         chevron_icon: asset_server.load("icons/icon-chevron-128.ktx2"),
+        skull_icon: asset_server.load("icons/icon-skull-256.ktx2"),
     };
     let mut body_context = DemidomRenderContext {
         parent: *page,

@@ -345,6 +345,7 @@ impl LayoutSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, Child
             align_items,
             row_gap: Val::Px(10.0),
             column_gap: Val::Px(10.0),
+            width: Val::Percent(100.0),
             ..default()
         },))
             .with_children(func);
@@ -361,7 +362,7 @@ impl LayoutSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, Child
                 flex_wrap: FlexWrap::Wrap,
                 justify_content: JustifyContent::Center,
                 margin: UiRect::top(Val::Px(-15.0)),
-                width: Val::VMin(100.0),
+                width: Val::Percent(100.0),
                 padding: UiRect {
                     top: Val::Px(26.0),
                     bottom: Val::Px(24.0),

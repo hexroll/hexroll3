@@ -50,6 +50,13 @@ pub fn reveal_hex_or_ocean(
 ) {
     let mut ret: Vec<(Hex, HexRevealInstruction)> = Vec::new();
     match reveal_pattern {
+        &HexRevealPattern::Solo => {
+            ret.push((coord, HexRevealInstruction::SetFull));
+            for dir in EdgeDirection::ALL_DIRECTIONS {
+                let neighor = coord.neighbor(dir);
+                ret.push((neighor, HexRevealInstruction::PromoteUntilPartial));
+            }
+        }
         &HexRevealPattern::Flower => {
             ret.push((coord, HexRevealInstruction::PromoteUntilFull));
             for dir in EdgeDirection::ALL_DIRECTIONS {
@@ -112,6 +119,7 @@ pub fn reveal_hex_or_ocean(
 }
 
 pub enum HexRevealInstruction {
+    SetFull,
     PromoteUntilFull,
     PromoteUntilPartial,
     Cycle,
@@ -149,28 +157,41 @@ impl VttHexRevealer for VttData {
                     Some(HexRevealState::Partial)
                 }
                 (HexRevealState::Partial, HexRevealInstruction::PromoteUntilFull) => {
-                    *reveal_state = HexRevealState::Full;
-                    Some(HexRevealState::Full)
+                    *reveal_state = HexRevealState::Full(Some(0));
+                    Some(HexRevealState::Full(Some(0)))
                 }
-                (HexRevealState::Full, HexRevealInstruction::Cycle) => {
+                (HexRevealState::Full(_), HexRevealInstruction::Cycle) => {
                     self.revealed.remove(hex);
                     None
                 }
                 (HexRevealState::Partial, HexRevealInstruction::Cycle) => {
-                    *reveal_state = HexRevealState::Full;
-                    Some(HexRevealState::Full)
+                    *reveal_state = HexRevealState::Full(Some(0));
+                    Some(HexRevealState::Full(Some(0)))
                 }
-                (HexRevealState::Full, HexRevealInstruction::PromoteUntilFull) => {
-                    Some(HexRevealState::Full)
+                (HexRevealState::Full(layer), HexRevealInstruction::PromoteUntilFull) => {
+                    Some(HexRevealState::Full(*layer))
                 }
-                (HexRevealState::Full, HexRevealInstruction::PromoteUntilPartial) => {
-                    Some(HexRevealState::Full)
+                (HexRevealState::Full(layer), HexRevealInstruction::PromoteUntilPartial) => {
+                    Some(HexRevealState::Full(*layer))
+                }
+                (HexRevealState::Partial, HexRevealInstruction::SetFull) => {
+                    *reveal_state = HexRevealState::Full(Some(0));
+                    Some(HexRevealState::Full(Some(0)))
+                }
+                (HexRevealState::Full(layer), HexRevealInstruction::SetFull) => {
+                    Some(HexRevealState::Full(*layer))
                 }
             },
-            None => {
-                self.revealed.insert(*hex, HexRevealState::Partial);
-                Some(HexRevealState::Partial)
-            }
+            None => match action {
+                HexRevealInstruction::SetFull => {
+                    self.revealed.insert(*hex, HexRevealState::Full(Some(0)));
+                    Some(HexRevealState::Full(Some(0)))
+                }
+                _ => {
+                    self.revealed.insert(*hex, HexRevealState::Partial);
+                    Some(HexRevealState::Partial)
+                }
+            },
         }
     }
 
@@ -193,21 +214,29 @@ impl VttHexRevealer for VttData {
                     None
                 } else {
                     self.revealed_ocean.insert(*hex);
-                    Some(HexRevealState::Full)
+                    Some(HexRevealState::Full(None))
                 }
             }
             HexRevealInstruction::PromoteUntilPartial => {
                 if !self.revealed_ocean.contains(hex) {
                     self.revealed_ocean.insert(*hex);
                 }
-                Some(HexRevealState::Full)
+                Some(HexRevealState::Full(None))
             }
             HexRevealInstruction::PromoteUntilFull => {
                 if !self.revealed_ocean.contains(hex) {
                     self.revealed_ocean.insert(*hex);
-                    Some(HexRevealState::Full)
+                    Some(HexRevealState::Full(None))
                 } else {
                     None
+                }
+            }
+            HexRevealInstruction::SetFull => {
+                if !self.revealed_ocean.contains(hex) {
+                    self.revealed_ocean.insert(*hex);
+                    Some(HexRevealState::Full(None))
+                } else {
+                    Some(HexRevealState::Full(None))
                 }
             }
         }
@@ -235,7 +264,7 @@ impl VttHexRevealer for VttData {
                 HexRevealState::Partial => {
                     (base_transform.with_scale(Vec3::splat(0.5)), maybe_visible)
                 }
-                HexRevealState::Full => (base_transform, Visibility::Hidden),
+                HexRevealState::Full(_) => (base_transform, Visibility::Hidden),
             }
         } else {
             (base_transform, maybe_visible)

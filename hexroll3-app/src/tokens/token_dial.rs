@@ -178,7 +178,7 @@ fn on_spawn_token_dial(
     mut dmd: ResMut<DraggingMotionDetector>,
     app_state: Res<State<DiscreteAppState>>,
 ) {
-    if vtt_data.mode.is_player() || *app_state != DiscreteAppState::Normal {
+    if vtt_data.is_remote_player() || *app_state != DiscreteAppState::Normal {
         return;
     }
     dmd.set_detected();

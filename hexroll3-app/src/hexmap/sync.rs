@@ -32,6 +32,7 @@ use crate::{
     hexmap::elements::HexEntity,
     shared::{
         settings::UserSettings,
+        // snapshot::{FreezeScreenSnapshot, RemoteRefreshState},
         vtt::{HexRevealState, VttData},
     },
 };
@@ -47,6 +48,8 @@ pub struct ChunkedMap {
     pub chunk: String,
     pub part: usize,
     pub total: usize,
+    /// Hash of the full original content (same value on every chunk of the same stream).
+    pub hash: u64,
 }
 
 #[derive(Serialize, Deserialize, Event, Clone)]
@@ -85,8 +88,7 @@ pub fn on_map_message(
     mut vtt_data: ResMut<VttData>,
     hexes: Query<(Entity, &HexEntity)>,
     mut doors: Query<(Entity, &DoorData)>,
-    //
-    map_data: ResMut<HexMapData>,
+    mut map_data: ResMut<HexMapData>,
     mut cache: ResMut<crate::hexmap::elements::HexMapCache>,
     visible_hexes: Query<(Entity, &HexEntity), With<HexEntity>>,
     user_settings: Res<UserSettings>,
@@ -112,30 +114,35 @@ pub fn on_map_message(
                 }
             }
             MapMessageCacheType::ChunkedBattleMap(key, chunk_data) => {
-                debug!("Player receiving cached battlemap map chunk");
-                let buffer_key = format!("{}_buffer", key);
-                if chunk_data.part == 1 {
-                    cache.jsons.insert(buffer_key.clone(), "".to_string());
-                }
+                if cache.hashes.get(key) == Some(&chunk_data.hash) {
+                    // We already have this exact content cached — ignore the entire stream.
+                } else {
+                    debug!("Player receiving cached battlemap map chunk");
+                    let buffer_key = format!("{}_buffer", key);
+                    if chunk_data.part == 1 {
+                        cache.jsons.insert(buffer_key.clone(), "".to_string());
+                    }
 
-                cache
-                    .jsons
-                    .get_mut(&buffer_key)
-                    .unwrap()
-                    .push_str(&chunk_data.chunk);
+                    if let Some(buf) = cache.jsons.get_mut(&buffer_key) {
+                        buf.push_str(&chunk_data.chunk);
+                    }
 
-                if chunk_data.part == chunk_data.total {
-                    debug!("Player chunked battle map is complete");
-                    let buffer = cache.jsons.remove(&buffer_key).unwrap();
-                    cache.jsons.insert(key.clone(), buffer);
-                    visible_hexes.iter().for_each(|(e, h)| {
-                        if let Some(revealed_hex) = map_data.hexes.get(&h.hex) {
-                            if revealed_hex.uid.as_str() == key {
-                                commands.entity(e).despawn();
-                            }
+                    if chunk_data.part == chunk_data.total {
+                        debug!("Player chunked battle map is complete");
+                        if let Some(buffer) = cache.jsons.remove(&buffer_key) {
+                            cache.jsons.insert(key.clone(), buffer);
+                            cache.hashes.insert(key.clone(), chunk_data.hash);
                         }
-                    });
-                    vtt_data.invalidate_map = true;
+                        visible_hexes.iter().for_each(|(e, h)| {
+                            if let Some(revealed_hex) = map_data.hexes.get(&h.hex) {
+                                if revealed_hex.uid.as_str() == key {
+                                    map_data.force_refresh.push(h.hex);
+                                    debug!("Screen freeze initiated");
+                                }
+                            }
+                        });
+                        vtt_data.invalidate_map = true;
+                    }
                 }
             }
         },
@@ -196,10 +203,22 @@ pub fn on_map_message(
             }
         }
         MapMessage::ReloadMap(hex_uid) => {
+            // debug!("Screen freeze initiated");
+            // commands.trigger(FreezeScreenSnapshot);
+            // next_refresh_state.set(RemoteRefreshState::Initiated);
             if !user_settings.local.unwrap_or(false) {
-                commands.trigger(RequestMapFromBackend {
-                    post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
-                });
+                if let Some(uid) = hex_uid {
+                    commands.trigger(RequestMapFromBackend {
+                        post_map_loaded_op: PostMapLoadedOp::None,
+                    });
+                    let to_refresh = map_data.coords.get(uid).unwrap().clone();
+                    map_data.force_refresh.push(to_refresh);
+                    vtt_data.invalidate_map = true;
+                } else {
+                    commands.trigger(RequestMapFromBackend {
+                        post_map_loaded_op: PostMapLoadedOp::None,
+                    });
+                }
             }
             if let Some(hex_uid) = hex_uid {
                 cache.invalidate_json(&hex_uid);

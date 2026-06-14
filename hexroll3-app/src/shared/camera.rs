@@ -94,6 +94,7 @@ pub struct MapCoords {
 impl MapCoords {
     pub fn ortho_scale_from_zoom(&self) -> f32 {
         match self.zoom {
+            1 => 0.01,
             2 => 0.02,
             3 => 0.04,
             7 => 0.07,
@@ -392,6 +393,7 @@ pub fn limit_camera(camera: Single<(&mut Transform, &Projection), With<MainCamer
     let (mut t, p) = camera.into_inner();
 
     if let Projection::Orthographic(o) = p {
+        // let m = 200000.0 / o.scale.sqrt();
         let m = 75000.0 / o.scale.sqrt().sqrt();
         if t.translation.x > m {
             t.translation.x = m;

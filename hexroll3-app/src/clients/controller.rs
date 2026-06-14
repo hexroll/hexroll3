@@ -47,7 +47,7 @@ use crate::{
             AppendSandboxEntity, FetchEntityFromStorage, HexEntity, HexEntityCallbacks,
             HexMapData, HexToInvalidateMarker, RemoveSandboxEntity,
         },
-        update_hex_map_tiles,
+        reveal_hex, update_hex_map_tiles,
     },
     shared::{
         asynchttp::{ApiHandler, AsyncBackendTasks},
@@ -220,6 +220,12 @@ pub fn receive_hex_map(
                         let raw = serde_json::to_string(&json_obj.unwrap())
                             .expect("Failed to convert JSON object to string");
 
+                        let content_hash = {
+                            use std::hash::{DefaultHasher, Hash, Hasher};
+                            let mut h = DefaultHasher::new();
+                            raw.hash(&mut h);
+                            h.finish()
+                        };
                         let chunkomatic = Chunkomatic::from_string(raw);
                         chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
                             commands.trigger(crate::vtt::sync::SyncMapForPeers(
@@ -229,6 +235,7 @@ pub fn receive_hex_map(
                                             chunk: chunk.to_string(),
                                             part: chunk_index + 1,
                                             total: total_chunks,
+                                            hash: content_hash,
                                         },
                                     ),
                                 ),
@@ -236,9 +243,25 @@ pub fn receive_hex_map(
                         });
                     }
                 }
+                let maybe_hex = if vtt_data.is_solo() && vtt_data.revealed.is_empty() {
+                    data.hexes
+                        .iter()
+                        .next()
+                        .map(|(hex, phex)| (*hex, phex.uid.clone()))
+                } else {
+                    None
+                };
                 commands.insert_resource(data);
                 commands.run_system(callbacks.invalidate);
                 commands.trigger(post_map_loaded_op);
+                if let Some((hex, uid)) = maybe_hex {
+                    commands.run_system_cached_with(reveal_hex, hex);
+                    commands.trigger(FetchEntityFromStorage {
+                        uid: uid.clone(),
+                        anchor: None,
+                        why: FetchEntityReason::SandboxLink,
+                    });
+                }
             }
         }
     });
@@ -351,6 +374,12 @@ fn receive_battlemaps_data(
 
             // FIXME: condition this to when vtt is actually connected
             if vtt_data.mode.is_referee() && user_settings.local.unwrap_or(false) {
+                let content_hash = {
+                    use std::hash::{DefaultHasher, Hash, Hasher};
+                    let mut h = DefaultHasher::new();
+                    raw_json.hash(&mut h);
+                    h.finish()
+                };
                 let chunkomatic = Chunkomatic::from_string(raw_json);
                 chunkomatic.chunkify(|chunk, chunk_index, total_chunks| {
                     commands.trigger(crate::vtt::sync::SyncMapForPeers(
@@ -361,6 +390,7 @@ fn receive_battlemaps_data(
                                     chunk: chunk.to_string(),
                                     part: chunk_index + 1,
                                     total: total_chunks,
+                                    hash: content_hash,
                                 },
                             ),
                         ),

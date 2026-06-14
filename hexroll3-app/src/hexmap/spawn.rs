@@ -117,7 +117,7 @@ pub fn spawn_tile<T>(
         };
         let y_index = HEIGHT_OF_TOP_MOST_LAYERED_TILE + (pos.y / 2000.0) + (pos.x / 10000.0);
         if let Some(mat) = underlayer {
-            if vtt_data.revealed.get(&hex) == Some(&HexRevealState::Full) && is_dungeon {
+            if vtt_data.revealed_hex_layer(&hex) > 0 && is_dungeon {
                 base.with_child((
                     DungeonUnderlayer {
                         hex,
@@ -172,8 +172,13 @@ pub fn spawn_tile<T>(
                     uid: hex_data.uid.clone(),
                 });
             if let Some(tile) = &hex_data.trail_tile {
-                for t in tile {
-                    spawn_trail_tile(&mut c, t.0, &t.1, &map_resources.trail_material);
+                let should_be_partially_revealed = vtt_data.revealed.get(&hex)
+                    == Some(&HexRevealState::Partial)
+                    && vtt_data.is_player();
+                if !should_be_partially_revealed {
+                    for t in tile {
+                        spawn_trail_tile(&mut c, t.0, &t.1, &map_resources.trail_material);
+                    }
                 }
             }
 
@@ -310,6 +315,7 @@ pub fn update_hex_map_tiles(
             for (e, h) in hexes.iter() {
                 hex_map.insert(h.hex, e);
             }
+            let current_frame_hex_to_entities = hex_map.clone();
 
             let [cmin_x, cmin_y] =
                 cmin.to_offset_coordinates(OffsetHexMode::Even, HexOrientation::Flat);
@@ -361,6 +367,13 @@ pub fn update_hex_map_tiles(
                     q.despawn_queue.queue(*value);
                 }
             }
+            for coords_to_force_refresh in map_data.force_refresh.iter() {
+                q.spawn_queue.queue(*coords_to_force_refresh);
+                if let Some(e) = current_frame_hex_to_entities.get(coords_to_force_refresh) {
+                    commands.entity(*e).try_despawn();
+                }
+            }
+            map_data.force_refresh.clear();
         }
     }
 }

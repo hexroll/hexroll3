@@ -292,6 +292,7 @@ pub fn prepare_hex_map_data(
         selected: None,
         generating: false,
         cache: None,
+        force_refresh: Vec::new(),
     }
 }
 

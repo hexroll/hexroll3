@@ -127,7 +127,7 @@ fn spawn_labels(
                 Mesh3d::default(),
                 MeshMaterial3d(assets.region_labels_material.clone()),
                 Transform::from_xyz(pos.x, HEIGHT_OF_REALM_LABELS, pos.y)
-                    .with_scale(Vec3::splat(4.0 + size_ratio * 2.0) * 0.15)
+                    .with_scale(Vec3::splat(3.0 + size_ratio * 2.0) * 0.15)
                     .looking_at(Vec3::new(pos.x, 0.0, pos.y), Dir3::NEG_Z),
                 Pickable {
                     should_block_lower: false,

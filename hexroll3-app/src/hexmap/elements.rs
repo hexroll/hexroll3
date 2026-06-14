@@ -120,11 +120,14 @@ impl PreparedHexTile {
 #[derive(Debug, Resource, Default)]
 pub struct HexMapCache {
     pub jsons: HashMap<String, String>,
+    /// Content hash of each cached JSON, keyed by the same key as `jsons`.
+    pub hashes: HashMap<String, u64>,
 }
 
 impl HexMapCache {
     pub fn invalidate_json(&mut self, key: &str) {
         self.jsons.remove(key);
+        self.hashes.remove(key);
     }
 }
 
@@ -160,6 +163,7 @@ pub enum HexRevealPattern {
     #[default]
     Flower,
     Single,
+    Solo,
 }
 
 #[derive(Debug, Resource, Default)]
@@ -176,6 +180,7 @@ pub struct HexMapData {
     pub selected: Option<Hex>,
     pub generating: bool,
     pub cache: Option<HexMapJson>,
+    pub force_refresh: Vec<Hex>,
 }
 
 impl HexMapData {

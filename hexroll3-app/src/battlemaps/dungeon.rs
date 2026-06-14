@@ -49,7 +49,7 @@ use crate::{
         layers::{HEIGHT_OF_BATTLEMAP_ON_FEATURE, HexrollPhysicsLayer},
         spawnq::{MustBeChildOf, SpawnQueue},
         svg::svg_to_path,
-        vtt::{HexRevealState, VttData},
+        vtt::VttData,
         widgets::cursor::PointerOnHover,
     },
 };
@@ -189,7 +189,7 @@ fn on_spawn_dungeon_map(
     coords: Query<&HexCoordsForFeature>,
 ) {
     let is_revealed = if let Ok(coords) = coords.get(trigger.event().hex) {
-        vtt_data.revealed.get(&coords.hex) == Some(&HexRevealState::Full)
+        vtt_data.revealed_hex_layer(&coords.hex) > 0
     } else {
         return;
     };
@@ -208,6 +208,7 @@ fn on_spawn_dungeon_map(
     let mut parent_node = commands.spawn_empty();
     let parent_node_id = parent_node.id();
     let is_player = vtt_data.mode.is_player();
+    let is_remote_player = vtt_data.is_remote_player();
     let player_entity_visibility = if is_player {
         Visibility::Inherited
     } else {
@@ -422,7 +423,7 @@ fn on_spawn_dungeon_map(
                                                 is_hoverable: true,
                                             },
                                         ));
-                                        if !is_player {
+                                        if !is_remote_player {
                                             door_frame
                                                 .observe(update_material_on(
                                                     highlight_material.clone(),
@@ -574,7 +575,7 @@ fn on_spawn_dungeon_map(
                                                             });
                                                     }
                                                 });
-                                                if !is_player {
+                                                if !is_remote_player {
                                                     door.observe(update_material_on(
                                                         highlight_material,
                                                     ))
@@ -635,7 +636,7 @@ fn on_spawn_dungeon_map(
                     Transform::from_xyz(x, 0.0, y),
                     AreaUid(prepared_area.area.uuid.clone()),
                 ));
-                if !is_player {
+                if !is_remote_player {
                     area_floor
                         .observe(
                             |trigger: On<Pointer<Click>>,

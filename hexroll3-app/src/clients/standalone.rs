@@ -1163,7 +1163,7 @@ pub fn request_dungeon_map_for_standalone_player_node(
 
     if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
         let data = data.to_string();
-        debug!("Found (node) battlemap: {}", data);
+        // debug!("Found (node) battlemap: {}", data);
         if my_tasks
             .spawn_standalone(
                 (trigger.0.uid.clone(), trigger.0.hex),

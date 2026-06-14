@@ -161,7 +161,7 @@ pub fn detect_click(
         if let Some(coord) = map.selected {
             if click.just_released(MouseButton::Left) && selected_tokens.is_empty() {
                 match vtt_map.mode {
-                    HexMapMode::RefereeViewing => {
+                    HexMapMode::RefereeViewing | HexMapMode::RefereeAsPlayer => {
                         match visibility_controller.selection_range_mode() {
                             // - - - - - - - - - - - - - - - - - - - - - - - - -
                             // Clicking a feature
@@ -194,6 +194,22 @@ pub fn detect_click(
                             // - - - - - - - - - - - - - - - - - - - - - - - - -
                             // Clicking a hex
                             _ => {
+                                if vtt_map.is_solo() {
+                                    reveal_hex_or_ocean(
+                                        &mut commands,
+                                        coord,
+                                        &mut vtt_map,
+                                        &mut map,
+                                        masks,
+                                        features,
+                                        hexes,
+                                        &reveal_pattern.value,
+                                    );
+                                    commands.trigger(StoreVttState);
+                                    map.force_refresh.push(coord);
+                                    vtt_map.invalidate_map = true;
+                                }
+
                                 // - - - - - - - - - - - - - - - - - - - - - - -
                                 // Clicking a pre-generated hex
                                 if let Some(entity) = map.hexes.get(&coord) {
@@ -274,4 +290,29 @@ pub fn detect_selected_hex(
             *highlighted = coord;
         }
     }
+}
+
+pub fn reveal_hex(
+    input: In<Hex>,
+    mut commands: Commands,
+    mut map: ResMut<HexMapData>,
+    mut vtt_map: ResMut<VttData>,
+    masks: Query<(Entity, &mut HexMask)>,
+    features: Query<(Entity, &HexCoordsForFeature)>,
+    hexes: Query<(Entity, &HexEntity)>,
+    reveal_pattern: Res<ToggleResourceWrapper<HexRevealPattern>>,
+) {
+    reveal_hex_or_ocean(
+        &mut commands,
+        input.0,
+        &mut vtt_map,
+        &mut map,
+        masks,
+        features,
+        hexes,
+        &reveal_pattern.value,
+    );
+    commands.trigger(StoreVttState);
+    map.force_refresh.push(input.0);
+    vtt_map.invalidate_map = true;
 }

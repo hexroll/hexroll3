@@ -127,7 +127,7 @@ impl TokenMobilityActuator for EntityCommands<'_> {
         vtt_data: &VttData,
     ) -> &mut Self {
         if mobility.is_locked_now()
-            || (!mobility.is_player_controllable() && vtt_data.is_player())
+            || (!mobility.is_player_controllable() && vtt_data.is_remote_player())
         {
             self.try_insert(TokenIsLocked);
         } else {

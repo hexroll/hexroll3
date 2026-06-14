@@ -47,7 +47,7 @@ use crate::{
         labels::spawn_area_labels,
         layers::{HEIGHT_OF_BATTLEMAP_ON_FEATURE, HexrollPhysicsLayer},
         spawnq::SpawnQueue,
-        vtt::{HexRevealState, VttData},
+        vtt::VttData,
         widgets::cursor::PointerOnHover,
     },
 };
@@ -245,7 +245,7 @@ fn on_spawn_cave_map(
     coords: Query<&HexCoordsForFeature>,
 ) {
     let is_revealed = if let Ok(coords) = coords.get(trigger.event().hex) {
-        vtt_data.revealed.get(&coords.hex) == Some(&HexRevealState::Full)
+        vtt_data.revealed_hex_layer(&coords.hex) > 0
     } else {
         return;
     };
@@ -257,6 +257,7 @@ fn on_spawn_cave_map(
     }
 
     let is_player = vtt_data.is_player();
+    let is_remote_player = vtt_data.is_remote_player();
     battlemap_materials
         .get_mut(&cave_map_resources.floor_material)
         .unwrap()
@@ -302,7 +303,7 @@ fn on_spawn_cave_map(
                     MeshMaterial3d(cave_map_resources.floor_material.clone()),
                     AreaUid(c.uid.clone()),
                 ));
-                if !is_player {
+                if !is_remote_player {
                     area_floor
                         .observe(
                             |trigger: On<Pointer<Click>>,

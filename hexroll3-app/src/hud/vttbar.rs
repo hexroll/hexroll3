@@ -162,6 +162,7 @@ fn show_vttbar(mut commands: Commands, asset_server: Res<AssetServer>) {
                     vec![
                         asset_server.load("icons/icon-flower.ktx2"),
                         asset_server.load("icons/icon-partial-flower.ktx2"),
+                        asset_server.load("icons/icon-flower.ktx2"),
                     ],
                     64.0,
                 )
@@ -275,6 +276,7 @@ impl Switch for HexRevealPattern {
         match self {
             HexRevealPattern::Flower => HexRevealPattern::Single,
             HexRevealPattern::Single => HexRevealPattern::Flower,
+            HexRevealPattern::Solo => HexRevealPattern::Solo,
         }
     }
 
@@ -282,6 +284,7 @@ impl Switch for HexRevealPattern {
         match self {
             HexRevealPattern::Flower => 0,
             HexRevealPattern::Single => 1,
+            HexRevealPattern::Solo => 2,
         }
     }
 
@@ -289,6 +292,7 @@ impl Switch for HexRevealPattern {
         match index {
             0 => HexRevealPattern::Flower,
             1 => HexRevealPattern::Single,
+            2 => HexRevealPattern::Solo,
             _ => unreachable!(),
         }
     }

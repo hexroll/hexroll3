@@ -369,7 +369,7 @@ pub fn broadcast_state_to_new_peers(
     // joining referee node. In such case, a referee node might have its loaded
     // state overwritten with an empty state from the clear player node.
     // Search for the other 'vtt-sync' note in the ui code to read more.
-    if vtt_data.is_player() {
+    if vtt_data.is_remote_player() {
         if let Ok(peers) = socket.socket.try_update_peers() {
             for (peer, state) in peers {
                 debug!("Player is state: {state:?} to peer: {peer}");

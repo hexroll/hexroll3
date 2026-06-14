@@ -134,7 +134,7 @@ fn on_spawn_battlemap_dial(
     app_state: Res<State<DiscreteAppState>>,
     map_state: Res<State<HexMapState>>,
 ) {
-    if vtt_data.mode.is_player()
+    if vtt_data.is_remote_player()
         || *app_state != DiscreteAppState::Normal
         || *map_state != HexMapState::Active
     {

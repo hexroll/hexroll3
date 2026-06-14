@@ -131,7 +131,7 @@ fn set_active_token_on_mouse_over() -> impl Fn(
             panorbit.enabled_motion.pan = false;
             panorbit.enabled_motion.zoom = false;
             commands.entity(trigger.entity).insert(ActiveToken);
-            if !vtt_data.is_player() {
+            if !vtt_data.is_remote_player() {
                 if locked_tokens.contains(trigger.entity) {
                     commands
                         .entity(*window)

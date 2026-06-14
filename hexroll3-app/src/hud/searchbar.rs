@@ -450,7 +450,7 @@ fn search_hotkey(
     keyboard: Res<ButtonInput<KeyCode>>,
     vtt_data: Res<VttData>,
 ) {
-    if vtt_data.mode.is_player() {
+    if vtt_data.is_remote_player() {
         return;
     }
     if keyboard.just_released(KeyCode::Backquote) && input_mode.keyboard_available() {

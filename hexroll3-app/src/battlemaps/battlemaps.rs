@@ -52,7 +52,7 @@ use crate::{
     shared::{
         camera::CameraTweenTarget,
         labels::{AreaNumbersMarker, FadableLabel, TokenLabelMarker},
-        vtt::{HexRevealState, VttData},
+        vtt::VttData,
     },
 };
 
@@ -208,15 +208,16 @@ fn trigger_battlemaps_requests_when_visible(
                     continue;
                 }
             }
-            let is_revealed =
-                vtt_data.revealed.get(&hex_coords.hex) == Some(&HexRevealState::Full);
+            let is_revealed = vtt_data.revealed_hex_layer(&hex_coords.hex) > 0;
             let is_unrevealed_dungeon = *hex_type == HexFeature::Dungeon && !is_revealed;
             let mut spawn_empty_battlemap = false;
             let mut is_expensive_hex = false;
             let mut height_offset = 0.0;
             // NOTE: the following check is to ensure partially revealed hexes show a wilderness
             // battlemap for players
-            if vtt_data.is_player() && !is_revealed {
+            if (vtt_data.is_player() && is_unrevealed_dungeon)
+                || (vtt_data.is_remote_player() && !is_revealed)
+            {
                 spawn_empty_battlemap = true;
             } else {
                 if *hex_type == HexFeature::Dungeon {

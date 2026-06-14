@@ -261,7 +261,7 @@ fn on_toggle_reveal_mode(
     mut vtt_data: ResMut<VttData>,
     map_data: Res<HexMapData>,
 ) {
-    if vtt_data.mode == HexMapMode::Player {
+    if vtt_data.mode == HexMapMode::Player || vtt_data.is_solo() {
         return;
     }
     if trigger.value == RefereeRevealing::On {
