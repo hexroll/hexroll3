@@ -23,24 +23,15 @@
 // for more information about commercial licensing terms.
 */
 
-use std::collections::VecDeque;
-
 use bevy::{
+    ecs::relationship::RelatedSpawnerCommands,
     platform::collections::{HashMap, HashSet},
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, block_on, futures_lite::future},
-    window::{CursorGrabMode, CursorIcon, CursorOptions, PrimaryWindow, SystemCursorIcon},
 };
-use hexroll3_cartographer::dungeons::map_data_providers;
 use hexx::*;
 use rand::seq::{SliceRandom, index::sample};
-use serde_json::json;
 
 use crate::{
-    clients::{
-        controller::{PostMapLoadedOp, RequestMapFromBackend},
-        standalone::StandaloneSandbox,
-    },
     content::{ContentMode, ThemeBackgroundColor},
     hexmap::{
         data::{HexFeature, HexMetadata, TerrainType},
@@ -49,21 +40,47 @@ use crate::{
         spawn::spawn_tile,
         tiles::{HexMapTileMaterials, TileMaterial},
     },
-    hud::ShowTransientUserMessage,
     shared::{
         vtt::*,
         widgets::{
-            cursor::{PointerExclusivityIsPreferred, PointerOnHover, TooltipOnHover},
-            link::ContentHoverLink,
-            modal::{DiscreteAppState, ModalState},
+            cursor::PointerExclusivityIsPreferred, knob::GeneratorKnob, link::ContentHoverLink,
         },
     },
 };
 
-use hexroll3_scroll::generators::*;
-use hexroll3_scroll::instance::*;
+use super::{
+    HexmapTheme,
+    builder::{
+        BackgroundMapGenerationTasks, GenerateHexMap, GenerationWorkload, detect_abort,
+        generate_hex_map, poll_generation_tasks, tester,
+    },
+};
 
-use super::HexmapTheme;
+fn enter_edit_mode_setup(
+    mut vtt_data: ResMut<VttData>,
+    map: Res<HexMapData>,
+    mut masks: Query<(&HexMask, &mut Visibility)>,
+    mut editor: ResMut<MapEditor>,
+) {
+    editor.budget.target = 0;
+    editor.budget.current = 0;
+    vtt_data.edit_mode = true;
+    for (mask, mut vis) in masks.iter_mut() {
+        if map.hexes.get(&mask.0).map_or(false, |t| t.generated) {
+            *vis = Visibility::Visible;
+        }
+    }
+}
+
+fn exit_edit_mode_teardown(
+    mut vtt_data: ResMut<VttData>,
+    mut masks: Query<&mut Visibility, With<HexMask>>,
+) {
+    vtt_data.edit_mode = false;
+    for mut vis in masks.iter_mut() {
+        *vis = Visibility::Hidden;
+    }
+}
 
 pub struct MapEditorPlugin;
 
@@ -76,17 +93,26 @@ impl Plugin for MapEditorPlugin {
             realm_type: "RealmTypeKingdom".to_string(),
             knobs: HashMap::new(),
             selected_feature: HexFeature::Dungeon,
+            budget: Knob::default(),
+            volume: Knob::default(),
+            intent: HashMap::new(),
         })
-        .add_systems(OnEnter(HexMapToolState::Edit), create_drawing_hud)
-        .add_systems(OnExit(HexMapToolState::Edit), destroy_drawing_hud)
-        .add_systems(Update, extend_seeds.run_if(in_state(HexMapToolState::Edit)))
+        .add_systems(
+            OnEnter(HexMapToolState::Edit),
+            (enter_edit_mode_setup, create_drawing_hud),
+        )
+        .add_systems(
+            OnExit(HexMapToolState::Edit),
+            (destroy_drawing_hud, exit_edit_mode_teardown),
+        )
+        .add_systems(Update, tester.run_if(in_state(HexMapToolState::Edit)))
         .add_systems(Update, add_features.run_if(in_state(HexMapToolState::Edit)))
         .add_observer(on_add_features)
         .add_observer(on_del_features)
         .add_systems(
             Update,
             (detect_abort, poll_generation_tasks)
-                .run_if(in_state(HexMapToolState::Edit))
+                // .run_if(in_state(HexMapToolState::Edit))
                 .run_if(resource_exists::<GenerationWorkload>),
         )
         .add_systems(Update, draw_tiles.run_if(in_state(HexMapToolState::Edit)))
@@ -107,6 +133,7 @@ pub enum PenType {
     Eraser,
     Broom,
     FeaturePen,
+    TerrainMaker,
 }
 
 impl PenType {
@@ -117,12 +144,16 @@ impl PenType {
     fn show_feature_bar(&self) -> bool {
         *self == PenType::FeaturePen
     }
+
+    fn show_terrain_knobs_bar(&self) -> bool {
+        *self == PenType::TerrainMaker
+    }
 }
 
 #[derive(Default)]
 pub struct Knob {
-    target: i32,
-    current: i32,
+    pub target: i32,
+    pub current: i32,
 }
 
 #[derive(Resource)]
@@ -132,6 +163,9 @@ pub struct MapEditor {
     pub realm_type: String,
     pub knobs: HashMap<HexFeature, Knob>,
     pub selected_feature: HexFeature,
+    pub budget: Knob,
+    pub volume: Knob,
+    pub intent: HashMap<TerrainType, i32>,
 }
 
 fn get_feature_ratio_for_realm_type(realm_type: &str, feature_type: HexFeature) -> f32 {
@@ -180,6 +214,21 @@ fn get_feature_ratio_for_realm_type(realm_type: &str, feature_type: HexFeature) 
         };
     }
     return 0.0;
+}
+fn get_region_volume_for_realm_type(realm_type: &str) -> i32 {
+    if realm_type == "RealmTypeKingdom" {
+        return 12;
+    }
+    if realm_type == "RealmTypeEmpire" {
+        return 16;
+    }
+    if realm_type == "RealmTypeLands" {
+        return 14;
+    }
+    if realm_type == "RealmTypeDuchy" {
+        return 8;
+    }
+    return 10;
 }
 
 pub fn random_neighboring_hexes(coords: Hex) -> Vec<Hex> {
@@ -349,6 +398,7 @@ pub fn draw_tiles(
                     }
                 }
             }
+            PenType::TerrainMaker => {}
         }
     }
 }
@@ -455,135 +505,6 @@ fn add_features(
     }
 }
 
-fn extend_seeds(
-    mut commands: Commands,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    to_extend: Query<&HexEntity, With<TempHex>>,
-    mut map: ResMut<HexMapData>,
-    mut vtt_data: ResMut<VttData>,
-    assets: Res<HexMapResources>,
-    tiles: Res<HexMapTileMaterials>,
-    map_parent: Single<Entity, With<HexMapTime>>,
-    theme: Res<HexmapTheme>,
-    mut inc: Local<u32>,
-) {
-    if keyboard.pressed(KeyCode::F1) {
-        *inc += 1;
-        let mut hexes_to_extend = Vec::new();
-        for seed_hex in to_extend {
-            let free_hexes: Vec<Hex> = seed_hex
-                .hex
-                .all_neighbors()
-                .iter()
-                .filter_map(|neighbor| {
-                    if !map.hexes.contains_key(neighbor) {
-                        Some(neighbor.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            let count_of_free_hexes = free_hexes.len();
-
-            use rand::Rng;
-
-            let limit = rand::thread_rng().gen_range(20..=100);
-
-            if count_of_free_hexes > 0 {
-                let pool_size = pool_size(&mut map, &seed_hex.hex);
-                if pool_size < limit {
-                    hexes_to_extend.push((
-                        count_of_free_hexes,
-                        free_hexes,
-                        map.hexes.get(&seed_hex.hex).unwrap().hex_type.clone(),
-                        map.hexes.get(&seed_hex.hex).unwrap().pool_id,
-                    ));
-                }
-            }
-        }
-        hexes_to_extend.sort_by(|a, b| b.0.cmp(&a.0));
-
-        let scale_calculator = theme.tile_scale_values();
-        let layout = y_inverted_hexmap_layout();
-        let mut budget = 1000000;
-        for (_, free_hexes, terrain_type, pool_id) in hexes_to_extend {
-            budget -= 1;
-            if budget == 0 {
-                break;
-            }
-
-            let n = rand::random::<usize>() % (free_hexes.len() + 1);
-            let mut rng = rand::thread_rng();
-            let mut shuffled_hexes = free_hexes.clone();
-            shuffled_hexes.shuffle(&mut rng);
-            let random_items = &shuffled_hexes[..n];
-
-            for coord in random_items {
-                if !map.hexes.contains_key(coord) {
-                    let do_not_place = coord.all_neighbors().to_vec().iter().any(|neighbor| {
-                        if let Some(tester) = map.hexes.get(neighbor) {
-                            if tester.hex_type == terrain_type && tester.pool_id != pool_id {
-                                return true;
-                            }
-                        }
-                        return false;
-                    });
-
-                    if do_not_place {
-                        continue;
-                    }
-
-                    let new_hex = PreparedHexTile {
-                        generated: false,
-                        pool_id,
-                        uid: "<uid>".to_string(),
-                        realm_uid: None,
-                        region_uid: None,
-                        hex_type: terrain_type.clone(),
-                        hex_tile_material: get_tile_material(
-                            *coord,
-                            terrain_type.clone(),
-                            &map.hexes,
-                            &tiles,
-                        ),
-                        partial_hex_tile_material: get_tile_material(
-                            *coord,
-                            terrain_type.clone(),
-                            &map.hexes,
-                            &tiles,
-                        ),
-                        tile_scale: scale_calculator.0,
-                        river_tile: None,
-                        trail_tile: None,
-                        feature: HexFeature::None,
-                        metadata: HexMetadata {
-                            harbor: None,
-                            river_dir: 0.0,
-                            offset: 0.0,
-                            is_rim: true,
-                        },
-                    };
-
-                    map.hexes.insert(*coord, new_hex);
-                    draw_tile_and_refresh_neighbors(
-                        &mut commands,
-                        &layout,
-                        *coord,
-                        *map_parent,
-                        &tiles,
-                        &assets,
-                        &mut map,
-                        &mut vtt_data,
-                    );
-                }
-            }
-        }
-    } else {
-        *inc = inc.saturating_sub(10);
-    }
-}
-
 #[derive(Component)]
 struct HexBrush;
 
@@ -667,7 +588,7 @@ fn refresh_neighbors(
     }
 }
 
-fn get_tile_material(
+pub fn get_tile_material(
     hex: Hex,
     terrain: TerrainType,
     map: &HashMap<hexx::Hex, PreparedHexTile>,
@@ -742,7 +663,7 @@ fn create_drawing_hud(
             },
             Pickable {
                 should_block_lower: true,
-                ..default()
+                is_hoverable: false,
             },
         ))
         .observe(|trigger: On<Pointer<Over>>, mut commands: Commands| {
@@ -833,6 +754,8 @@ fn create_drawing_hud(
                      mut editor: ResMut<MapEditor>,
                      terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
                      feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
                      mut commands: Commands| {
                         editor.pen = PenType::Pencil;
                         commands
@@ -841,6 +764,14 @@ fn create_drawing_hud(
                             .and_modify(|mut n| n.display = Display::Flex);
                         commands
                             .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*terrain_knobs_hud)
                             .entry::<Node>()
                             .and_modify(|mut n| n.display = Display::None);
                     },
@@ -861,6 +792,8 @@ fn create_drawing_hud(
                      mut editor: ResMut<MapEditor>,
                      terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
                      feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
                      mut commands: Commands| {
                         editor.pen = PenType::Brush;
                         commands
@@ -869,6 +802,14 @@ fn create_drawing_hud(
                             .and_modify(|mut n| n.display = Display::Flex);
                         commands
                             .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*terrain_knobs_hud)
                             .entry::<Node>()
                             .and_modify(|mut n| n.display = Display::None);
                     },
@@ -889,6 +830,8 @@ fn create_drawing_hud(
                      mut editor: ResMut<MapEditor>,
                      terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
                      feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
                      mut commands: Commands| {
                         editor.pen = PenType::Eraser;
                         commands
@@ -897,6 +840,14 @@ fn create_drawing_hud(
                             .and_modify(|mut n| n.display = Display::None);
                         commands
                             .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*terrain_knobs_hud)
                             .entry::<Node>()
                             .and_modify(|mut n| n.display = Display::None);
                     },
@@ -917,6 +868,8 @@ fn create_drawing_hud(
                      mut editor: ResMut<MapEditor>,
                      terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
                      feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
                      mut commands: Commands| {
                         editor.pen = PenType::Broom;
                         commands
@@ -925,6 +878,14 @@ fn create_drawing_hud(
                             .and_modify(|mut n| n.display = Display::None);
                         commands
                             .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*terrain_knobs_hud)
                             .entry::<Node>()
                             .and_modify(|mut n| n.display = Display::None);
                     },
@@ -945,6 +906,8 @@ fn create_drawing_hud(
                      mut editor: ResMut<MapEditor>,
                      terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
                      feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
                      mut commands: Commands| {
                         editor.pen = PenType::FeaturePen;
                         commands
@@ -953,6 +916,52 @@ fn create_drawing_hud(
                             .and_modify(|mut n| n.display = Display::None);
                         commands
                             .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::Flex);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::Flex);
+                        commands
+                            .entity(*terrain_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                    },
+                );
+                c.spawn(make_hud_button_bundle(
+                    "TerrainMaker",
+                    HudButtonTool(PenType::TerrainMaker),
+                    &editor,
+                ))
+                .with_child(make_hud_button_image_bundle(
+                    &asset_server,
+                    "icons/icon-realm.ktx2",
+                ))
+                .toggle_tool::<HudButtonTool>()
+                .hover_effect_ex(true)
+                .observe(
+                    |_: On<Pointer<Click>>,
+                     mut editor: ResMut<MapEditor>,
+                     terrain_hud: Single<Entity, With<DrawingHudTerrain>>,
+                     feature_hud: Single<Entity, With<DrawingHudFeatures>>,
+                     features_knobs_hud: Single<Entity, With<FeaturesHudKnobs>>,
+                     terrain_knobs_hud: Single<Entity, With<TerrainHudKnobs>>,
+                     mut commands: Commands| {
+                        editor.pen = PenType::TerrainMaker;
+                        commands
+                            .entity(*terrain_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*feature_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*features_knobs_hud)
+                            .entry::<Node>()
+                            .and_modify(|mut n| n.display = Display::None);
+                        commands
+                            .entity(*terrain_knobs_hud)
                             .entry::<Node>()
                             .and_modify(|mut n| n.display = Display::Flex);
                     },
@@ -1199,59 +1208,47 @@ fn create_drawing_hud(
                 );
             });
             c.spawn((
-                Name::new("DrawingHudKnobs"),
+                Name::new("TerrainHudKnobs"),
+                TerrainHudKnobs,
                 Node {
                     top: Val::Px(20.0),
                     justify_self: JustifySelf::Center,
+                    display: if editor.pen.show_terrain_knobs_bar() {
+                        Display::Flex
+                    } else {
+                        Display::None
+                    },
                     ..default()
+                },
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: false,
                 },
             ))
             .with_children(|c| {
-                c.spawn_empty().spawn_knob(
-                    HexFeature::Dungeon,
-                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Dungeon),
-                    "icons/icon-dungeon.ktx2",
-                    "",
-                    &asset_server,
-                );
-                c.spawn_empty().spawn_knob(
-                    HexFeature::City,
-                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::City),
-                    "icons/icon-city.ktx2",
-                    "",
-                    &asset_server,
-                );
-                c.spawn_empty().spawn_knob(
-                    HexFeature::Town,
-                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Town),
-                    "icons/icon-town.ktx2",
-                    "",
-                    &asset_server,
-                );
-                c.spawn_empty().spawn_knob(
-                    HexFeature::Village,
-                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Village),
-                    "icons/icon-village.ktx2",
-                    "",
-                    &asset_server,
-                );
-                c.spawn_empty().spawn_knob(
-                    HexFeature::Inn,
-                    get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Inn),
-                    "icons/icon-inn.ktx2",
-                    "",
-                    &asset_server,
-                );
-                c.spawn_empty().spawn_knob(
-                    HexFeature::Residency,
-                    get_feature_ratio_for_realm_type(
-                        &editor.realm_type,
-                        HexFeature::Residency,
-                    ),
-                    "icons/icon-dwelling.ktx2",
-                    "",
-                    &asset_server,
-                );
+                spawn_terrain_knobs(c, &asset_server, &editor);
+                spawn_volume_knobs(c, &asset_server, &editor);
+            });
+            c.spawn((
+                Name::new("FeaturesHudKnobs"),
+                FeaturesHudKnobs,
+                Node {
+                    top: Val::Px(20.0),
+                    justify_self: JustifySelf::Center,
+                    display: if editor.pen.show_feature_bar() {
+                        Display::Flex
+                    } else {
+                        Display::None
+                    },
+                    ..default()
+                },
+                Pickable {
+                    should_block_lower: false,
+                    is_hoverable: false,
+                },
+            ))
+            .with_children(|c| {
+                spawn_feature_knobs(c, &asset_server, &editor);
             });
         });
 }
@@ -1274,6 +1271,12 @@ struct HudButtonAction;
 
 #[derive(Component)]
 struct DrawingHudFeatures;
+
+#[derive(Component)]
+struct FeaturesHudKnobs;
+
+#[derive(Component)]
+struct TerrainHudKnobs;
 
 trait HudButton {
     fn border() -> f32;
@@ -1369,469 +1372,6 @@ fn make_hud_button_image_bundle(
     )
 }
 
-#[derive(Resource)]
-struct BackgroundMapGenerationTasks {
-    tasks: Vec<Task<Option<Vec<(String, Hex)>>>>,
-}
-
-#[derive(Event)]
-struct GenerateHexMap;
-
-fn pool_size(map: &mut HexMapData, coord_to_check: &Hex) -> u32 {
-    let (terrain, mut pool_id) = match map.hexes.get(coord_to_check) {
-        Some(hex) => (&hex.hex_type.clone(), hex.pool_id),
-        None => return 0,
-    };
-
-    if pool_id == 0 {
-        pool_id = coord_to_check.x * 1000 + coord_to_check.y;
-    }
-
-    let mut pool_backlog: VecDeque<Hex> = VecDeque::new();
-    let mut pool_processed: HashSet<Hex> = HashSet::new();
-    let mut count = 0;
-
-    pool_backlog.push_front(*coord_to_check);
-
-    while !pool_backlog.is_empty() {
-        let current = pool_backlog.pop_front().unwrap();
-
-        if map
-            .hexes
-            .get(&current)
-            .map_or(false, |hex| &hex.hex_type == terrain)
-        {
-            count += 1;
-            map.hexes.get_mut(&current).unwrap().pool_id = pool_id;
-            pool_processed.insert(current);
-            for neighbor in current.all_neighbors() {
-                if !pool_processed.contains(&neighbor) && map.hexes.get(&neighbor).is_some() {
-                    pool_backlog.push_front(neighbor);
-                }
-                pool_processed.insert(neighbor);
-            }
-        }
-    }
-    count
-}
-
-fn partition_hexes_to_regions(map: &HexMapData) -> (Vec<(TerrainType, Vec<Hex>)>, usize) {
-    let mut new_coords: Vec<(Hex, TerrainType)> = Vec::new();
-    let mut coord_to_terrain: HashMap<Hex, TerrainType> = HashMap::new();
-    let mut unallocated_coords: HashSet<Hex> = HashSet::new();
-    for (coords, hex) in map.hexes.iter() {
-        if hex.uid == "<uid>" {
-            new_coords.push((*coords, hex.hex_type.clone()));
-            coord_to_terrain.insert(*coords, hex.hex_type.clone());
-            unallocated_coords.insert(*coords);
-        }
-    }
-
-    let mut regions: Vec<(TerrainType, Vec<Hex>)> = Vec::new();
-
-    for (hex, terrain) in new_coords.iter() {
-        if unallocated_coords.contains(hex) {
-            let mut pool_backlog: VecDeque<Hex> = VecDeque::new();
-            let mut pool_processed: HashSet<Hex> = HashSet::new();
-            let mut region: Vec<Hex> = Vec::new();
-            pool_backlog.push_front(*hex);
-
-            while !pool_backlog.is_empty() {
-                let current = pool_backlog.pop_front().unwrap();
-                if coord_to_terrain.get(&current).unwrap() == terrain {
-                    unallocated_coords.remove(&current);
-                    region.push(current);
-                    for neighbor in current.all_neighbors() {
-                        if unallocated_coords.contains(&neighbor)
-                            && !pool_processed.contains(&neighbor)
-                        {
-                            pool_backlog.push_front(neighbor);
-                            pool_processed.insert(neighbor);
-                        }
-                    }
-                }
-            }
-            regions.push((terrain.clone(), region));
-        }
-    }
-    (regions, new_coords.len())
-}
-
-#[derive(Resource, Default, Clone)]
-struct GenerationWorkload {
-    message: std::sync::Arc<std::sync::Mutex<String>>,
-    red_button: std::sync::Arc<std::sync::Mutex<bool>>,
-}
-
-fn detect_abort(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    progress: Option<ResMut<GenerationWorkload>>,
-) {
-    if let Some(progress) = progress {
-        if keyboard.pressed(KeyCode::Escape) {
-            if let Ok(mut holder) = progress.red_button.lock() {
-                *holder = true;
-            }
-        }
-    }
-}
-
-#[derive(Component)]
-struct SpinnerText;
-
-#[derive(Component)]
-struct SpinnerNode;
-
-fn generate_hex_map(
-    _: On<GenerateHexMap>,
-    sandbox: Res<StandaloneSandbox>,
-    mut map: ResMut<HexMapData>,
-    mut tasks: ResMut<BackgroundMapGenerationTasks>,
-    editor: Res<MapEditor>,
-    window: Single<Entity, With<PrimaryWindow>>,
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<DiscreteAppState>>,
-    mut sub_state: ResMut<NextState<ModalState>>,
-) {
-    next_state.set(DiscreteAppState::Modal);
-    sub_state.set(ModalState::Spinner);
-    map.generating = true;
-    commands
-        .entity(*window)
-        .insert(CursorIcon::System(SystemCursorIcon::Progress));
-
-    commands
-        .spawn((
-            Name::new("SpinnerMessage"),
-            SpinnerNode,
-            Node {
-                align_self: AlignSelf::Center,
-                justify_self: JustifySelf::Center,
-                ..default()
-            },
-            TextSpan::default(),
-            TextColor::WHITE,
-            TextFont {
-                font_size: 16.0,
-                ..default()
-            },
-            TextLayout {
-                justify: Justify::Center,
-                ..default()
-            },
-            Text::default(),
-            ZIndex(3000),
-        ))
-        .with_child((
-            SpinnerText,
-            TextSpan::new("..."),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
-            TextColor::WHITE,
-        ))
-        .with_child((
-            TextSpan::new("Press ESC to Cancel"),
-            TextFont {
-                font_size: 16.0,
-                ..default()
-            },
-            TextColor::WHITE,
-        ));
-
-    let realm_type = editor.realm_type.clone();
-    let instance = sandbox.instance.clone();
-
-    let (regions, num_hexes_to_generate) = partition_hexes_to_regions(&map);
-
-    // detect features to generate
-    let features_backlog: HashMap<Hex, HexFeature> = map
-        .hexes
-        .iter()
-        .filter(|v| !v.1.generated && v.1.feature != HexFeature::None)
-        .map(|v| (v.0.clone(), v.1.feature.clone()))
-        .collect();
-    let empties_backlog: HashSet<Hex> = map
-        .hexes
-        .iter()
-        .filter(|v| !v.1.generated && v.1.feature == HexFeature::None)
-        .map(|v| v.0.clone())
-        .collect();
-
-    let generation_tracker = GenerationWorkload::default();
-    let hexes_to_generate = num_hexes_to_generate as i32;
-    let mut hexes_generated = 0;
-    if let Ok(mut message) = generation_tracker.message.lock() {
-        *message = format!(
-            "Generated {} out of {} hexes\n",
-            hexes_generated, hexes_to_generate,
-        );
-    }
-    commands.insert_resource(generation_tracker.clone());
-
-    let task_pool = AsyncComputeTaskPool::get();
-    let task = task_pool.spawn(async move {
-        let generation_tracker = generation_tracker.clone();
-        let mut ret: Vec<(String, Hex)> = Vec::new();
-        let sid = instance.sid().unwrap();
-        if instance
-            .repo
-            .mutate(|tx| {
-                let mut rivers: Vec<(String, (i32, i32))> = Vec::new();
-
-                let builder = SandboxBuilder::from_instance(&instance);
-                let realm_uid = {
-                    let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
-                        return anyhow::Result::Err(anyhow::anyhow!(
-                            "Error trying to lock the sandbox blueprint"
-                        ));
-                    };
-                    blueprint
-                        .globals
-                        .insert("realm_type".to_string(), json!([realm_type.clone()]));
-                    let realm_uids =
-                        append(&builder, &mut blueprint, tx, &sid, "realms", None, 1)?;
-                    realm_uids.first().unwrap().clone()
-                };
-                for (terrain, region) in regions.iter() {
-                    info!("Creating terrain type {}", terrain.as_region_str());
-                    let region_uid = {
-                        let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
-                            return anyhow::Result::Err(anyhow::anyhow!(
-                                "Error trying to lock the sandbox blueprint"
-                            ));
-                        };
-                        let region_uids = append(
-                            &builder,
-                            &mut blueprint,
-                            tx,
-                            &realm_uid,
-                            "regions",
-                            Some(terrain.as_region_str()),
-                            1,
-                        )?;
-                        region_uids.first().unwrap().clone()
-                    };
-                    let hex_uids = {
-                        let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
-                            return anyhow::Result::Err(anyhow::anyhow!(
-                                "Error trying to lock the sandbox blueprint"
-                            ));
-                        };
-                        let hex_uids = append(
-                            &builder,
-                            &mut blueprint,
-                            tx,
-                            &region_uid,
-                            "Hexmap",
-                            Some(terrain.as_str()),
-                            region.len() as u32,
-                        )?;
-                        hex_uids
-                    };
-                    hexes_generated += region.len() as i32;
-                    if let Ok(mut message) = generation_tracker.message.lock() {
-                        *message = format!(
-                            "Generated {} out of {} hexes\n",
-                            hexes_generated, hexes_to_generate,
-                        );
-                    }
-
-                    if let Ok(red_button) = generation_tracker.red_button.lock() {
-                        if *red_button {
-                            return anyhow::Result::Err(anyhow::anyhow!(
-                                "Map generation aborted"
-                            ));
-                        }
-                    }
-
-                    for (hex, hex_uid) in region.iter().zip(hex_uids) {
-                        {
-                            let (x, y) = hexx_to_hexroll_coords(hex);
-                            let patch = json!({
-                                "coord_x": x,
-                                "coord_y": y,
-                                "$coords": {
-                                    "x": x,
-                                    "y": y
-                                }
-                            });
-                            tx.patch(&hex_uid, &patch)?;
-                            if *terrain == TerrainType::MountainsHex {
-                                rivers.push((hex_uid.to_string(), (x, y)));
-                            }
-                        }
-                        ret.push((hex_uid, *hex));
-                    }
-                }
-                let mut hex_map = hexroll3_cartographer::hexmap::HexMap::new();
-                hex_map.reconstruct_in_transaction(&sid, tx)?;
-                hex_map.extend_existing_rivers(tx, &builder.randomizer)?;
-                for (hex_uid, (x, y)) in rivers {
-                    let coords = hexroll3_cartographer::hexmap::Hex::new(x, y);
-                    if hex_map.can_start_river_from(&coords) {
-                        if builder.randomizer.in_range(1, 4) == 2 {
-                            hex_map.draw_river(tx, &builder.randomizer, coords, hex_uid)?;
-                        }
-                    }
-                }
-                hex_map.apply_layout(tx, &builder.randomizer)?;
-
-                // Append features
-                for r in ret.iter() {
-                    let (xc, yc) = hexx_to_hexroll_coords(&r.1);
-                    let display_coords = hexroll_coords_to_string(xc, yc);
-
-                    if let Some(_task) = empties_backlog.get(&r.1) {
-                        let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
-                            return anyhow::Result::Err(anyhow::anyhow!(
-                                "Error trying to lock the sandbox blueprint"
-                            ));
-                        };
-                        if let Ok(mut message) = generation_tracker.message.lock() {
-                            *message = format!(
-                                "Populating hex {} with a random feature\n",
-                                display_coords
-                            );
-                        }
-                        let _uids =
-                            append(&builder, &mut blueprint, tx, &r.0, "Feature", None, 1)?;
-                    }
-                    if let Some(task) = features_backlog.get(&r.1) {
-                        if let Ok(mut message) = generation_tracker.message.lock() {
-                            *message = format!(
-                                "Populating hex {} with a {}\n",
-                                display_coords,
-                                match task {
-                                    HexFeature::Dungeon => "Dungeon",
-                                    HexFeature::Inn => "Inn",
-                                    HexFeature::Residency => "Residency",
-                                    HexFeature::City => "City",
-                                    HexFeature::Town => "Town",
-                                    HexFeature::Village => "Village",
-                                    _ => unreachable!(),
-                                }
-                            );
-                        }
-
-                        let Ok(mut blueprint) = builder.sandbox.blueprint.lock() else {
-                            return anyhow::Result::Err(anyhow::anyhow!(
-                                "Error trying to lock the sandbox blueprint"
-                            ));
-                        };
-                        blueprint.map_data_provider = map_data_providers();
-                        tx.invalidate(&r.0)?;
-                        let uids = append(
-                            &builder,
-                            &mut blueprint,
-                            tx,
-                            &r.0,
-                            match task {
-                                HexFeature::Dungeon => "Dungeon",
-                                HexFeature::Inn => "Inn",
-                                HexFeature::Residency => "Residency",
-                                HexFeature::City => "Settlement",
-                                HexFeature::Town => "Settlement",
-                                HexFeature::Village => "Settlement",
-                                _ => unreachable!(),
-                            },
-                            Some(match task {
-                                HexFeature::Dungeon => "Dungeon",
-                                HexFeature::Inn => "Inn",
-                                HexFeature::Residency => "Residency",
-                                HexFeature::City => "City",
-                                HexFeature::Town => "Town",
-                                HexFeature::Village => "Village",
-                                _ => unreachable!(),
-                            }),
-                            1,
-                        )?;
-                        let Some(uid) = uids.first() else {
-                            return Err(anyhow::anyhow!(
-                                "Something went wrong with appending"
-                            ));
-                        };
-                        let entity = tx.load(&uid)?;
-                        // TODO: This is a duplication of the manual append logic.
-                        if let Some(on_roll) = entity.get("$on_roll") {
-                            if on_roll == "roll_settlement_map" {
-                                let builder = SandboxBuilder::from_instance(&instance);
-                                hexroll3_cartographer::watabou::map_settlement(
-                                    tx,
-                                    &builder.randomizer,
-                                    &mut hex_map,
-                                    &r.0,
-                                )?;
-                            }
-                        }
-                    }
-                }
-                hex_map.stage_trails(tx)?;
-
-                Ok(())
-            })
-            .map_err(|err| error!("{}", err.to_string()))
-            .is_err()
-        {
-            return None;
-        }
-        Some(ret)
-    });
-    tasks.tasks.push(task);
-}
-
-fn poll_generation_tasks(
-    mut commands: Commands,
-    mut tasks: ResMut<BackgroundMapGenerationTasks>,
-    mut map: ResMut<HexMapData>,
-    mut next_state: ResMut<NextState<DiscreteAppState>>,
-    mut next_tool_state: ResMut<NextState<HexMapToolState>>,
-    temp: Option<Res<GenerationWorkload>>,
-    mut spinner_text: Single<&mut TextSpan, With<SpinnerText>>,
-    spinner_node: Single<Entity, With<SpinnerNode>>,
-) {
-    if let Some(t) = temp {
-        if let Ok(message) = t.message.lock() {
-            spinner_text.0 = message.to_string();
-        }
-    }
-    let tasks = &mut tasks.tasks;
-    tasks.retain_mut(|task| {
-        let status = block_on(future::poll_once(task));
-        let retain = status.is_none();
-        if let Some(batch) = status {
-            if let Some(result) = batch {
-                for (hex_uid, hex) in result.iter() {
-                    {
-                        map.coords.insert(hex_uid.clone(), *hex);
-                    }
-                    {
-                        let hex_data = map.hexes.get_mut(hex).unwrap();
-                        hex_data.uid = hex_uid.to_string();
-                    }
-                }
-                map.generating = false;
-                commands.trigger(RequestMapFromBackend {
-                    post_map_loaded_op: PostMapLoadedOp::InvalidateVisible,
-                });
-                next_tool_state.set(HexMapToolState::Selection);
-            } else {
-                commands.trigger(ShowTransientUserMessage {
-                    text: String::from("The stars were not aligned. Please try saving again."),
-                    special: None,
-                    keep_alive: None,
-                });
-                map.generating = false;
-            }
-            commands.entity(*spinner_node).try_despawn();
-            commands.remove_resource::<GenerationWorkload>();
-            next_state.set(DiscreteAppState::Normal);
-        }
-        retain
-    });
-}
-
 pub trait ToggleTool {
     fn toggle_tool<T>(&mut self) -> &mut Self
     where
@@ -1861,223 +1401,292 @@ impl ToggleTool for EntityCommands<'_> {
     }
 }
 
-#[derive(Component)]
-struct KnobRing;
-
-#[derive(Component)]
-struct KnobGauge;
-
-#[derive(Component)]
-struct KnobNotch;
-
-trait GeneratorKnob {
-    fn spawn_knob(
-        &mut self,
-        feature: HexFeature,
-        fraction: f32,
-        icon: &str,
-        tooltip: &str,
-        asset_server: &Res<AssetServer>,
-    ) -> &mut Self;
-}
-impl GeneratorKnob for EntityCommands<'_> {
-    fn spawn_knob(
-        &mut self,
-        feature: HexFeature,
-        fraction: f32,
-        icon: &str,
-        tooltip: &str,
-        asset_server: &Res<AssetServer>,
-    ) -> &mut Self {
-        self.insert((
-            Name::new("Knob"),
-            Node {
-                width: Val::Px(64.0),
-                height: Val::Px(64.0),
-                margin: UiRect::right(Val::Px(10.0)),
-                justify_content: JustifyContent::Center,
-                ..default()
-            },
-            BorderRadius::all(Val::Px(32.0)),
-            BackgroundColor(Color::srgb_u8(20, 20, 20)),
-            ThemeBackgroundColor(Color::srgb_u8(20, 20, 20)),
-            Pickable {
-                should_block_lower: true,
-                ..default()
-            },
-        ))
-        .with_children(|c| {
-            c.spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    width: Val::Px(64.0),
-                    height: Val::Px(64.0),
-                    margin: UiRect::all(Val::Px(-1.0)),
-                    ..default()
-                },
-                KnobRing,
-                BorderRadius::all(Val::Px(32.0)),
-                UiTransform::from_rotation(Rot2::degrees(-135.0)),
-                Pickable {
-                    should_block_lower: false,
-                    ..default()
-                },
-            ))
-            .with_child((
-                KnobGauge,
-                Node {
-                    position_type: PositionType::Absolute,
-                    width: Val::Px(64.0),
-                    height: Val::Px(64.0),
-                    border: UiRect::all(Val::Px(4.0)),
-                    ..default()
-                },
-                BorderColor::all(Color::WHITE.with_alpha(0.0)),
-                BorderRadius::all(Val::Px(32.0)),
-                UiTransform::from_rotation(Rot2::degrees(135.0)),
-                Pickable {
-                    should_block_lower: false,
-                    ..default()
-                },
-            ))
-            .with_child((
-                KnobNotch,
-                Node {
-                    position_type: PositionType::Absolute,
-                    left: Val::Px(32.0),
-                    width: Val::Px(5.0),
-                    height: Val::Px(12.0),
-                    ..default()
-                },
-                BorderRadius::all(Val::Px(2.0)),
-                BackgroundColor(Color::WHITE),
-                Pickable {
-                    should_block_lower: false,
-                    ..default()
-                },
-            ));
-            c.spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    width: Val::Px(64.0),
-                    height: Val::Px(64.0),
-                    border: UiRect::all(Val::Px(6.0)),
-                    ..default()
-                },
-                BorderColor {
-                    bottom: Color::srgb_u8(20, 20, 20),
-                    ..default()
-                },
-                BorderRadius::all(Val::Px(32.0)),
-                Pickable {
-                    should_block_lower: false,
-                    ..default()
-                },
-            ));
-        })
-        .with_child(make_hud_button_image_bundle(&asset_server, icon))
-        .tooltip_on_hover(tooltip, 30.0)
-        .toggle_tool::<HudButtonTool>()
-        .observe(
-            move |trigger: On<Pointer<Drag>>,
-                  mut knob_ring_transforms: Query<&mut UiTransform, With<KnobRing>>,
-                  mut knob_gauge_borders: Query<
-                &mut BorderColor,
-                (With<KnobGauge>, Without<KnobRing>),
-            >,
-                  mut knob_notch_nodes: Query<
-                &mut Node,
-                (With<KnobNotch>, Without<KnobRing>, Without<KnobGauge>),
-            >,
-                  mut editor: ResMut<MapEditor>,
-                  children: Query<&Children>,
-                  time: Res<Time>| {
-                let d = (trigger.delta.x + -trigger.delta.y) * time.delta_secs() * 30.0;
-
-                let mut exponential_normalized = 0.0;
-                let mut degs = 0.0;
-
-                children
-                    .iter_descendants(trigger.entity)
-                    .for_each(|entity| {
-                        if let Ok(mut tx) = knob_ring_transforms.get_mut(entity) {
-                            let current = tx.rotation.as_degrees();
-                            let update = (current + d).clamp(-135.0, 135.0);
-                            tx.rotation = Rot2::degrees(update);
-                            let knob = editor
-                                .knobs
-                                .entry(feature.clone())
-                                .or_insert(Knob::default());
-
-                            degs = update + 135.0;
-                            let base = (update + 135.0) / 10.0;
-                            let exponential = exponential_graph_value(base);
-                            exponential_normalized = base / 27.0;
-                            knob.target = (exponential * fraction) as i32;
-                        }
-                    });
-                children
-                    .iter_descendants(trigger.entity)
-                    .for_each(|entity| {
-                        if let Ok(mut border_color) = knob_gauge_borders.get_mut(entity) {
-                            border_color.bottom.set_alpha((degs > 1.0) as u8 as f32);
-                            border_color.right.set_alpha((degs > 90.0) as u8 as f32);
-                            border_color.top.set_alpha((degs > 180.0) as u8 as f32);
-                            border_color.left.set_alpha((degs > 270.0) as u8 as f32);
-                        }
-                    });
-                children
-                    .iter_descendants(trigger.entity)
-                    .for_each(|entity| {
-                        if let Ok(mut node) = knob_notch_nodes.get_mut(entity) {
-                            let offset = -6.0 * (degs / 360.0);
-                            node.left = Val::Px(31.0 + offset);
-                        }
-                    });
-            },
-        )
-        .custom_pointer_on_hover(SystemCursorIcon::EwResize)
-        .observe(
-            |trigger: On<Pointer<DragStart>>,
-             mut commands: Commands,
-             window: Single<(Entity, &Window), With<PrimaryWindow>>| {
-                let current_pos: Vec2 = window.1.cursor_position().unwrap();
-                commands
-                    .entity(trigger.entity)
-                    .try_insert(PointerExclusivityIsPreferred)
-                    .try_insert(GrabbedMousePosition(current_pos));
-                commands.entity(window.0).insert(CursorOptions {
-                    visible: false,
-                    grab_mode: CursorGrabMode::None,
-                    hit_test: true,
-                });
-            },
-        )
-        .observe(
-            |trigger: On<Pointer<DragEnd>>,
-             mut commands: Commands,
-             pos: Query<&GrabbedMousePosition>,
-             mut window: Single<(Entity, &mut Window), With<PrimaryWindow>>| {
-                if let Ok(pos) = pos.get(trigger.entity) {
-                    window.1.set_cursor_position(Some(pos.0));
-                }
-                commands
-                    .entity(trigger.entity)
-                    .try_remove::<PointerExclusivityIsPreferred>();
-                commands.entity(window.0).insert(CursorOptions {
-                    visible: true,
-                    grab_mode: CursorGrabMode::None,
-                    hit_test: true,
-                });
-            },
-        )
-    }
+pub fn spawn_terrain_knobs(
+    c: &mut RelatedSpawnerCommands<'_, ChildOf>,
+    asset_server: &AssetServer,
+    editor: &MapEditor,
+) {
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::ForestHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::ForestHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-forest.ktx2",
+        "Forests Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(110, 153, 68),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::MountainsHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::MountainsHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-mountains.ktx2",
+        "Mountains Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(153, 126, 68),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::PlainsHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::PlainsHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-plains.ktx2",
+        "Grasslands Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(173, 199, 112),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::SwampsHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::SwampsHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-swamps.ktx2",
+        "Wetlands/Swamps Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(199, 180, 112),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::DesertHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::DesertHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-desert.ktx2",
+        "Deserts Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(226, 207, 183),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::JungleHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::JungleHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-jungle.ktx2",
+        "Jungles Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(199, 230, 250),
+    );
+    c.spawn_empty().spawn_knob_ex::<MapEditor>(
+        false,
+        |editor, value| {
+            let knob = editor
+                .intent
+                .entry(TerrainType::TundraHex.clone())
+                .or_insert(0);
+            *knob = value;
+        },
+        |editor| *editor.intent.get(&TerrainType::TundraHex).unwrap_or(&0) as f32,
+        editor,
+        0.9,
+        "icons/icon-tundra.ktx2",
+        "Tundras Probability",
+        &asset_server,
+        64.0,
+        Color::srgb_u8(106, 190, 112),
+    );
 }
 
-#[derive(Component)]
-struct GrabbedMousePosition(Vec2);
+pub fn spawn_volume_knobs(
+    c: &mut RelatedSpawnerCommands<'_, ChildOf>,
+    asset_server: &AssetServer,
+    editor: &MapEditor,
+) {
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        false,
+        |editor, value| {
+            editor.volume.target = value;
+        },
+        |editor| editor.volume.target as f32,
+        editor,
+        1.0,
+        "icons/icon-region.ktx2",
+        "Region Scale",
+        &asset_server,
+        80.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            editor.budget.target = value;
+        },
+        |editor| editor.budget.target as f32,
+        editor,
+        0.5,
+        "icons/icon-realm.ktx2",
+        "Realm Scale",
+        &asset_server,
+        96.0,
+    );
+}
 
-pub fn exponential_graph_value(x: f32) -> f32 {
-    let x = x.clamp(0.0, 27.0);
-    x.powi(2) / 10.0
+pub fn spawn_feature_knobs(
+    c: &mut RelatedSpawnerCommands<'_, ChildOf>,
+    asset_server: &AssetServer,
+    editor: &MapEditor,
+) {
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::Dungeon.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| {
+            editor
+                .knobs
+                .get(&HexFeature::Dungeon)
+                .map_or(0, |k| k.target) as f32
+        },
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Dungeon),
+        "icons/icon-dungeon.ktx2",
+        "Dungeons",
+        &asset_server,
+        64.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::City.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| editor.knobs.get(&HexFeature::City).map_or(0, |k| k.target) as f32,
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::City),
+        "icons/icon-city.ktx2",
+        "Cities",
+        &asset_server,
+        64.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::Town.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| editor.knobs.get(&HexFeature::Town).map_or(0, |k| k.target) as f32,
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Town),
+        "icons/icon-town.ktx2",
+        "Towns",
+        &asset_server,
+        64.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::Village.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| {
+            editor
+                .knobs
+                .get(&HexFeature::Village)
+                .map_or(0, |k| k.target) as f32
+        },
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Village),
+        "icons/icon-village.ktx2",
+        "Villages",
+        &asset_server,
+        64.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::Inn.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| editor.knobs.get(&HexFeature::Inn).map_or(0, |k| k.target) as f32,
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Inn),
+        "icons/icon-inn.ktx2",
+        "Inns (outside settlements)",
+        &asset_server,
+        64.0,
+    );
+    c.spawn_empty().spawn_knob::<MapEditor>(
+        true,
+        |editor, value| {
+            let knob = editor
+                .knobs
+                .entry(HexFeature::Residency.clone())
+                .or_insert(Knob::default());
+            knob.target = value;
+        },
+        |editor| {
+            editor
+                .knobs
+                .get(&HexFeature::Residency)
+                .map_or(0, |k| k.target) as f32
+        },
+        editor,
+        get_feature_ratio_for_realm_type(&editor.realm_type, HexFeature::Residency),
+        "icons/icon-dwelling.ktx2",
+        "Dwellings (outside settlements)",
+        &asset_server,
+        64.0,
+    );
 }

@@ -271,7 +271,7 @@ MissingPersonQuest(Quest) {
   Description! ~ <%
     {% if Location %}
     {{QuestgiverName.First}}'s <strong>{{capitalize(Relation.Type)}}</strong>{%if Relation.FirstName%}, {{Relation.FirstName}},{%endif%} is missing since {{Timeframe}}.
-      Secret: {{Relation.FirstName}} {{Relation.BeVerb}}
+      (Secret: {{Relation.FirstName}} {{Relation.BeVerb}}
       {{begin_spoiler()}}held captive in the
       <a href="{{sandbox()}}/location/{{Location.AreaUUID}}">
         <strong>{{Location.DungeonName.Title}}</strong>
@@ -283,35 +283,41 @@ MissingPersonQuest(Quest) {
     %>
 
   Advert @ MissingPersonAdvert {
-          QuestTimeframe = &Timeframe
-          QuestRelation = *Relation
-          QuestFolk = *QuestgiverName
-          QuestLink = &QuestgiverLink
-          Details @ [
-            * “<strong>Please Help!</strong>
-              My dear <strong>{{QuestRelation.Type}}</strong> is missing.
-              I am worried sick and will reward anyone who will help.
-              Yours faithfully,
-              <a href="{{sandbox()}}/location/{{QuestLink}}">
-              <strong>{{QuestFolk.Full}}</strong></a>”
+    QuestTimeframe = &Timeframe
+    QuestRelation = *Relation
+    QuestFolk = *QuestgiverName
+    QuestLink = &QuestgiverLink
+    Location = *Location
+    BoardText @ [
+    * “<strong>Please Help!</strong>
+        My dear <strong>{{QuestRelation.Type}}</strong> is missing.
+        I am worried sick and will reward anyone who will help.
+        Yours faithfully,
+        <a href="{{sandbox()}}/location/{{QuestLink}}">
+        <strong>{{QuestFolk.Full}}</strong></a>”
 
-            * “<strong>Urgent!!</strong>
-              My <strong>{{QuestRelation.Type}}</strong> did not return home
-              since {{QuestTimeframe}}. If you have seen
-              {{QuestRelation.PronounObject}} or can help me find
-              {{QuestRelation.PronounObject}}, please contact me
-              as soon as possible.
-              Yours,
-              <a href="{{sandbox()}}/location/{{QuestLink}}">
-              <strong>{{QuestFolk.Full}}</strong></a>”
+    * “<strong>Urgent!!</strong>
+        My <strong>{{QuestRelation.Type}}</strong> did not return home
+        since {{QuestTimeframe}}. If you have seen
+        {{QuestRelation.PronounObject}} or can help me find
+        {{QuestRelation.PronounObject}}, please contact me
+        as soon as possible.
+        Yours,
+        <a href="{{sandbox()}}/location/{{QuestLink}}">
+        <strong>{{QuestFolk.Full}}</strong></a>”
 
-            * “<strong>{{capitalize(QuestRelation.Type)}} is missing!</strong>
-              My {{QuestRelation.Type}} is missing since {{QuestTimeframe}}.
-              Please reach out to me if you can help.
-              <a href="{{sandbox()}}/location/{{QuestLink}}">
-              <strong>{{QuestFolk.Full}}</strong></a>”
-        ]
-    }
+    * “<strong>{{capitalize(QuestRelation.Type)}} is missing!</strong>
+        My {{QuestRelation.Type}} is missing since {{QuestTimeframe}}.
+        Please reach out to me if you can help.
+        <a href="{{sandbox()}}/location/{{QuestLink}}">
+        <strong>{{QuestFolk.Full}}</strong></a>”
+    ]
+    Details = <%
+        {% if Location %}
+          {{BoardText}}
+        {% endif %}
+    %>
+  }
 
   Rumor @ MissingPersonRumor {
           QuestFolk = *QuestgiverName

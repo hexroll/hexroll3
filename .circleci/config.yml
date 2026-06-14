@@ -188,15 +188,16 @@ jobs:
       - run: 
           name: Build
           shell: powershell.exe
+          no_output_timeout: 90m
           command: |
             $env:PATH="$env:USERPROFILE\.cargo\bin;$env:PATH"
             rustup target add x86_64-pc-windows-msvc
             rustup override set stable-x86_64-pc-windows-msvc
             rustc -vV
-            cargo build --release --package hexroll3-app --target x86_64-pc-windows-msvc
+            cargo build --profile=release-minified --package hexroll3-app --target x86_64-pc-windows-msvc
 
       - store_artifacts:
-          path: target\x86_64-pc-windows-msvc\release\hexroll3-app.exe
+          path: target\x86_64-pc-windows-msvc\release-minified\hexroll3-app.exe
           destination: hexroll3-windows.exe
 
 workflows:

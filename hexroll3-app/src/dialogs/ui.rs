@@ -22,11 +22,16 @@
 // license. Please contact ithai at pendicepaper.com
 // for more information about commercial licensing terms.
 */
-use bevy::{input_focus::InputFocus, prelude::*};
+use bevy::{input_focus::InputFocus, platform::collections::HashSet, prelude::*};
 use bevy_ui_text_input::{actions::TextInputAction, *};
-use rand::Rng;
+use hexx::Hex;
 use rand::distributions::Alphanumeric;
+use rand::{Rng, seq::index::sample};
 
+use crate::hexmap::{
+    HexFeature, spawn_feature_knobs, spawn_terrain_knobs, spawn_volume_knobs,
+};
+use crate::shared::widgets::knob::{KnobMain, ResetKnob};
 use crate::{
     clients::{
         RemoteBackendEvent, StandaloneBackendEvent,
@@ -38,14 +43,16 @@ use crate::{
         roll_new_sandbox,
     },
     hexmap::{
-        MapEditor, PenType, TerrainType,
-        elements::{HexMapToolState, VttDataState},
+        GenerateHexMap, HexMapTileMaterials, MapEditor, PenType, TerrainType,
+        elements::{HexMapData, HexMapToolState, VttDataState},
+        terrain_generator,
     },
     shared::{
         settings::{SandboxRef, UserSettings},
         vtt::{HexMapMode, LoadVttState, VttData},
         widgets::{
             Button, ButtonSpawner, InputSpawner, LayoutSpawner, TextButton, border_radius_pct,
+            knob::GeneratorKnob,
             modal::{DiscreteAppState, ModalWindow},
             text_centered,
         },
@@ -280,40 +287,16 @@ fn show_edition_options(
                     .observe(
                         move |_: On<Pointer<Click>>,
                               mut commands: Commands,
-                                  mut user_settings: ResMut<UserSettings>,
-                                  mut next_state: ResMut<NextState<DiscreteAppState>>,
-                              modals: Query<Entity, With<ModalWindow>>
-                            | {
-                                let mut rng = rand::thread_rng();
-                                let sandbox_id : String= (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
-                                if let Ok(_) = roll_new_sandbox(&sandbox_id, &edition_name).map_err(|err| error!("Error rolling new sandbox: {}",err.to_string())) {
-                                    user_settings.sandbox = Some(sandbox_id.clone());
-                                    user_settings.local=Some(true);
-                                    if let Some(existing) = user_settings
-                                        .sandboxes
-                                        .iter_mut()
-                                        .find(|s| s.sandbox.as_ref() == Some(&sandbox_id))
-                                    {
-                                        existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
-                                    } else {
-                                        user_settings.sandboxes.push(SandboxRef {
-                                            sandbox: Some(sandbox_id.clone()),
-                                            key: None,
-                                            last_used: Some(chrono::Utc::now().timestamp() as u64),
-                                            local: Some(true)
-                                        });
-                                    }
-                                    commands.trigger(StandaloneBackendEvent(RequestSandboxFromBackend {
-                                        sandbox_uid: sandbox_id.to_string(),
-                                        pairing_key: None,
-                                    }));
-                                    next_state.set(DiscreteAppState::Normal);
-                                    user_settings.save();
-                                    for modal in modals.iter() {
-                                        commands.entity(modal).try_despawn();
-                                    }
-                                    commands.run_system_cached(show_new_sandbox_options);
-                                }
+                              mut next_state: ResMut<NextState<DiscreteAppState>>,
+                              modals: Query<Entity, With<ModalWindow>> | {
+                            next_state.set(DiscreteAppState::Normal);
+                            for modal in modals.iter() {
+                                commands.entity(modal).try_despawn();
+                            }
+                            commands.run_system_cached_with(show_game_mode_options, NewSandboxParams {
+                                edition: edition_name.to_string(),
+                                is_solo: false,
+                            });
                         },
                     );
                 };
@@ -321,6 +304,12 @@ fn show_edition_options(
                 button("o5e");
             });
         });
+}
+
+#[derive(Clone)]
+struct NewSandboxParams {
+    edition: String,
+    is_solo: bool,
 }
 
 fn show_new_sandbox_options(
@@ -367,6 +356,157 @@ fn show_new_sandbox_options(
                 button("Duchy");
             });
         });
+}
+
+fn show_advanced_generator(
+    input: In<NewSandboxParams>,
+    mut next_state: ResMut<NextState<DiscreteAppState>>,
+    mut commands: Commands,
+    editor: Res<MapEditor>,
+    asset_server: Res<AssetServer>,
+) {
+    next_state.set(DiscreteAppState::Modal);
+    commands
+        .spawn(modal_window("NewSandbox"))
+        .with_children(|c| {
+            c.show_synthesizer_controls(&asset_server, &editor);
+            c.spawn_text_button(TextButton::from_text(
+                "Generate",
+                Button::from_image(asset_server.load("icons/icon-dice.ktx2"))
+                    .button_size(Val::Px(60.0))
+                    .image_size(Val::Px(32.0))
+                    .border_radius(Val::Percent(20.0)),
+            ))
+            .observe(
+                move |_: On<Pointer<Click>>,
+                      mut commands: Commands,
+                      mut map: ResMut<HexMapData>,
+                      tiles: Res<HexMapTileMaterials>,
+                      modals: Query<Entity, With<ModalWindow>>,
+                      mut user_settings: ResMut<UserSettings>,
+                      mut editor: ResMut<MapEditor>| {
+                    for modal in modals.iter() {
+                        commands.entity(modal).try_despawn();
+                    }
+                    commands.run_system_cached_with(initiate_generator, input.0.clone());
+                },
+            );
+        });
+}
+
+fn initiate_generator(
+    input: In<NewSandboxParams>,
+    mut commands: Commands,
+    mut map: ResMut<HexMapData>,
+    tiles: Res<HexMapTileMaterials>,
+    modals: Query<Entity, With<ModalWindow>>,
+    mut user_settings: ResMut<UserSettings>,
+    mut editor: ResMut<MapEditor>,
+) {
+    // editor.realm_type = format!("RealmType{}", realm_type);
+    editor.pen = PenType::Brush;
+    editor.terrain = TerrainType::MountainsHex;
+    let existing_pool_ids: HashSet<i32> = map
+        .hexes
+        .values()
+        .filter(|tile| !tile.generated && tile.pool_id != 0)
+        .map(|tile| tile.pool_id)
+        .collect();
+    terrain_generator(&mut map, &tiles, &mut editor, &existing_pool_ids);
+
+    let mut placer = |feature: HexFeature, count: usize| {
+        let coords_vec: Vec<Hex> = map
+            .hexes
+            .iter()
+            .filter(|(_, tile)| !tile.generated && tile.feature == HexFeature::None)
+            .map(|(hex, _)| *hex)
+            .collect();
+
+        let indices: Vec<usize> =
+            sample(&mut rand::thread_rng(), coords_vec.len(), count).into_vec();
+
+        indices.iter().for_each(|i| {
+            if let Some(hex) = map.hexes.get_mut(&coords_vec[*i]) {
+                hex.feature = feature.clone();
+            }
+        });
+    };
+
+    for (feature, knob) in editor.knobs.iter() {
+        placer(feature.clone(), knob.target as usize);
+    }
+
+    commands.trigger(GenerateHexMap);
+}
+
+fn show_game_mode_options(
+    input: In<NewSandboxParams>,
+    mut next_state: ResMut<NextState<DiscreteAppState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    next_state.set(DiscreteAppState::Modal);
+    let id = commands.spawn(modal_window("NewSandbox")).id();
+
+    let v = input.clone();
+
+    commands.entity(id).with_children(|c| {
+        c.spawn(text_centered("Choose your game mode"));
+        c.spawn_spacer();
+        c.spawn_row_with_wrap(AlignItems::Center, |c| {
+            c.spawn_text_button(
+                TextButton::from_text(
+                    "Referee",
+                    Button::from_image(asset_server.load("icons/icon-earth.ktx2"))
+                        .button_size(Val::Px(60.0))
+                        .image_size(Val::Px(48.0))
+                        .border_radius(Val::Percent(20.0)),
+                )
+                .width(Val::Px(200.0)),
+            )
+            .observe(
+                move |_: On<Pointer<Click>>,
+                      asset_server: Res<AssetServer>,
+                      mut commands: Commands,
+                      mut next_state: ResMut<NextState<DiscreteAppState>>,
+                      mut user_settings: ResMut<UserSettings>,
+                      modals: Query<Entity, With<ModalWindow>>| {
+                    next_state.set(DiscreteAppState::Normal);
+                    for modal in modals.iter() {
+                        commands.entity(modal).try_despawn();
+                    }
+                    make_sandbox(&mut commands, &mut user_settings, v.clone());
+                    commands.run_system_cached(show_new_sandbox_options);
+                },
+            );
+
+            c.spawn_text_button(
+                TextButton::from_text(
+                    "Solo",
+                    Button::from_image(asset_server.load("icons/icon-earth.ktx2"))
+                        .button_size(Val::Px(60.0))
+                        .image_size(Val::Px(48.0))
+                        .border_radius(Val::Percent(20.0)),
+                )
+                .width(Val::Px(200.0)),
+            )
+            .observe(
+                move |_: On<Pointer<Click>>,
+                      asset_server: Res<AssetServer>,
+                      mut commands: Commands,
+                      mut next_state: ResMut<NextState<DiscreteAppState>>,
+                      mut user_settings: ResMut<UserSettings>,
+                      modals: Query<Entity, With<ModalWindow>>| {
+                    next_state.set(DiscreteAppState::Normal);
+                    for modal in modals.iter() {
+                        commands.entity(modal).try_despawn();
+                    }
+                    make_sandbox(&mut commands, &mut user_settings, input.clone());
+                    commands.run_system_cached_with(show_advanced_generator, input.0.clone());
+                },
+            );
+        });
+    });
 }
 
 fn show_pairing_modal(
@@ -628,4 +768,184 @@ fn modal_window(name: &str) -> impl Bundle {
         BackgroundColor(Srgba::new(0.0, 0.0, 0.0, 0.95).into()),
         ZIndex(999),
     )
+}
+
+pub trait PanelBuilder {
+    fn show_synthesizer_controls(
+        &mut self,
+        asset_server: &AssetServer,
+        editor: &MapEditor,
+    ) -> &mut Self;
+}
+
+#[derive(Component)]
+struct RealmTypeSelector;
+
+impl PanelBuilder for bevy::ecs::relationship::RelatedSpawnerCommands<'_, ChildOf> {
+    fn show_synthesizer_controls(
+        &mut self,
+        asset_server: &AssetServer,
+        editor: &MapEditor,
+    ) -> &mut Self {
+        self.spawn_row_with_wrap(AlignItems::Center, |c| {
+            let mut button = |realm_type: &str| {
+                let realm_type = realm_type.to_string();
+                c.spawn_text_button(
+                    TextButton::from_text(
+                        &realm_type,
+                        Button::from_image(asset_server.load(format!(
+                            "icons/icon-realm-{}.ktx2",
+                            realm_type.to_lowercase()
+                        )))
+                        .button_size(Val::Px(60.0))
+                        .image_size(Val::Px(48.0))
+                        .border_radius(Val::Percent(20.0)),
+                    )
+                    .width(Val::Px(200.0)),
+                )
+                .insert(RealmTypeSelector)
+                .observe(
+                    move |trigger: On<Pointer<Click>>,
+                          group: Query<Entity, With<RealmTypeSelector>>,
+                          mut commands: Commands,
+                          mut editor: ResMut<MapEditor>,
+                          knobs: Query<
+                        Entity,
+                        (With<KnobMain>, Without<RealmTypeSelector>),
+                    >| {
+                        group.iter().for_each(|e| {
+                            commands.entity(e).try_remove::<BorderColor>();
+                        });
+                        commands
+                            .entity(trigger.entity)
+                            .insert((BorderColor::all(Color::WHITE.with_alpha(1.00)),));
+                        editor.realm_type = format!("RealmType{}", realm_type);
+                        match realm_type.as_str() {
+                            "Lands" => {
+                                editor.budget.target = 20;
+                                editor.volume.target = 15;
+                                editor.intent.insert(TerrainType::JungleHex, 10);
+                                editor.intent.insert(TerrainType::SwampsHex, 3);
+                                editor.intent.insert(TerrainType::MountainsHex, 7);
+                                editor.intent.insert(TerrainType::PlainsHex, 5);
+                                editor.intent.insert(TerrainType::TundraHex, 0);
+                                editor.intent.insert(TerrainType::ForestHex, 0);
+                                editor.intent.insert(TerrainType::DesertHex, 4);
+                            }
+                            "Kingdom" => {
+                                editor.budget.target = 17;
+                                editor.volume.target = 12;
+                                editor.intent.insert(TerrainType::JungleHex, 0);
+                                editor.intent.insert(TerrainType::SwampsHex, 3);
+                                editor.intent.insert(TerrainType::MountainsHex, 6);
+                                editor.intent.insert(TerrainType::PlainsHex, 10);
+                                editor.intent.insert(TerrainType::TundraHex, 1);
+                                editor.intent.insert(TerrainType::ForestHex, 7);
+                                editor.intent.insert(TerrainType::DesertHex, 0);
+                            }
+                            "Empire" => {
+                                editor.budget.target = 27;
+                                editor.volume.target = 18;
+                                editor.intent.insert(TerrainType::JungleHex, 4);
+                                editor.intent.insert(TerrainType::SwampsHex, 3);
+                                editor.intent.insert(TerrainType::MountainsHex, 6);
+                                editor.intent.insert(TerrainType::PlainsHex, 8);
+                                editor.intent.insert(TerrainType::TundraHex, 2);
+                                editor.intent.insert(TerrainType::ForestHex, 7);
+                                editor.intent.insert(TerrainType::DesertHex, 3);
+                            }
+                            "Duchy" => {
+                                editor.budget.target = 12;
+                                editor.volume.target = 8;
+                                editor.intent.insert(TerrainType::JungleHex, 0);
+                                editor.intent.insert(TerrainType::SwampsHex, 0);
+                                editor.intent.insert(TerrainType::MountainsHex, 6);
+                                editor.intent.insert(TerrainType::PlainsHex, 7);
+                                editor.intent.insert(TerrainType::TundraHex, 2);
+                                editor.intent.insert(TerrainType::ForestHex, 7);
+                                editor.intent.insert(TerrainType::DesertHex, 0);
+                            }
+                            _ => {}
+                        }
+                        for k in knobs.iter() {
+                            commands.entity(k).trigger(|entity| ResetKnob { entity });
+                        }
+                    },
+                );
+            };
+            button("Lands");
+            button("Empire");
+            button("Kingdom");
+            button("Duchy");
+        });
+
+        self.spawn_spacer();
+        // background-color
+        // z-index
+        // self.spawn(text_centered("Realm Scale"));
+        // self.spawn_spacer();
+        // align_self: strech
+        // justify_content: center
+        // margin-top: -33
+        // padding-top: 18
+        // border color
+        // border radius
+        self.spawn_labeled_border("Realm Scale", |c| {
+            c.spawn_row_with_wrap(AlignItems::Center, |c| {
+                spawn_volume_knobs(c, &asset_server, &editor);
+            });
+        });
+        self.spawn_spacer();
+        // self.spawn(text_centered("Realm Biomes"));
+        // self.spawn_spacer();
+        self.spawn_labeled_border("Realm Biomes", |c| {
+            c.spawn_row_with_wrap(AlignItems::Center, |c| {
+                spawn_terrain_knobs(c, &asset_server, &editor);
+            });
+        });
+        self.spawn_spacer();
+        // self.spawn(text_centered("Realm Features"));
+        // self.spawn_spacer();
+        self.spawn_labeled_border("Realm Features", |c| {
+            c.spawn_row_with_wrap(AlignItems::Center, |c| {
+                spawn_feature_knobs(c, &asset_server, &editor);
+            });
+        });
+        self.spawn_spacer();
+        self
+    }
+}
+
+fn make_sandbox(
+    commands: &mut Commands,
+    user_settings: &mut UserSettings,
+    input: NewSandboxParams,
+) {
+    let mut rng = rand::thread_rng();
+    let sandbox_id: String = (0..10).map(|_| rng.sample(Alphanumeric) as char).collect();
+    if let Ok(_) = roll_new_sandbox(&sandbox_id, &input.edition)
+        .map_err(|err| error!("Error rolling new sandbox: {}", err.to_string()))
+    {
+        user_settings.sandbox = Some(sandbox_id.clone());
+        user_settings.local = Some(true);
+        if let Some(existing) = user_settings
+            .sandboxes
+            .iter_mut()
+            .find(|s| s.sandbox.as_ref() == Some(&sandbox_id))
+        {
+            existing.last_used = Some(chrono::Utc::now().timestamp() as u64);
+        } else {
+            user_settings.sandboxes.push(SandboxRef {
+                sandbox: Some(sandbox_id.clone()),
+                key: None,
+                last_used: Some(chrono::Utc::now().timestamp() as u64),
+                local: Some(true),
+            });
+        }
+        commands.trigger(StandaloneBackendEvent(RequestSandboxFromBackend {
+            sandbox_uid: sandbox_id.to_string(),
+            pairing_key: None,
+        }));
+        user_settings.save();
+    }
 }

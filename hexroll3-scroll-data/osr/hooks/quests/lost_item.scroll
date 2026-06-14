@@ -190,7 +190,7 @@ TreasureQuest(Quest) {
   Advert @ LostTreasureAdvert {
     QuestFolk = *QuestgiverName
     QuestLink = &QuestgiverLink
-    Details @ [
+    BoardText @ [
       * “<strong>Help requested!</strong>
         A heirloom of sentimental value was stolen
         from me.  I will reward anyone who is kind enough to get it back.
@@ -208,6 +208,11 @@ TreasureQuest(Quest) {
         <a href="{{sandbox()}}/location/{{QuestLink}}">
         <strong>{{QuestFolk.Full}}</strong></a>”
     ]
+    Details = <%
+        {% if Location %}
+          {{BoardText}}
+        {% endif %}
+    %>
   }
 }
 

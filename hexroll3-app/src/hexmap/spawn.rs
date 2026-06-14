@@ -231,7 +231,7 @@ pub fn spawn_tile<T>(
             Mesh3d(map_resources.mesh.clone()),
             MeshMaterial3d(map_resources.hex_mask_material.clone()),
             RenderLayers::layer(RENDER_LAYER_MAP_LOD_LOW),
-            vtt_data.get_reveal_state_components(&hex),
+            vtt_data.get_reveal_state_components(&hex, hex_data.generated),
         ));
 
         if let Some(tiles) = &hex_data.river_tile {

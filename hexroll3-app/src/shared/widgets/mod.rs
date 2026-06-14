@@ -26,6 +26,7 @@
 pub mod buttons;
 pub mod cursor;
 pub mod dial;
+pub mod knob;
 pub mod link;
 pub mod list;
 pub mod modal;
@@ -138,6 +139,7 @@ impl ButtonSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, Child
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 padding: UiRect::axes(Val::Px(20.0), Val::Px(10.0)),
+                border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
             BackgroundColor(Srgba::new(0.0, 0.0, 0.0, 0.9).into()),
@@ -294,6 +296,11 @@ pub trait LayoutSpawner {
         &mut self,
         func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
     );
+    fn spawn_labeled_border(
+        &mut self,
+        label: &str,
+        func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
+    );
 }
 
 impl LayoutSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, ChildOf> {
@@ -341,6 +348,34 @@ impl LayoutSpawner for bevy::ecs::relationship::RelatedSpawnerCommands<'_, Child
             ..default()
         },))
             .with_children(func);
+    }
+    fn spawn_labeled_border(
+        &mut self,
+        label: &str,
+        func: impl FnOnce(&mut bevy::ecs::relationship::RelatedSpawnerCommands<ChildOf>),
+    ) {
+        self.spawn(box_label(label, Color::WHITE));
+        self.spawn((
+            Node {
+                flex_direction: FlexDirection::Row,
+                flex_wrap: FlexWrap::Wrap,
+                justify_content: JustifyContent::Center,
+                margin: UiRect::top(Val::Px(-15.0)),
+                width: Val::VMin(100.0),
+                padding: UiRect {
+                    top: Val::Px(26.0),
+                    bottom: Val::Px(24.0),
+                    ..default()
+                },
+                border: UiRect::all(Val::Px(2.0)),
+                row_gap: Val::Px(10.0),
+                column_gap: Val::Px(10.0),
+                ..default()
+            },
+            BorderColor::all(Color::srgb_u8(125, 45, 45)),
+            BorderRadius::all(Val::Px(10.)),
+        ))
+        .with_children(func);
     }
     fn spawn_list(
         &mut self,
@@ -397,6 +432,34 @@ pub fn text_centered_with_color(text: &str, color: Color) -> impl Bundle {
             ..default()
         },
         Text::new(text),
+    )
+}
+
+pub fn box_label(text: &str, color: Color) -> impl Bundle {
+    (
+        BackgroundColor(Color::srgb_u8(125, 45, 45)),
+        BorderRadius::all(Val::Px(8.0)),
+        TextSpan::default(),
+        TextColor(color),
+        TextFont {
+            font_size: 20.0,
+            ..default()
+        },
+        TextLayout {
+            justify: Justify::Center,
+            ..default()
+        },
+        Text::new(text),
+        ZIndex(100),
+        Node {
+            padding: UiRect {
+                top: Val::Px(0.0),
+                bottom: Val::Px(3.0),
+                left: Val::Px(30.0),
+                right: Val::Px(30.0),
+            },
+            ..default()
+        },
     )
 }
 

@@ -39,11 +39,12 @@ HexRumor(Rumor) {
 
 RumorsTable {
 
-  [2..5 rumors] ? LocalRumor
-  [6..6 rumors2] ? RealmRumor
-  [6..6 rumors3] ? HexRumor
+  [2..5 rumors] % LocalRumor
+  [6..6 rumors2] % RealmRumor
+  [6..6 rumors3] % HexRumor
 
   table! ~ <%
+    {{reroller(uuid, "", False)}}
     <table>
     <tr> <th> d6 </th> <th> Rumor </th> </tr>
     {%set counter=namespace(value=0)%}

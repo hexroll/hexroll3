@@ -58,7 +58,7 @@ use super::{
     daynight::{DayNightPlugin, HexMapTime},
     editor::MapEditorPlugin,
     elements::{
-        HexMapCache, HexMapState, HexMapToolState, HexMask, MainCamera,
+        HexMapCache, HexMapData, HexMapState, HexMapToolState, HexMask, MainCamera,
         MapVisibilityController, ScaleHudMarker,
     },
     fader::hex_map_zoom_fader,
@@ -259,6 +259,7 @@ fn on_toggle_reveal_mode(
     mut labels: Query<&mut Visibility, (With<MapLabel>, Without<OceanMarker>)>,
     mut ocean_hexes: Query<&mut Visibility, (Without<MapLabel>, With<OceanMarker>)>,
     mut vtt_data: ResMut<VttData>,
+    map_data: Res<HexMapData>,
 ) {
     if vtt_data.mode == HexMapMode::Player {
         return;
@@ -266,9 +267,10 @@ fn on_toggle_reveal_mode(
     if trigger.value == RefereeRevealing::On {
         vtt_data.mode = HexMapMode::RefereeRevealing;
         for (e, HexMask(hex)) in masks.iter_mut() {
+            let generated = map_data.hexes.get(hex).map_or(false, |t| t.generated);
             commands
                 .entity(e)
-                .try_insert(vtt_data.get_reveal_state_components(hex));
+                .try_insert(vtt_data.get_reveal_state_components(hex, generated));
         }
         for mut v in labels.iter_mut() {
             *v = Visibility::Hidden;
@@ -280,9 +282,10 @@ fn on_toggle_reveal_mode(
     if trigger.value == RefereeRevealing::Off {
         vtt_data.mode = HexMapMode::RefereeViewing;
         for (e, HexMask(hex)) in masks.iter_mut() {
+            let generated = map_data.hexes.get(hex).map_or(false, |t| t.generated);
             commands
                 .entity(e)
-                .try_insert(vtt_data.get_reveal_state_components(hex));
+                .try_insert(vtt_data.get_reveal_state_components(hex, generated));
             for mut v in labels.iter_mut() {
                 *v = Visibility::Inherited;
             }

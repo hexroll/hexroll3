@@ -61,6 +61,8 @@ pub struct VttData {
     #[serde(skip)]
     pub invalidate_map: bool,
     #[serde(skip)]
+    pub edit_mode: bool,
+    #[serde(skip)]
     pub cache: Option<HexMapJson>,
     #[serde(skip)]
     pub buffer: String,
@@ -71,6 +73,7 @@ impl VttData {
         self.mode = existing_data.mode.clone();
         self.node_name = existing_data.node_name.clone();
         self.cache = existing_data.cache.clone();
+        self.edit_mode = existing_data.edit_mode;
     }
 
     pub fn is_player(&self) -> bool {

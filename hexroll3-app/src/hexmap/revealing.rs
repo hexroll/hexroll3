@@ -80,7 +80,7 @@ pub fn reveal_hex_or_ocean(
                 if mask.0 == coord {
                     commands
                         .entity(e)
-                        .try_insert(vtt_map.get_reveal_state_components(&coord));
+                        .try_insert(vtt_map.get_reveal_state_components(&coord, false));
                 }
             }
             // NOTE: This will invalidate any already generated battlemaps.
@@ -130,7 +130,11 @@ pub trait VttHexRevealer {
         commands: &mut Commands,
         hexes: Query<(Entity, &HexEntity)>,
     ) -> Option<HexRevealState>;
-    fn get_reveal_state_components(&self, hex: &Hex) -> (Transform, Visibility);
+    fn get_reveal_state_components(
+        &self,
+        hex: &Hex,
+        generated: bool,
+    ) -> (Transform, Visibility);
 }
 
 impl VttHexRevealer for VttData {
@@ -208,12 +212,19 @@ impl VttHexRevealer for VttData {
             }
         }
     }
-    fn get_reveal_state_components(&self, hex: &Hex) -> (Transform, Visibility) {
+    fn get_reveal_state_components(
+        &self,
+        hex: &Hex,
+        generated: bool,
+    ) -> (Transform, Visibility) {
         let base_transform = Transform::from_xyz(
             0.0,
             crate::shared::layers::HEIGHT_OF_TOP_MOST_LAYERED_TILE + 150.0,
             0.0,
         );
+        if self.edit_mode && generated {
+            return (base_transform, Visibility::Visible);
+        }
         let maybe_visible = if self.mode == HexMapMode::RefereeRevealing {
             Visibility::Visible
         } else {

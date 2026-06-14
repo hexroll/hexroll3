@@ -57,8 +57,15 @@ pub use sync::MapMessageCacheType;
 
 pub use editor::MapEditor;
 pub use editor::PenType;
+pub use editor::spawn_feature_knobs;
+pub use editor::spawn_terrain_knobs;
+pub use editor::spawn_volume_knobs;
+
+pub use builder::GenerateHexMap;
+pub use builder::terrain_generator;
 
 mod borderlines;
+mod builder;
 mod curve_tiles;
 mod data;
 mod daynight;
