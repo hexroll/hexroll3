@@ -26,6 +26,7 @@ jobs:
 
       - run:
           name: Build release binary
+          no_output_timeout: 90m
           command: |
             cargo build --profile=release-minified-and-then-some --package hexroll3-app
 
@@ -62,6 +63,7 @@ jobs:
 
       - run:
           name: Build release binary
+          no_output_timeout: 90m
           command: |
             . "$HOME/.cargo/env" && cargo build --profile=release-minified-and-then-some --package hexroll3-app
 
