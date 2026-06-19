@@ -78,9 +78,14 @@ impl Plugin for CameraPlugin {
     }
 }
 
+pub enum GimbalshotCoords {
+    Hex(MapCoords),
+    Direct { pos: Vec2, scale: f32 },
+}
+
 #[derive(Event)]
 pub struct GimbalshotCameraMovement {
-    pub coords: MapCoords,
+    pub coords: GimbalshotCoords,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -89,18 +94,22 @@ pub struct MapCoords {
     pub x: f32,
     pub y: f32,
     pub layer: usize,
-    pub zoom: i32,
+    pub zoom: Option<i32>,
 }
 
 impl MapCoords {
+    // TODO: Make configurable
     pub fn ortho_scale_from_zoom(&self) -> f32 {
-        match self.zoom {
-            1 => 0.01,
+        match self.zoom.unwrap_or(9) {
+            1 => 0.015,
             2 => 0.02,
             3 => 0.04,
-            7 => 0.07,
+            4 => 0.07,
+            5 => 0.1,
             6 => 0.2,
-            4 => 1.0,
+            7 => 0.3,
+            8 => 0.5,
+            9 => 1.0,
             0 => 2.0,
             _ => 3.0,
         }
@@ -147,89 +156,100 @@ fn tween_camera(
         With<MainCamera>,
     >,
 ) {
-    let hex_uid = &trigger.event().coords.hex;
-    if let Some(pos) = hex_map.get_canonical_pos(
-        hex_uid,
-        Vec2::new(trigger.event().coords.x, trigger.event().coords.y),
-    ) {
-        for (camera_entity, camera_transform, camera_projection, mut camera_tween_target) in
-            cameras.iter_mut()
-        {
-            if let Projection::Orthographic(proj) = camera_projection {
-                let new_scale = trigger.event().coords.ortho_scale_from_zoom();
-                if camera_transform.translation.xz().distance(pos) > 100.0
-                    && trigger.event().coords.zoom != 4
-                {
-                    camera_tween_target.target_hex_uid = Some(hex_uid.clone());
-                    let mid = (pos + camera_transform.translation.xz()) / 2.0;
+    let (pos, scale, maybe_hex_uid, zoom_level_requested) = match &trigger.event().coords {
+        GimbalshotCoords::Hex(map_coords) => {
+            let hex_uid = map_coords.hex.clone();
+            if let Some(pos) =
+                hex_map.get_canonical_pos(&hex_uid, Vec2::new(map_coords.x, map_coords.y))
+            {
+                (
+                    pos,
+                    map_coords.ortho_scale_from_zoom(),
+                    Some(hex_uid),
+                    map_coords.zoom.is_some(),
+                )
+            } else {
+                return;
+            }
+        }
+        GimbalshotCoords::Direct { pos, scale } => (*pos, *scale, None, false),
+    };
+    for (camera_entity, camera_transform, camera_projection, mut camera_tween_target) in
+        cameras.iter_mut()
+    {
+        if let Projection::Orthographic(proj) = camera_projection {
+            let new_scale = scale;
+            if camera_transform.translation.xz().distance(pos) > 100.0 && zoom_level_requested
+            {
+                camera_tween_target.target_hex_uid = maybe_hex_uid.clone();
+                let mid = (pos + camera_transform.translation.xz()) / 2.0;
 
-                    let tween_to_mid = Tween::new(
-                        EaseFunction::SineIn,
-                        Duration::from_millis(1000),
-                        TransformPositionLens {
-                            start: camera_transform.translation,
-                            end: Vec3::new(mid.x, camera_transform.translation.y, mid.y),
-                        },
-                    );
-                    let tween_to_pos = Tween::new(
-                        EaseFunction::SineOut,
-                        Duration::from_secs(1),
-                        TransformPositionLens {
-                            start: Vec3::new(mid.x, camera_transform.translation.y, mid.y),
-                            end: Vec3::new(pos.x, camera_transform.translation.y, pos.y),
-                        },
-                    );
-                    let tween_to_overview = Tween::new(
-                        EaseFunction::SineInOut,
-                        Duration::from_millis(1000),
-                        ProjectionScaleLens {
-                            start: proj.scale,
-                            end: 3.0,
-                        },
-                    );
-                    let tween_to_zoom_level = Tween::new(
-                        EaseFunction::SineInOut,
-                        Duration::from_millis(1000),
-                        ProjectionScaleLens {
-                            start: 3.0,
-                            end: new_scale,
-                        },
-                    )
-                    .with_completed_system(camera_tween_target.clearing_system);
-                    commands
-                        .entity(camera_entity)
-                        .insert(bevy_tweening::Animator::new(
-                            tween_to_mid.then(tween_to_pos),
-                        ));
-                    commands
-                        .entity(camera_entity)
-                        .insert(bevy_tweening::Animator::new(
-                            tween_to_overview.then(tween_to_zoom_level),
-                        ));
-                } else {
-                    let tween_to_pos = Tween::new(
-                        EaseFunction::QuadraticInOut,
-                        Duration::from_millis(300),
-                        TransformPositionLens {
-                            start: camera_transform.translation,
-                            end: Vec3::new(pos.x, camera_transform.translation.y, pos.y),
-                        },
-                    );
-                    let tween_to_zoom = Tween::new(
-                        EaseFunction::QuadraticInOut,
-                        Duration::from_millis(300),
-                        ProjectionScaleLens {
-                            start: proj.scale,
-                            end: new_scale,
-                        },
-                    );
-                    commands
-                        .entity(camera_entity)
-                        .insert(bevy_tweening::Animator::new(tween_to_pos));
-                    commands
-                        .entity(camera_entity)
-                        .insert(bevy_tweening::Animator::new(tween_to_zoom));
-                }
+                let tween_to_mid = Tween::new(
+                    EaseFunction::SineIn,
+                    Duration::from_millis(1000),
+                    TransformPositionLens {
+                        start: camera_transform.translation,
+                        end: Vec3::new(mid.x, camera_transform.translation.y, mid.y),
+                    },
+                );
+                let tween_to_pos = Tween::new(
+                    EaseFunction::SineOut,
+                    Duration::from_secs(1),
+                    TransformPositionLens {
+                        start: Vec3::new(mid.x, camera_transform.translation.y, mid.y),
+                        end: Vec3::new(pos.x, camera_transform.translation.y, pos.y),
+                    },
+                );
+                let tween_to_overview = Tween::new(
+                    EaseFunction::SineInOut,
+                    Duration::from_millis(1000),
+                    ProjectionScaleLens {
+                        start: proj.scale,
+                        end: 3.0,
+                    },
+                );
+                let tween_to_zoom_level = Tween::new(
+                    EaseFunction::SineInOut,
+                    Duration::from_millis(1000),
+                    ProjectionScaleLens {
+                        start: 3.0,
+                        end: new_scale,
+                    },
+                )
+                .with_completed_system(camera_tween_target.clearing_system);
+                commands
+                    .entity(camera_entity)
+                    .insert(bevy_tweening::Animator::new(
+                        tween_to_mid.then(tween_to_pos),
+                    ));
+                commands
+                    .entity(camera_entity)
+                    .insert(bevy_tweening::Animator::new(
+                        tween_to_overview.then(tween_to_zoom_level),
+                    ));
+            } else {
+                let tween_to_pos = Tween::new(
+                    EaseFunction::QuadraticInOut,
+                    Duration::from_millis(300),
+                    TransformPositionLens {
+                        start: camera_transform.translation,
+                        end: Vec3::new(pos.x, camera_transform.translation.y, pos.y),
+                    },
+                );
+                let tween_to_zoom = Tween::new(
+                    EaseFunction::QuadraticInOut,
+                    Duration::from_millis(300),
+                    ProjectionScaleLens {
+                        start: proj.scale,
+                        end: new_scale,
+                    },
+                );
+                commands
+                    .entity(camera_entity)
+                    .insert(bevy_tweening::Animator::new(tween_to_pos));
+                commands
+                    .entity(camera_entity)
+                    .insert(bevy_tweening::Animator::new(tween_to_zoom));
             }
         }
     }
