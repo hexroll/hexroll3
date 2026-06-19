@@ -47,6 +47,8 @@ mod vttbar;
 mod drawer;
 mod menu;
 
+pub use toggles::PinsToggle;
+
 // This plugin must be added by the user for the HUD to work
 pub struct OverlayPlugin;
 impl Plugin for OverlayPlugin {

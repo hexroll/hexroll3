@@ -70,6 +70,7 @@ impl LabelsMode {
 pub struct AppSettings {
     pub rulers_mode: RulersMode,
     pub labels_mode: LabelsMode,
+    pub pins_hidden: bool,
 }
 
 #[derive(Reflect, Serialize, Deserialize, Clone)]

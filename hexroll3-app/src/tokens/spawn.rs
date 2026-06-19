@@ -41,7 +41,7 @@ use crate::{
         gltf::Animations,
         labels::{TokenLabel, TokenLabelOffset, spawn_token_labels},
         layers::{HEIGHT_OF_MAP_PINS, HexrollPhysicsLayer},
-        settings::Config,
+        settings::{AppSettings, Config},
         spawnq::SpawnQueue,
         vtt::VttData,
         widgets::cursor::TooltipOnHover,
@@ -81,6 +81,7 @@ fn on_spawn_token(
     map_resources: Res<HexMapResources>,
     mut queue: ResMut<SpawnQueue>,
     app_config: Res<Config>,
+    settings: Res<AppSettings>,
 ) {
     let token = Token {
         token_id: trigger.event.token.token_id,
@@ -158,7 +159,11 @@ fn on_spawn_token(
                         ))
                         .looking_at(Vec3::new(0.0, 0.0, 0.0), Dir3::NEG_Z),
                     TokenMarker,
-                    Visibility::Visible,
+                    if settings.pins_hidden {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Hidden
+                    },
                     Pickable {
                         should_block_lower: false,
                         is_hoverable: true,

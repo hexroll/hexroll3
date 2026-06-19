@@ -35,8 +35,8 @@ use crate::{
     battlemaps::DUNGEON_FOG_COLOR,
     hexmap::elements::{HexMapResources, HexMapState, MainCamera, MapVisibilityController},
     shared::{
-        disc::create_3d_disc, input::InputMode, layers::HEIGHT_OF_TOKENS, vtt::VttData,
-        widgets::buttons::ToggleResourceWrapper,
+        disc::create_3d_disc, input::InputMode, layers::HEIGHT_OF_TOKENS,
+        settings::AppSettings, vtt::VttData, widgets::buttons::ToggleResourceWrapper,
     },
 };
 
@@ -244,6 +244,7 @@ fn set_tokens_visibility_by_camera_viewport(
     mut markers: Query<(&mut Visibility, &mut Transform, &ChildOf), With<TokenMarker>>,
     map_resources: Res<HexMapResources>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    settings: Res<AppSettings>,
 ) {
     // Prevent token lights from turning off when slightly out of bounds
     for (mut v, gt, _) in items.iter_mut() {
@@ -287,7 +288,11 @@ fn set_tokens_visibility_by_camera_viewport(
             marker_transform.rotate_y(-parent_transform.rotation.to_euler(EulerRot::YXZ).0);
         }
         if visibility.scale > TOKEN_MAP_PINS_CLOSEST_VISIBILITY_ZOOM {
-            *v = Visibility::Visible;
+            *v = if settings.pins_hidden {
+                Visibility::Hidden
+            } else {
+                Visibility::Visible
+            };
         } else {
             *v = Visibility::Hidden;
         }

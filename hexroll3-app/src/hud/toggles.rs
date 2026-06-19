@@ -36,7 +36,10 @@ use crate::{
         labels::DespawnLabels,
         settings::{AppSettings, LabelsMode},
         widgets::{
-            buttons::{MenuButtonSwitcher, Switch, ToggleButtonSwitcherEx, rotate_key},
+            buttons::{
+                MenuButtonSwitcher, Switch, ToggleButtonSwitcherEx, ToggleEventWrapper,
+                rotate_key,
+            },
             cursor::TooltipOnHover,
         },
     },
@@ -187,7 +190,12 @@ pub fn on_show_toggles(
                         },
                     );
 
-                spawn_pins_toggle(c, create_toggle_icon_frame_bundle(), asset_server.as_ref());
+                spawn_pins_toggle(
+                    c,
+                    create_toggle_icon_frame_bundle(),
+                    asset_server.as_ref(),
+                    settings.pins_hidden,
+                );
                 c.spawn(make_auto_drawer_sensor());
             });
     }
@@ -309,12 +317,17 @@ pub fn spawn_pins_toggle<T>(
     c: &mut RelatedSpawnerCommands<'_, ChildOf>,
     bundle: T,
     asset_server: &AssetServer,
+    pins_hidden: bool,
 ) where
     T: Bundle,
 {
     c.spawn(bundle)
         .menu_button_switch_ex::<PinsToggle>(
-            PinsToggle::default(),
+            if pins_hidden {
+                PinsToggle::Off
+            } else {
+                PinsToggle::On
+            },
             vec![
                 asset_server.load("icons/icon-pin-on.ktx2"),
                 asset_server.load("icons/icon-pin-off.ktx2"),
@@ -470,4 +483,18 @@ pub(crate) fn toggle_map_theme(
         theme: next_theme_name.clone(),
     });
     commands.trigger(SyncMapForPeers(MapMessage::ChangeTheme(next_theme_name)));
+}
+
+pub fn on_toggle_token_pins(
+    trigger: On<ToggleEventWrapper<PinsToggle>>,
+    mut settings: ResMut<AppSettings>,
+) {
+    match trigger.value {
+        PinsToggle::On => {
+            settings.pins_hidden = false;
+        }
+        PinsToggle::Off => {
+            settings.pins_hidden = true;
+        }
+    }
 }
