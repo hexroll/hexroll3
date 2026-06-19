@@ -240,6 +240,7 @@ fn ask_for_sandbox_when_none_recently_used(
     }
 }
 
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 fn spawn_version(
     mut commands: Commands,
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
@@ -254,7 +255,7 @@ fn spawn_version(
             ..default()
         },
         TextFont::default().with_font_size(10.0),
-        Text::new(version::APP_VERSION),
+        Text::new(format!("v{} ({})", PKG_VERSION, version::APP_VERSION)),
     ));
 }
 

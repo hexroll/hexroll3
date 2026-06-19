@@ -1,11 +1,12 @@
 [package]
 name = "hexroll3-app"
-version = "0.2.0"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.88.0"
 
 [features]
 default= []
+experimental= []
 dev =["dep:bevy-inspector-egui"]
 soft_shadows = ["bevy/experimental_pbr_pcss"]
 
