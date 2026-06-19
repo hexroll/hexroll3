@@ -41,7 +41,6 @@ use crate::{
         controller::{SearchEntitiesInBackend, ShowSearchResults},
         model::{FetchEntityReason, SearchResponse},
     },
-    content::ContentMode,
     hexmap::elements::FetchEntityFromStorage,
     hud::drawer::AutoDrawer,
     shared::{
@@ -108,7 +107,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 Color::srgba_u8(0, 0, 0, 230),
                 Color::srgba_u8(0, 0, 0, 230),
             ),
-            AutoDrawerVisiblity::VisibleToRefereeOnly,
+            AutoDrawerVisiblity::VisibleToRefereeOnly {
+                allow_in_split_view: true,
+            },
             Node {
                 position_type: PositionType::Absolute,
                 border: UiRect::all(Val::Px(4.)),
@@ -453,13 +454,11 @@ fn search_hotkey(
     focus: Res<InputFocus>,
     search_bar: Single<Entity, With<SearchBar>>,
     search_text: Single<Entity, (With<SearchText>, Without<SearchBar>)>,
-    mut next_content_mode: ResMut<NextState<ContentMode>>,
 ) {
     if vtt_data.is_remote_player() {
         return;
     }
     if keyboard.just_released(KeyCode::Backquote) && input_mode.keyboard_available() {
-        next_content_mode.set(ContentMode::MapOnly);
         commands.trigger(OpenSearchBarAndFocus);
     }
     if keyboard.just_pressed(KeyCode::Escape) && focus.0 == Some(*search_text) {

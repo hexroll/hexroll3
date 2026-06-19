@@ -76,7 +76,9 @@ fn show_vttbar(mut commands: Commands, asset_server: Res<AssetServer>) {
             ),
             AutoDrawerButManual,
             AutoDrawerCommand::On,
-            AutoDrawerVisiblity::VisibleToRefereeOnly,
+            AutoDrawerVisiblity::VisibleToRefereeOnly {
+                allow_in_split_view: false,
+            },
             Node {
                 position_type: PositionType::Absolute,
                 overflow: Overflow::hidden_x(),

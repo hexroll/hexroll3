@@ -134,7 +134,8 @@ fn menu_visibility_controller(
             if (vtt_data.mode == HexMapMode::Player && visibility.player_restricted())
                 || (vtt_data.mode.is_referee() && visibility.referee_restricted())
                 || *discrete_state == DiscreteAppState::Modal
-                || *content_mode == ContentMode::SplitScreen
+                || (*content_mode == ContentMode::SplitScreen
+                    && !visibility.allowed_in_split_view())
                 || *hexmap_tool_state == HexMapToolState::Draw
                 || *hexmap_tool_state == HexMapToolState::Edit
             {

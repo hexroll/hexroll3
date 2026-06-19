@@ -57,13 +57,28 @@ pub struct AutoDrawerClosed {
 #[derive(Component, PartialEq)]
 pub enum AutoDrawerVisiblity {
     VisibleToAll,
-    VisibleToRefereeOnly,
+    VisibleToRefereeOnly { allow_in_split_view: bool },
     VisibleToPlayerOnly,
 }
 
 impl AutoDrawerVisiblity {
     pub fn player_restricted(&self) -> bool {
-        *self == Self::VisibleToRefereeOnly
+        match self {
+            AutoDrawerVisiblity::VisibleToAll => false,
+            AutoDrawerVisiblity::VisibleToRefereeOnly {
+                allow_in_split_view: _,
+            } => true,
+            AutoDrawerVisiblity::VisibleToPlayerOnly => false,
+        }
+    }
+    pub fn allowed_in_split_view(&self) -> bool {
+        match self {
+            AutoDrawerVisiblity::VisibleToAll => false,
+            AutoDrawerVisiblity::VisibleToRefereeOnly {
+                allow_in_split_view: also_in_split_view,
+            } => *also_in_split_view,
+            AutoDrawerVisiblity::VisibleToPlayerOnly => false,
+        }
     }
     pub fn referee_restricted(&self) -> bool {
         *self == Self::VisibleToPlayerOnly

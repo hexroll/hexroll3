@@ -47,7 +47,9 @@ use crate::{
 use super::{
     drawer::{AutoDrawerVisiblity, make_auto_drawer_sensor},
     menu::*,
-    toggles::{on_show_toggles, spawn_audio_toggle, update_daynight_toggle},
+    toggles::{
+        on_show_toggles, on_toggle_token_pins, spawn_audio_toggle, update_daynight_toggle,
+    },
 };
 
 pub struct MenuBarPlugin;
@@ -68,7 +70,8 @@ impl Plugin for MenuBarPlugin {
             .add_systems(
                 OnExit(NetworkingConnection::Connected),
                 disable_connect_button,
-            );
+            )
+            .add_observer(on_toggle_token_pins);
     }
 }
 
@@ -90,7 +93,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     {
         let mut e = commands.spawn(create_menubar_bundle(
             "RefereeMenu",
-            AutoDrawerVisiblity::VisibleToRefereeOnly,
+            AutoDrawerVisiblity::VisibleToRefereeOnly {
+                allow_in_split_view: false,
+            },
         ));
         let p = e.id();
         e.with_children(|c| {
