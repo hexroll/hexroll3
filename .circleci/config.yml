@@ -36,7 +36,7 @@ jobs:
             mkdir dist
             curl -L "$ASSETS_URL" -o assets.zip
             unzip assets.zip -d dist/
-            cp target/release/hexroll3-app dist/
+            cp target/release-minified/hexroll3-app dist/
             cd dist
             tar -czvf ../hexroll3-linux.tar.gz **
 
@@ -85,7 +85,7 @@ jobs:
                hexroll3-macos.app/Contents/Resources/
             curl -L "$ASSETS_URL" -o assets.zip
             unzip assets.zip -d hexroll3-macos.app/Contents/Resources/
-            cp "$SOURCE_DIR/target/release/hexroll3-app" \
+            cp "$SOURCE_DIR/target/release-minified/hexroll3-app" \
                hexroll3-macos.app/Contents/MacOS/hexroll3-macos
 
       - run:
