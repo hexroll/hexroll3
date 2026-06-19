@@ -119,7 +119,7 @@ Temple(Dungeon) {
   Name! @ TempleName
   HexLink! = :Hex.uuid
   Coords! = <%
-    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="7"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="5"> </a>
   %>
   FactionLair @ FactionLair {
     DungeonUUID = &uuid
@@ -141,7 +141,7 @@ Temple(Dungeon) {
   DungeonFeatureTier3 = TempleFeatureTier3
   DungeonFeatureTier4 = TempleFeatureTier4
 
-  map @ DungeonMap
+  [1..1 map] @ DungeonMap
 
   WanderingMonsters @ DungeonWanderingMonsters
 }

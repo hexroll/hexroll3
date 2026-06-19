@@ -77,6 +77,10 @@ DungeonEntrance {
     {%elif DungeonHex == "DesertHex"%}{{DesertLocation}}
     {%else%}{{DefaultLocation}}{%endif%}
   %>
+  CityDescription! ~ <%
+    <a href="{{sandbox()}}/location/{{AreaUUID}}"><strong>{{EntranceDescLeadingTo}} {{AreaNumber}}</strong></a> {{EntranceLocationPrefix}}
+    {{CityLocation}}.
+  %>
   Description! ~ <%
     <a href="{{sandbox()}}/location/{{AreaUUID}}"><strong>{{EntranceDescLeadingTo}} {{AreaNumber}}</strong></a> {{EntranceLocationPrefix}}
     {%if DungeonHex == "MountainsHex"%}

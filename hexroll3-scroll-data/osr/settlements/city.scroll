@@ -74,12 +74,11 @@ City(Settlement) {
   Prefix! = ""
   Title! = "city of {{title(NamePart)}}"
 
-  PopulationMultiplier! @ 5d4+1
+  PopulationMultiplier! @ 2d4+1
 
   [4..8 districts?] @ CityDistrict
 
-  # Population? ~ <%{{round(sum(attribute_list(districts,"Population"))*PopulationMultiplier,0)}}%>
-  Population? ~ <%{{ districts | map(attribute="Population") | map('int') | sum }}%>
+  Population? ~ <%{{ (districts | map(attribute="Population") | map('int') | sum) * PopulationMultiplier }}%>
 
   Castle @ Castle
 

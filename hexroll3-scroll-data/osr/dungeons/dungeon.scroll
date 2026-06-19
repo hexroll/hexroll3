@@ -24,6 +24,7 @@
 #
 
 DungeonMap {
+  Level = 1
 }
 
 dungeon_classes = [
@@ -409,7 +410,8 @@ AreaDescription {
 Dummy {}
 
 CorridorDescription {
-  [0..0 doors] @ Dummy
+  Level = :DungeonMap.Level
+  [0..0 doors];
   HexLink = :Hex.uuid
   Wandering @ DungeonWanderingMonsters
   Atmosphere @ [
@@ -444,7 +446,7 @@ CorridorDescription {
     {{Atmosphere}}
     </blockquote>
     {% if Entrance%}
-    There are stairs here leading in and <a href="{{sandbox()}}/location/{{HexLink}}"><strong>out of the dungeon</strong></a>.
+    <a class="token" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}">SPAWN</a> There are stairs here leading in and <a href="{{sandbox()}}/location/{{HexLink}}"><strong>out of the dungeon</strong></a>.
     {% endif %}
     {% if Deadend %}
     {{Deadend.Description}}
@@ -455,7 +457,7 @@ CorridorDescription {
   %>
 
   <metadata%
-  <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="2"> </a>
+  <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" data-level="{{Level}}" zoom="1"> </a>
   %metadata>
 
   DungeonName = :Dungeon.Name
@@ -486,7 +488,7 @@ RoomDescription(AreaDescription) {
   Appearance @ DungeonAreaAppearance
 
   RoomType @ RoomType
-  Level = 1
+  Level = :DungeonMap.Level
 
   Debris @ RoomDebris
   | AreaDescription
@@ -582,7 +584,7 @@ RoomDescription(AreaDescription) {
       {{AreaPropertiesText}}
   %>
   <metadata%
-    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="2"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" data-level="{{Level}}" zoom="1"> </a>
   %metadata>
 
   <header%
@@ -599,6 +601,7 @@ RoomDescription(AreaDescription) {
 }
 
 CaveDescription(AreaDescription) {
+  Level = :DungeonMap.Level
   Appearance @ CaveAreaAppearance
 
   RoomType @ CaveType
@@ -626,7 +629,7 @@ CaveDescription(AreaDescription) {
 
       {% if Entrance%}
       <h5> Cave Entrance </h5>
-      There is a passage here leading <a href="{{sandbox()}}/location/{{HexLink}}"><strong>in and out of the cave</strong></a>.
+      <a class="token" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}">SPAWN</a> There is a passage here leading <a href="{{sandbox()}}/location/{{HexLink}}"><strong>in and out of the cave</strong></a>.
       {% endif %}
 
       {{DescriptionText}}
@@ -634,7 +637,7 @@ CaveDescription(AreaDescription) {
       {{AreaPropertiesText}}
   %>
   <metadata%
-    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="2"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" data-level="{{Level}}" zoom="1"> </a>
   %metadata>
 
   <header%

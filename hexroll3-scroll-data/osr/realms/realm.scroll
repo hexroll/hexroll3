@@ -129,7 +129,7 @@ RuledRealm (Realm){
       night, emitting a shock-wave of fears and rumors all around the realm.
 
     * After receiving a mysterious message, {{RealmType.Ruler.Title}} {{RealmType.Ruler.NPC.Name.First}}
-      fell into a numbing depression. {{capitalize(RealmType.Ruler.NPC.Gender.PronounObject)}} court is now in quarrel,
+      fell into a numbing depression. {{capitalize(RealmType.Ruler.NPC.Gender.PronounPossessive)}} court is now in quarrel,
       and the {{RealmType.Title | lower}} is on the verge of chaos.
 
     * Twelve years ago, {{RealmType.Ruler.Title }} {{RealmType.Ruler.NPC.Name.First}}'s
@@ -322,6 +322,31 @@ RuledRealm (Realm){
     </li>
     {% endfor %}
     </ul>
+
+    {% if EvilBosses %}
+    <h5> Archvillians </h5>
+    <ul>
+    {% for i in EvilBosses %}
+    <li>
+    {{begin_spoiler()}}
+    <a href="{{sandbox()}}/location/{{i.AreaUUID}}">
+    {{i.BossName.Full}} the {{i.Title}} </a> -
+    {{i.BackgroundStory}}
+    {{end_spoiler()}}
+    </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if ItemsOfLegend %}
+    <h5> Legendary Treasure </h5>
+    <ul>
+    {% for i in ItemsOfLegend %}
+    {{i.Link}}
+    {% endfor %}
+    </ul>
+    {% endif %}
+
 
   %>
 

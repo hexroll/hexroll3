@@ -149,7 +149,7 @@ District {
   HexLink = :Settlement.HexLink
 
   Coords! = <%
-    <data-map-coordinates class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="3"> </data-map-coordinates>
+    <a class="map-coords" hex="{{HexLink}}" x="{{x_coords}}" y="{{y_coords}}" zoom="4"> </a>
   %>
 
   RealmUUID? = :Realm.uuid

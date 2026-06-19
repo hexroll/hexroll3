@@ -2897,7 +2897,7 @@ InsectSwarm (OsrMonster) {
 }
 
 InvisibleStalkerMonster (OsrMonster) {
-  Title! ~ "Invisible Stalker (OsrMonster)"
+  Title! ~ "Invisible Stalker"
   Intelligent! = False
   ArmourClass! ~ "3 [16]"
   HitDiceText ~ "8* (36hp)"

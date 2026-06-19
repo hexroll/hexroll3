@@ -69,13 +69,13 @@ Shop(SettlementLocation) {
     {{Owner.TavernText}}
     {% if Owner.PersonalQuest and Owner.PersonalQuest.Description!=""%}
     <li>
-    {{reroller(Owner.PersonalQuest.uuid, "RerollerQuest", False)}}
+    {{reroller(Owner.PersonalQuest.uuid,"RerollerQuest", False)}}
     {{Owner.PersonalQuest.Description}}
     </li>
     {% endif %}
     {% if Quest and Quest.Description!=""%}
     <li>
-    {{reroller(Quest.uuid, "DeliveryQuest", False)}}
+    {{reroller(Quest.uuid,"DeliveryQuest", False)}}
     {{Quest.Description}}
     </li>
     {% endif %}
@@ -88,7 +88,7 @@ Shop(SettlementLocation) {
     {% if not (Owner.PersonalQuest and Owner.PersonalQuest.Description!="")%}
     <li class="inactive-quest">
     Unlock this page and click here
-    {{reroller(Owner.PersonalQuest.uuid, "RerollerQuest", False)}}
+    {{reroller(Owner.PersonalQuest.uuid,"RerollerQuest", False)}}
     for a hook
     </li>
     {% endif %}
@@ -96,7 +96,7 @@ Shop(SettlementLocation) {
     {% if Quest %}
     <li class="inactive-quest">
     Unlock this page and click here
-    {{reroller(Quest.uuid, "DeliveryQuest", False)}}
+    {{reroller(Quest.uuid,"DeliveryQuest", False)}}
     for a hook
     </li>
     {% endif %}
@@ -126,7 +126,6 @@ Shop(SettlementLocation) {
 }
 
 Service(SettlementLocation) {
-  $on_reroll = "remap_in_settlement"
   Services! = false
   $on_reroll = "remap_in_settlement"
   x_coords = 0
@@ -171,13 +170,13 @@ Service(SettlementLocation) {
     {{Owner.TavernText}}
     {% if Owner.PersonalQuest and Owner.PersonalQuest.Description!=""%}
     <li>
-    {{reroller(Owner.PersonalQuest.uuid, "RerollerQuest", False)}}
+    {{reroller(Owner.PersonalQuest.uuid,"RerollerQuest", False)}}
     {{Owner.PersonalQuest.Description}}
     </li>
     {% endif %}
     {% if Quest and Quest.Description!=""%}
     <li>
-    {{reroller(Quest.uuid, "DeliveryQuest", False)}}
+    {{reroller(Quest.uuid,"DeliveryQuest", False)}}
     {{Quest.Description}}
     </li>
     {% endif %}
@@ -190,7 +189,7 @@ Service(SettlementLocation) {
     {% if not (Owner.PersonalQuest and Owner.PersonalQuest.Description!="")%}
     <li class="inactive-quest">
     Unlock this page and click here
-    {{reroller(Owner.PersonalQuest.uuid, "RerollerQuest", False)}}
+    {{reroller(Owner.PersonalQuest.uuid,"RerollerQuest", False)}}
     for a hook
     </li>
     {% endif %}
@@ -198,7 +197,7 @@ Service(SettlementLocation) {
     {% if Quest %}
     <li class="inactive-quest">
     Unlock this page and click here
-    {{reroller(Quest.uuid, "DeliveryQuest", False)}}
+    {{reroller(Quest.uuid,"DeliveryQuest", False)}}
     for a hook
     </li>
     {% endif %}
@@ -244,7 +243,6 @@ ShopInventory {
   ]
   Inventory! ~ <%
     {% if Items or UniqueItems %}
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
       <h5> {{reroller(uuid,class, False)}} Inventory </h5>
       <table><tr><th>Item</th><th>Price</th </tr>
       {% if UniqueItems %}
@@ -262,22 +260,6 @@ ShopInventory {
         </tr>
         {% endfor %}
       {% endif %}
-========
-      <h5> {{reroller(uuid, class, False)}} Inventory </h5>
-      <table><tr><th>Item</th><th>Price</th </tr>
-      {% if UniqueItems %}
-      {% for i in UniqueItems %}
-      <tr>
-        <td>{{i.Title}}</td> <td>{{currency(i.Cost * PriceFactor * DistrictCostFactor)}}</td>
-      </tr>
-      {% endfor %}
-      {% endif %}
-      {% for i in unique(Items,"class")%}
-      <tr>
-        <td>{{i.Title}}</td> <td>{{currency(i.Cost * PriceFactor * DistrictCostFactor)}}</td>
-      </tr>
-      {% endfor %}
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
       </table>
     {% endif %}
   %>
@@ -374,7 +356,6 @@ BookstoreProducts {
    ]
 }
 
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
 BookNamePlain {
   Prefix @ [
     * Celestial
@@ -632,8 +613,6 @@ Book {
 }
 
 
-========
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
 BookstoreInventory(ShopInventory) {
   [3..5 Items] @@ [
     *(x1) BookstoreProducts
@@ -717,7 +696,7 @@ PetRat(Pet) {
 
 PetMonkey(Pet) {
   Title! = Monkey
-  Cost! = 20
+  Cost! = 10
 }
 
 PetOwl(Pet) {
@@ -747,7 +726,7 @@ PetParrot(Pet) {
 
 PetSnake(Pet) {
   Title! = Snake
-  Cost! = 10
+  Cost! = 3
 }
 
 PetSongBird(Pet) {
@@ -774,11 +753,7 @@ PetShop(Shop) {
 
 HerbalistInventory(ShopInventory) {
   [12..15 Items] @@ [
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
     * AlchemyComponent
-========
-    * HerbalismAndAlchemy
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
     * HerbalismComponent
   ]
   | ShopInventory
@@ -803,37 +778,7 @@ Herbalist(Shop) {
 }
 
 PotionInventory(ShopInventory) {
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
   [5..10 Items] @ RandomPotion
-========
-  [5..10 Items] @@ [
-    *(x15) PotionOfGreaterHealing
-    *(x15) PotionOfSuperiorHealing
-    *(x10) PotionOfSpeed
-    *(x20) PotionOfSupremeHealing
-    *(x10) PotionOfInvisibility
-    *(x10) PotionOfSpeed
-    *(x10) SpellScroll6thLevel
-    *(x5)  PotionOfClairvoyance
-    *(x5)  PotionOfDiminution
-    *(x5)  PotionOfFlying
-    *(x5)  PotionOfCloudGiantStrength
-    *(x5)  PotionOfLongevity
-    *(x5)  PotionOfVitality
-    *(x5)  PotionOfGaseousForm
-    *(x5)  PotionOfFrostGiantStrength
-    *(x5)  PotionOfStoneGiantStrength
-    *(x5)  PotionOfHeroism
-    *(x5)  PotionOfInvulnerability
-    *(x5)  PotionOfMindReading
-    *(x7)  SpellScroll7thLevel
-    *(x5)  OilOfSharpness
-    *(x5)  PotionOfFlying
-    *(x5)  PotionOfCloudGiantStrength
-    *(x5)  PotionOfLongevity
-    *(x5)  PotionOfVitality
-  ]
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
   | ShopInventory
 }
 
@@ -928,11 +873,8 @@ Mount {
     * Camel
     * DraftHorse
     * RidingHorse
+    * WarHorse
     * Mule
-    * Mastiff
-    * Elephant
-    * Pony
-    * Warhorse
    ]
 }
 
@@ -954,11 +896,7 @@ Stables(Shop) {
 }
 
 ArmorWeaponsInventory(ShopInventory) {
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
   [5..10 Items] @ ArmorWeapon
-========
-  [12..19 Items] @ ArmorWeapon
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
   | ShopInventory
 }
 
@@ -1030,11 +968,7 @@ Clothing(Shop) {
 }
 
 BlacksmithInventory(ShopInventory) {
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
   [2..6 Items] @@ [
-========
-  [10..12 Items] @@ [
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
     *(x3) ArmorWeapon
     *(x1) BlacksmithComponent
   ]
@@ -1094,14 +1028,10 @@ Liquor(Shop) {
 }
 
 CraftInventory(ShopInventory) {
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
   [12..16 Items] @@ [
     *(x10) Tools
     * CraftedComponent
   ]
-========
-  [2..6 Items] @ Tools
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
   | ShopInventory
 }
 
@@ -1412,10 +1342,6 @@ Veterinarian(Shop) {
 DarkMarketInventory(ShopInventory) {
   [18..25 Items] @@ [
     *(x2) Gear
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
-========
-    *(x2) DarkMarketTools
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
     *(x2) OccultComponent
     *(x1) GeneralComponent
     *(x1) HerbalismComponent
@@ -1453,11 +1379,6 @@ Brothel(Shop) {
   | Shop
 }
 
-BankInventory(ShopInventory) {
-  Items = null
-  | ShopInventory
-}
-
 Bank(Service) {
   Title! = Bank
   OwnerTitle! = bank manager
@@ -1466,7 +1387,6 @@ Bank(Service) {
     * Bank
     * Safe Place
   ]
-  Inventory? @ BankInventory
 
  | Service
 }
@@ -1810,11 +1730,7 @@ Smokehouse(Shop) {
 }
 
 GameShopInventory(ShopInventory) {
-<<<<<<<< HEAD:hexroll3-scroll-data/osr/settlements/shops.scroll
   Items = null
-========
-  [2..4 Items] @ Games
->>>>>>>> m1:hexroll3-scroll-data/o5e/settlements/shops.scroll
   | ShopInventory
 }
 

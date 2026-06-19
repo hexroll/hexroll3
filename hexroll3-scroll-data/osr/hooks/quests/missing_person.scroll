@@ -202,6 +202,7 @@ MissingPersonAdvert(Advert) {
   QuestRelation = none
   QuestFolk = none
   QuestLink = none
+  QuestLocation = none
   | Advert
 }
 
@@ -288,7 +289,7 @@ MissingPersonQuest(Quest) {
     QuestRelation = *Relation
     QuestFolk = *QuestgiverName
     QuestLink = &QuestgiverLink
-    Location = *Location
+    QuestLocation = *Location
     BoardText @ [
     * “<strong>Please Help!</strong>
         My dear <strong>{{QuestRelation.Type}}</strong> is missing.
@@ -314,7 +315,7 @@ MissingPersonQuest(Quest) {
         <strong>{{QuestFolk.Full}}</strong></a>”
     ]
     Details = <%
-        {% if Location %}
+        {% if QuestLocation %}
           {{BoardText}}
         {% endif %}
     %>

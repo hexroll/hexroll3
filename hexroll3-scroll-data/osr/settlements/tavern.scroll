@@ -185,6 +185,21 @@ InnRoomUpscaleBedRoom {
   CostPerNight! = 8.00
 }
 
+AdvertsTable {
+  [2..5 adverts] ? Advert
+  table! ~ <%
+    {{reroller(uuid, "", False)}}
+    {%if length(adverts) > 0%}
+      <table>
+      <tr><th> Bulletin </th></tr>
+      {%for a in adverts%}
+        <tr><td>{{a.Details}}</td></tr>
+      {%endfor%}
+      </table>
+    {%endif%}
+  %>
+}
+
 Tavern(Populated) {
   Title! ` "{{Name.Full}}"
   [2..6 drinks?] @ TavernDrinks
@@ -214,7 +229,7 @@ Tavern(Populated) {
   FactionUUID? = none
   Faction? = none
 
-  [2..5 adverts?] ? Advert
+  adverts? @ AdvertsTable
   rumors? @ RumorsTable
 
   HexLink = :Settlement.HexLink
@@ -301,14 +316,7 @@ Tavern(Populated) {
       {% endif %}
       </ul>
     {%endfor%}
-    {%if length(adverts) > 0%}
-      <table>
-      <tr><th> Bulletin </th></tr>
-      {%for a in adverts%}
-        <tr><td>{{a.Details}}</td></tr>
-      {%endfor%}
-      </table>
-    {%endif%}
+    {{adverts.table}}
     <br/>
     {{rumors.table}}
     <br/>

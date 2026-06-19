@@ -138,7 +138,7 @@ Cavern(Dungeon) {
   Name! @ CavernName
   HexLink! = :Hex.uuid
   Coords! = <%
-    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="7"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="5"> </a>
   %>
   FactionLair @ FactionLair {
     DungeonUUID = &uuid

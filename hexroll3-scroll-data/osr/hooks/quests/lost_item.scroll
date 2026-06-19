@@ -36,10 +36,6 @@ LostItem {
     <strong>{{title(Appearance)}}</strong> .It is actually {{begin_spoiler()}}<strong>{{articlize(ActualItem)}}</strong>{{end_spoiler()}} %>
 }
 
-Advert {
-  Details! = ""
-}
-
 QuestTreasureHiding {
   AreaNumber = none
   AreaFloor = none
@@ -94,6 +90,7 @@ TreasureRumor(LocalRumor) {
 LostTreasureAdvert(Advert) {
   QuestFolk = false
   QuestLink = false
+  QuestLocation = false
   | Advert
 }
 
@@ -191,6 +188,7 @@ TreasureQuest(Quest) {
   Advert @ LostTreasureAdvert {
     QuestFolk = *QuestgiverName
     QuestLink = &QuestgiverLink
+    QuestLocation = *Location
     BoardText @ [
       * “<strong>Help requested!</strong>
         A heirloom of sentimental value was stolen
@@ -210,7 +208,7 @@ TreasureQuest(Quest) {
         <strong>{{QuestFolk.Full}}</strong></a>”
     ]
     Details = <%
-        {% if Location %}
+        {% if QuestLocation %}
           {{BoardText}}
         {% endif %}
     %>

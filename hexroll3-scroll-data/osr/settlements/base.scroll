@@ -70,7 +70,7 @@ Residency(Populated) { ^ $residency_classes
   Header! ~ "{%if Resident %}{{Resident.Name.First}}'s{% endif %} {%if Type %}{{Type.Name}}{% endif %}"
   Description! ~ <%
     <a class="npc-anchor" name="{{Resident.uuid}}"></a>
-    The {{Prefix}} {{Type.Name}} of <strong>{{Resident.Name.Full}}</strong>
+    The {{Prefix}} {{Type.Name}} of {{Resident.Name.EditableFull}}
     %>
   Encounter! = "No"
 }

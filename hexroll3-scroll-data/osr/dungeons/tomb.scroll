@@ -105,7 +105,7 @@ Tomb(Dungeon) {
   Name! @ TombName
   HexLink! = :Hex.uuid
   Coords! = <%
-    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="7"> </a>
+    <a class="map-coords" hex="{{HexLink}}" x="0" y="0" zoom="5"> </a>
   %>
   FactionLair = none
 
@@ -123,7 +123,7 @@ Tomb(Dungeon) {
   DungeonFeatureTier3 = TombFeatureTier3
   DungeonFeatureTier4 = TombFeatureTier4
 
-  map @ DungeonMap
+  [1..1 map] @ DungeonMap
 
   WanderingMonsters @ DungeonWanderingMonsters
 }
