@@ -317,6 +317,9 @@ impl MenuButtonSwitcher for EntityCommands<'_> {
                 let Ok(current_state) = current_states.get(trigger.entity) else {
                     return;
                 };
+                if keys.len() < 2 {
+                    return;
+                }
                 let keys = keys.clone();
 
                 let next_state = rotate_key(keys.as_slice(), current_state.value()).unwrap();
