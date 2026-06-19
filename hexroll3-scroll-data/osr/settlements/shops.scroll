@@ -142,7 +142,7 @@ Service(SettlementLocation) {
   BaseName! ` "{{Owner.Name.First}}'s {{maybe(Term)}}"
   Name! ~  "<strong>{{Title}}</strong>"
 
-  InvertedName! ~ <%<a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Title}}</strong></a> ({{Owner.Name.First}}'s {{maybe(Term)}})%>
+  InvertedName! ~ <%<a href="{{sandbox()}}/location/{{uuid}}"><strong>{{Title}}</strong></a> ({{BaseName}})%>
 
   Inventory? ~ <%
     {% if Services %}

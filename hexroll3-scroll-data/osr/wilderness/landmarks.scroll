@@ -295,7 +295,7 @@ CaravanCamp(Feature) {
     SettlementName = &RegionName
   }
   Description! ~ <%
-    Several caravans are circling a large camp fire
+    Several caravans are circling a large campfire
   %>
   Sounds @ [
     * singin
