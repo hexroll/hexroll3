@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Build release binary
           command: |
-            cargo build --release --package hexroll3-app
+            cargo build --profile=release-minified-and-then-some --package hexroll3-app
 
       - run:
           name: Create tar.gz archive
@@ -63,7 +63,7 @@ jobs:
       - run:
           name: Build release binary
           command: |
-            . "$HOME/.cargo/env" && cargo build --release --package hexroll3-app
+            . "$HOME/.cargo/env" && cargo build --profile=release-minified-and-then-some --package hexroll3-app
 
       - run:
           name: Package app bundle
@@ -194,7 +194,7 @@ jobs:
             rustup target add x86_64-pc-windows-msvc
             rustup override set stable-x86_64-pc-windows-msvc
             rustc -vV
-            cargo build --profile=release-minified --package hexroll3-app --target x86_64-pc-windows-msvc
+            cargo build --profile=release-minified-and-then-some --package hexroll3-app --target x86_64-pc-windows-msvc
 
       - store_artifacts:
           path: target\x86_64-pc-windows-msvc\release-minified\hexroll3-app.exe
