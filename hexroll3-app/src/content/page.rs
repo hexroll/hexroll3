@@ -76,7 +76,10 @@ use super::{
     clipboard::CopyOnRightClick,
     context::{ContentContext, Spoilers},
     demidom::*,
-    header::{EditableTitleInput, make_header_bundle, update_header_buttons_state},
+    header::{
+        EditableTitleInput, make_header_bundle, teardown_editable_title_post_edit,
+        update_header_buttons_state,
+    },
     viewport::get_split_content_metrics,
 };
 
@@ -934,6 +937,7 @@ fn detect_esc_from_editable(
             any_editables
                 .iter()
                 .for_each(|e| commands.entity(e).try_despawn());
+            commands.run_system_cached_with(teardown_editable_title_post_edit, false);
         }
     }
 }

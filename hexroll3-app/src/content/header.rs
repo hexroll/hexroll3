@@ -46,6 +46,15 @@ use super::{
 };
 
 #[derive(Component)]
+pub struct ContentEditableTitle;
+
+#[derive(Component)]
+pub struct ContentEditableTitleContainer;
+
+#[derive(Component)]
+pub struct ContentButtonsBar;
+
+#[derive(Component)]
 pub struct RerollButtonMarker;
 
 #[derive(Component)]
@@ -193,6 +202,7 @@ pub fn make_header_bundle(
         );
         c.spawn((
             Name::new("ContentButtons"),
+            ContentButtonsBar,
             BorderRadius::top_left(Val::Px(10.0)),
             BackgroundColor(Color::srgb_u8(30, 30, 30).with_alpha(0.9)),
             Node {
@@ -379,6 +389,7 @@ pub fn submit_editable_title(
                         value,
                         params: editable_title_input.0.clone(),
                     });
+                    commands.run_system_cached_with(teardown_editable_title_post_edit, true);
                 }
             }
         }
@@ -416,4 +427,51 @@ pub fn update_lock_state(
             }
         }
     }
+}
+
+pub fn prepare_editable_title_for_edit(
+    mut commands: Commands,
+    buttons_bar: Single<Entity, With<ContentButtonsBar>>,
+    mut title_node: Single<(Entity, &mut Node, &ChildOf), With<ContentEditableTitle>>,
+    mut title_container: Query<
+        &mut Node,
+        (
+            With<ContentEditableTitleContainer>,
+            Without<ContentEditableTitle>,
+        ),
+    >,
+) {
+    title_node.1.width = Val::Percent(90.0);
+    commands.entity(*buttons_bar).insert(Visibility::Hidden);
+    // NOTE: containers are editable titles with additional fixed content.
+    // This hack ensures the fixed content wraps down and becomes invisible.
+    for mut container in title_container.iter_mut() {
+        container.width = Val::Percent(90.0);
+        container.flex_wrap = FlexWrap::Wrap;
+    }
+}
+
+pub fn teardown_editable_title_post_edit(
+    submit: In<bool>,
+    mut commands: Commands,
+    buttons_bar: Single<Entity, With<ContentButtonsBar>>,
+    mut title_node: Single<(Entity, &mut Node, &ChildOf), With<ContentEditableTitle>>,
+    mut title_container: Query<
+        &mut Node,
+        (
+            With<ContentEditableTitleContainer>,
+            Without<ContentEditableTitle>,
+        ),
+    >,
+) {
+    if !submit.0 {
+        title_node.1.width = Val::Auto;
+        // NOTE: containers are editable titles with additional fixed content.
+        // This hack ensures the fixed content unwraps back to become visible.
+        for mut container in title_container.iter_mut() {
+            container.width = Val::Auto;
+            container.flex_wrap = FlexWrap::NoWrap;
+        }
+    }
+    commands.entity(*buttons_bar).insert(Visibility::Inherited);
 }

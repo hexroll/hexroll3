@@ -33,7 +33,7 @@ use std::{
     time::Duration,
 };
 
-use bevy::text::LineHeight;
+use bevy::{input_focus::InputFocus, text::LineHeight};
 use bevy::{prelude::*, window::SystemCursorIcon};
 
 use cosmic_text::Edit;
@@ -63,7 +63,12 @@ use crate::{
 
 use super::{
     EditableAttributeParams, EditableProxy, NpcAnchor, ThemeBackgroundColor,
-    clipboard::CopyOnRightClick, header::EditableTitleInput, spoiler::ContentIsSpoiler,
+    clipboard::CopyOnRightClick,
+    header::{
+        ContentEditableTitle, ContentEditableTitleContainer, EditableTitleInput,
+        prepare_editable_title_for_edit,
+    },
+    spoiler::ContentIsSpoiler,
 };
 
 #[derive(Clone, Debug)]
@@ -1298,8 +1303,7 @@ pub fn render_demidom(
                                             children: Query<&Children>,
                                             existing: Query<Entity, (With<EditableTitleInput>,
                                                                      Without<EditableProxy>)>,
-                                            proxies: Query<Entity, With<EditableProxy>>,
-                                            computed: Query<&ComputedNode>| {
+                                            proxies: Query<Entity, With<EditableProxy>> | {
                                     if !existing.is_empty() {
                                         for e in existing.iter() {
                                             if parents.get(e).unwrap().0 == trigger.entity {
@@ -1321,15 +1325,12 @@ pub fn render_demidom(
                                         .editor
                                         .insert_string(&cloned_text.trim(), None);
 
-                                    let mut width = 0.0;
                                     for child in children.iter_descendants(trigger.entity) {
-                                        if let Ok(computed_node) = computed.get(child) {
-                                            width += computed_node.content_size.x;
-                                        }
                                         commands.entity(child).insert(Visibility::Hidden).insert(EditableProxy);
                                     }
 
-                                    commands.spawn((
+                                    commands.run_system_cached(prepare_editable_title_for_edit);
+                                    let id = commands.spawn((
                                         EditableTitleInput(EditableAttributeParams {
                                             attr_name: params.0.clone(),
                                             attr_entity: params.1.clone(),
@@ -1358,9 +1359,10 @@ pub fn render_demidom(
                                             position_type: PositionType::Absolute,
                                             top: Val::Px(0.0),
                                             left: Val::Px(0.0),
-                                            width: Val::Px(width),
+                                            width: Val::Percent(100.0),
                                             height: Val::Px(font.size * 1.333333+2.0),
                                             border: UiRect::bottom(Val::Px(1.0)),
+                                            flex_shrink: 0.0,
                                             ..default()
                                         },
                                         ChildOf(trigger.entity),
@@ -1368,7 +1370,8 @@ pub fn render_demidom(
                                             should_block_lower: true,
                                             is_hoverable: true,
                                         },
-                                    ));
+                                    )).id();
+                                    commands.insert_resource(InputFocus(Some(id)));
                                 },
                             );
                             }
@@ -1410,21 +1413,19 @@ pub fn render_demidom(
                         let g = commands
                             .spawn((
                                 Name::new("EditableTitle"),
-                                if id == "editable-title-container" {
-                                    Node {
-                                        position_type: PositionType::Absolute,
-                                        bottom: Val::Px(5.0),
-                                        display: Display::Flex,
-                                        ..default()
-                                    }
-                                } else {
-                                    Node {
-                                        position_type: PositionType::Relative,
-                                        display: Display::Flex,
-                                        ..default()
-                                    }
+                                Node {
+                                    position_type: PositionType::Relative,
+                                    display: Display::Flex,
+                                    flex_shrink: 0.0,
+                                    ..default()
                                 },
                             ))
+                            .insert_if(ContentEditableTitle, || {
+                                id != "editable-title-container"
+                            })
+                            .insert_if(ContentEditableTitleContainer, || {
+                                id == "editable-title-container"
+                            })
                             .insert(ChildOf(context.parent))
                             .id();
                         let mut sub_context = context.cascade(g);
@@ -2062,7 +2063,7 @@ impl TreeSink for Sink {
                     }
                     if &*attr.name.local == "zoom" {
                         coords.zoom =
-                            attr.value.to_string().parse::<i32>().unwrap_or_default();
+                            Some(attr.value.to_string().parse::<i32>().unwrap_or_default());
                     }
                     if &*attr.name.local == "data-level" {
                         coords.layer =
@@ -2473,7 +2474,7 @@ pub fn spawner_click(
             hex_map.get_canonical_pos(&coords.hex, Vec2::new(coords.x, coords.y))
         {
             commands.trigger(SpawnTokenFromLibrary {
-                pos: Vec3::new(pos.x + 0.5, HEIGHT_OF_TOKENS, pos.y + 0.5),
+                pos: Vec3::new(pos.x + 0.5, HEIGHT_OF_TOKENS, pos.y - 0.5),
             });
         }
     }
