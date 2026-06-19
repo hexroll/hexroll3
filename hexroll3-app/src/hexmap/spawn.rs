@@ -157,8 +157,12 @@ pub fn spawn_tile<T>(
             },
         ))
         .with_children(|mut c| {
+            #[cfg(feature = "experimental")]
+            let enable_settlement_dial_when_unlocked = true;
+            #[cfg(not(feature = "experimental"))]
+            let enable_settlement_dial_when_unlocked = false;
             c.spawn_empty()
-                .battlemap_dial_provider(true)
+                .battlemap_dial_provider(enable_settlement_dial_when_unlocked)
                 .insert(Name::new("HexFeature"))
                 .insert(Transform::from_xyz(
                     0.0,

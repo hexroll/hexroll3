@@ -542,6 +542,7 @@ pub fn receive_vtt_load_response(
                 commands.run_system_cached(setup_group_mode);
             }
             vtt_data.invalidate_map = true;
+            vtt_data.prune_duplicate_oceans();
             commands.insert_resource(vtt_data);
             for t in data.0.tokens {
                 commands.trigger(
@@ -610,7 +611,7 @@ pub fn request_dungeon_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::DungeonMap(trigger.0.params.clone()),
                 ),
                 task,
             )
@@ -627,7 +628,7 @@ pub fn request_dungeon_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::DungeonMap(trigger.0.params.clone()),
                 ),
                 task,
             )
@@ -668,7 +669,7 @@ pub fn request_city_or_town_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::CityMap(trigger.0.params.clone()),
                 ),
                 move |data| {
                     (
@@ -690,7 +691,7 @@ pub fn request_city_or_town_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::CityMap(trigger.0.params.clone()),
                 ),
                 move |data| {
                     info!("Processing city map in task");
@@ -738,7 +739,7 @@ pub fn request_village_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::VillageMap(trigger.0.params.clone()),
                 ),
                 move |data| {
                     (
@@ -763,7 +764,7 @@ pub fn request_village_map(
                 (
                     event.uid.clone(),
                     event.hex,
-                    BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+                    BattlemapRequestType::VillageMap(trigger.0.params.clone()),
                 ),
                 move |data| {
                     (

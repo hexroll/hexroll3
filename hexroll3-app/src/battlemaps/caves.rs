@@ -55,7 +55,7 @@ use crate::{
 };
 
 use super::{
-    BattlemapFeatureUtils, DUNGEON_FOG_COLOR,
+    BattlemapFeatureUtils, BattlemapParams, DUNGEON_FOG_COLOR, GhostLayer,
     battlemaps::{BattlemapMaterial, BattlemapMaterialControls, DEFAULT_BATTLEMAP_COLOR},
 };
 
@@ -63,6 +63,7 @@ pub struct CavesPlugin;
 impl Plugin for CavesPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
+            .add_observer(on_spawn_cave_map_ghost_layer)
             .add_observer(on_spawn_cave_map)
             .add_systems(Update, cave_maps_decorations.after(update_hex_map_tiles));
     }
@@ -75,7 +76,7 @@ impl Plugin for CavesPlugin {
 pub struct SpawnCaveMap {
     pub hex: Entity,
     pub data: CaveMapConstructs,
-    pub is_underlayer: bool,
+    pub params: BattlemapParams,
 }
 
 /// Cave map constructs required to spawn a cave map
@@ -143,6 +144,7 @@ struct CaveMapResources {
     pub wall_material: Handle<StandardMaterial>,
     pub background_material: Handle<BackgroundMaterial>,
     pub floor_material: Handle<BattlemapMaterial>,
+    pub ghost_material: Handle<StandardMaterial>,
     pub rubble_sphere: Handle<Mesh>,
 }
 
@@ -174,12 +176,20 @@ fn setup(
         color: Vec4::from(DEFAULT_BATTLEMAP_COLOR),
         offset: Vec4::new(0.017, 0.015, 0.015, 0.0),
     });
+    let ghost_material = materials.add(StandardMaterial {
+        base_color: Color::srgba(0.0, 0.0, 0.0, 0.75),
+        unlit: true,
+        alpha_mode: AlphaMode::AlphaToCoverage,
+        cull_mode: None,
+        ..default()
+    });
     let rubble_sphere = meshes.add(Sphere::new(1.0));
 
     commands.insert_resource(CaveMapResources {
         wall_material,
         background_material,
         floor_material,
+        ghost_material,
         rubble_sphere,
     });
 }
@@ -236,6 +246,52 @@ fn cave_maps_decorations(
     }
 }
 
+fn on_spawn_cave_map_ghost_layer(
+    trigger: On<SpawnCaveMap>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    cave_map_resources: Res<CaveMapResources>,
+    vtt_data: Res<VttData>,
+) {
+    if !trigger.params.is_ghost {
+        return;
+    }
+    let mut parent_node = commands.spawn_empty();
+    let parent_node_id = parent_node.id();
+    let underlayer_height_offset = if trigger.params.is_ghost { -15.5 } else { 0.0 };
+    parent_node
+        .insert(Name::new("DungeonMapGhost"))
+        .insert(GhostLayer)
+        .insert(
+            Transform::from_xyz(
+                0.0,
+                HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0 - underlayer_height_offset,
+                0.0,
+            )
+            .with_scale(Vec3::splat(0.10)),
+        )
+        .with_children(|commands| {
+            for c in trigger.event().data.caverns.iter() {
+                if vtt_data.is_solo() && c.uid != *trigger.params.ghost_uid.as_ref().unwrap() {
+                    continue;
+                }
+                commands.spawn((
+                    Mesh3d(meshes.add(c.floor.clone())),
+                    MeshMaterial3d(cave_map_resources.ghost_material.clone()),
+                    Pickable {
+                        should_block_lower: false,
+                        is_hoverable: false,
+                    },
+                ));
+            }
+        });
+    if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
+        entity.add_child(parent_node_id);
+    } else {
+        commands.entity(parent_node_id).despawn();
+    }
+}
+
 fn on_spawn_cave_map(
     trigger: On<SpawnCaveMap>,
     mut commands: Commands,
@@ -247,6 +303,9 @@ fn on_spawn_cave_map(
     mut q: ResMut<SpawnQueue>,
     coords: Query<&HexCoordsForFeature>,
 ) {
+    if trigger.params.is_ghost {
+        return;
+    }
     let is_revealed = if let Ok(coords) = coords.get(trigger.event().hex) {
         vtt_data.revealed_hex_layer(&coords.hex) > 0
     } else {
@@ -261,7 +320,11 @@ fn on_spawn_cave_map(
 
     let is_player = vtt_data.is_player();
     let is_remote_player = vtt_data.is_remote_player();
-    let underlayer_height_offset = if trigger.is_underlayer { 11.5 } else { 0.0 };
+    let underlayer_height_offset = if trigger.params.is_underlayer {
+        11.5
+    } else {
+        0.0
+    };
     battlemap_materials
         .get_mut(&cave_map_resources.floor_material)
         .unwrap()

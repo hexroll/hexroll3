@@ -219,7 +219,7 @@ pub fn populate_city_map(
             let shops = entity_district.value["shops"].as_array().unwrap();
             let mut shops_placed = false;
             for shop_uid in shops {
-                shops_placed = populate_city_entity(
+                shops_placed |= populate_city_entity(
                     tx,
                     randomizer,
                     shop_uid.as_str().unwrap(),

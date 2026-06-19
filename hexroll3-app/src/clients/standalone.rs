@@ -757,7 +757,7 @@ pub fn request_city_standalone(
             (
                 trigger.0.uid.clone(),
                 trigger.0.hex,
-                BattlemapRequestType::CityMap(trigger.0.is_underlayer),
+                BattlemapRequestType::CityMap(trigger.0.params.clone()),
             ),
             task,
         )
@@ -808,7 +808,7 @@ pub fn request_village_standalone(
             (
                 trigger.0.uid.clone(),
                 trigger.0.hex,
-                BattlemapRequestType::VillageMap(trigger.0.is_underlayer),
+                BattlemapRequestType::VillageMap(trigger.0.params.clone()),
             ),
             task,
         )
@@ -852,12 +852,13 @@ pub fn request_dungeon_map_standalone(
                     data,
                 ))
             } else {
-                // (BattleMapConstructs::Empty, data.clone())
                 None
             })
         })
-        .unwrap_or_else(|e| {
-            error!("{:?}", e);
+        .unwrap_or_else(|_e| {
+            // NOTE: uncomment the following log message to debug any internal
+            // errors while loading a battlemap.
+            // error!("{:?}", e);
             None
         })
     };
@@ -867,7 +868,7 @@ pub fn request_dungeon_map_standalone(
             (
                 trigger.0.uid.clone(),
                 trigger.0.hex,
-                BattlemapRequestType::DungeonMap(trigger.0.is_underlayer),
+                BattlemapRequestType::DungeonMap(trigger.0.params.clone()),
             ),
             task,
         )
@@ -1398,7 +1399,6 @@ pub fn request_dungeon_map_for_standalone_player_node(
                             data.to_string(),
                         ))
                     } else {
-                        // (BattleMapConstructs::Empty, data.clone())
                         None
                     }
                 },

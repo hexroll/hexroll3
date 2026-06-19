@@ -44,13 +44,22 @@ mod village;
 mod wall;
 
 pub use battlemaps::BattlemapsPlugin;
+pub use battlemaps::GhostLayer;
+pub use battlemaps::GhostRequest;
+
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct BattlemapParams {
+    pub is_underlayer: bool,
+    pub is_ghost: bool,
+    pub ghost_uid: Option<String>,
+}
 
 #[derive(Clone)]
 pub struct BattlemapRequest {
     pub uid: String,
     pub hex: Entity,
     pub layer: usize,
-    pub is_underlayer: bool,
+    pub params: BattlemapParams,
 }
 
 #[derive(Event, Deref, Clone)]

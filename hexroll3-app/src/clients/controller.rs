@@ -33,9 +33,9 @@ use serde_json::Value;
 
 use crate::{
     battlemaps::{
-        BattleMapConstructs, BattlemapFeatureUtils, RequestCityOrTownFromBackend,
-        RequestDungeonFromBackend, RequestVillageFromBackend, SpawnCaveMap, SpawnCityMap,
-        SpawnDungeonMap, SpawnVillageMap,
+        BattleMapConstructs, BattlemapFeatureUtils, BattlemapParams, GhostLayer, GhostRequest,
+        RequestCityOrTownFromBackend, RequestDungeonFromBackend, RequestVillageFromBackend,
+        SpawnCaveMap, SpawnCityMap, SpawnDungeonMap, SpawnVillageMap,
     },
     content::{
         ContentMode, ContentPageModel, ContentSpoilersMarker, EditableAttributeParams,
@@ -53,7 +53,7 @@ use crate::{
     },
     shared::{
         asynchttp::{ApiHandler, AsyncBackendTasks},
-        camera::GimbalshotCameraMovement,
+        camera::{GimbalshotCameraMovement, GimbalshotCoords},
         layers::HEIGHT_OF_HEX_MARKER,
         settings::{AppSettings, CONFIG_DIR, UserSettings},
         vtt::{HexMapMode, HexRevealState, LoadVttState, VttData, VttSessionType},
@@ -395,17 +395,24 @@ pub fn receive_appended_feature(
 
 #[derive(Eq, PartialEq, Hash)]
 pub enum BattlemapRequestType {
-    DungeonMap(bool),
-    CityMap(bool),
-    VillageMap(bool),
+    DungeonMap(BattlemapParams),
+    CityMap(BattlemapParams),
+    VillageMap(BattlemapParams),
 }
 
 impl BattlemapRequestType {
-    pub fn is_underlayer(&self) -> bool {
+    pub fn params(&self) -> BattlemapParams {
         match self {
-            BattlemapRequestType::DungeonMap(v) => *v,
-            BattlemapRequestType::CityMap(v) => *v,
-            BattlemapRequestType::VillageMap(v) => *v,
+            BattlemapRequestType::DungeonMap(params) => params.clone(),
+            BattlemapRequestType::CityMap(params) => params.clone(),
+            BattlemapRequestType::VillageMap(params) => params.clone(),
+        }
+    }
+    pub fn is_ghost(&self) -> bool {
+        match self {
+            BattlemapRequestType::DungeonMap(params) => params.is_ghost,
+            BattlemapRequestType::CityMap(params) => params.is_ghost,
+            BattlemapRequestType::VillageMap(params) => params.is_ghost,
         }
     }
 }
@@ -637,29 +644,52 @@ pub fn on_render_entity_completed(
     map: Res<HexMapData>,
     mut content_stuff: ResMut<ContentContext>,
     vtt_data: Res<VttData>,
+    ghost_layers_to_despawn: Query<Entity, With<GhostLayer>>,
 ) {
     if trigger.fetch_reason == FetchEntityReason::TokenMovement {
         return;
+    }
+    for ghost_entity in ghost_layers_to_despawn.iter() {
+        commands.entity(ghost_entity).try_despawn();
     }
     if let Some(coords) = &trigger.map_coords {
         content_stuff.current_hex_uid = Some(coords.hex.clone());
 
         if let Some(hex_uid) = &content_stuff.current_hex_uid {
             if let Some(hex_coords) = map.coords.get(hex_uid) {
-                let okay_to_gimbleshot = {
+                let shown_layer =
                     if let Some(revealed_state) = vtt_data.revealed.get(hex_coords) {
-                        if let HexRevealState::Full(Some(layer)) = revealed_state {
-                            *layer == coords.layer as u32
-                        } else {
-                            true
+                        match revealed_state {
+                            HexRevealState::Unrevealed(Some(layer)) => *layer,
+                            HexRevealState::Partial(Some(layer)) => *layer,
+                            HexRevealState::Full(Some(layer)) => *layer,
+                            _ => {
+                                if vtt_data.is_solo() {
+                                    0
+                                } else {
+                                    1
+                                }
+                            }
                         }
                     } else {
-                        true
-                    }
-                };
-                if okay_to_gimbleshot {
+                        1
+                    };
+                let mut adjusted_coords = coords.clone();
+                if coords.layer > 0 && coords.layer as u32 != shown_layer {
+                    commands.spawn(GhostRequest {
+                        hex_uid: hex_uid.clone(),
+                        entity_uid: trigger.uid.clone(),
+                        layer: coords.layer,
+                    });
+                    adjusted_coords.zoom = adjusted_coords.zoom.map(|z| z + 1);
+                }
+                commands.trigger(GimbalshotCameraMovement {
+                    coords: GimbalshotCoords::Hex(adjusted_coords.clone()),
+                });
+            } else {
+                if let Some((x, y)) = map.region_uid_to_pos_and_scale.get(&trigger.uid) {
                     commands.trigger(GimbalshotCameraMovement {
-                        coords: coords.clone(),
+                        coords: GimbalshotCoords::Direct { pos: *x, scale: *y },
                     });
                 }
             }
@@ -669,13 +699,13 @@ pub fn on_render_entity_completed(
             content_stuff.current_hex_uid = Some(trigger.uid.clone());
             if let Some(entity) = map.hexes.get(coord) {
                 commands.trigger(GimbalshotCameraMovement {
-                    coords: crate::shared::camera::MapCoords {
+                    coords: GimbalshotCoords::Hex(crate::shared::camera::MapCoords {
                         hex: entity.uid.clone(),
                         x: 0.0,
                         y: 0.0,
                         layer: 0,
-                        zoom: 4,
-                    },
+                        zoom: None,
+                    }),
                 });
             }
         }
@@ -694,8 +724,10 @@ pub fn on_ingest_battlemap_data(
     commands: &mut Commands,
     cache: &mut crate::hexmap::elements::HexMapCache,
 ) {
-    if let Ok(mut entity) = commands.get_entity(key.1) {
-        entity.mark_battlemap_has_valid_state();
+    if !key.2.is_ghost() {
+        if let Ok(mut entity) = commands.get_entity(key.1) {
+            entity.mark_battlemap_has_valid_state();
+        }
     }
     match data.0 {
         BattleMapConstructs::Dungeon(dungeon_map_constructs) => {
@@ -703,7 +735,7 @@ pub fn on_ingest_battlemap_data(
             commands.trigger(SpawnDungeonMap {
                 hex: key.1,
                 data: dungeon_map_constructs,
-                is_underlayer: key.2.is_underlayer(),
+                params: key.2.params(),
             })
         }
         BattleMapConstructs::Cave(cave_map_constructs) => {
@@ -711,7 +743,7 @@ pub fn on_ingest_battlemap_data(
             commands.trigger(SpawnCaveMap {
                 hex: key.1,
                 data: cave_map_constructs,
-                is_underlayer: key.2.is_underlayer(),
+                params: key.2.params(),
             })
         }
         BattleMapConstructs::City(city_map_constructs) => commands.trigger(SpawnCityMap {

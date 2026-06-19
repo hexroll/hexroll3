@@ -393,3 +393,7 @@ pub fn make_mesh_from_outline2(
     )
     .with_inserted_indices(bevy::mesh::Indices::U32(indices))
 }
+
+pub fn polygon_centroid(polygon: &[Vec2]) -> Vec2 {
+    polygon.iter().fold(Vec2::ZERO, |acc, p| acc + *p) / polygon.len() as f32
+}

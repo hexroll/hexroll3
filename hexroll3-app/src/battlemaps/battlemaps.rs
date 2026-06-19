@@ -57,11 +57,11 @@ use crate::{
     },
 };
 
-use super::BattlemapFeatureUtils;
 use super::{
     BattlemapDialProvider, BattlemapRequest, RequestCityOrTownFromBackend,
     RequestDungeonFromBackend, RequestVillageFromBackend, ruler::draw_ruler,
 };
+use super::{BattlemapFeatureUtils, BattlemapParams};
 
 pub const DEFAULT_BATTLEMAP_COLOR: [f32; 4] = [0.5, 0.47, 0.45, 1.0];
 pub const DUNGEON_FOG_COLOR: Color = Color::linear_rgb(0.016807375, 0.015208514, 0.015208514);
@@ -93,7 +93,8 @@ impl Plugin for BattlemapsPlugin {
             .add_systems(Update, draw_ruler.before(ruler_label_zoom_fader))
             .add_systems(Update, (area_labels_zoom_fader, token_labels_zoom_fader, ruler_label_zoom_fader))
             .add_systems(Update, (
-                trigger_battlemaps_requests_when_visible.run_if(in_state(AppState::Live)).run_if(not(in_state(HexMapToolState::Edit))),
+                (trigger_battlemaps_requests_when_visible, trigger_battlemaps_ghost_requests_when_visible)
+                    .run_if(in_state(AppState::Live)).run_if(not(in_state(HexMapToolState::Edit))),
                 despawn_battlemaps_when_timer_expire).after(update_hex_map_tiles))
             .add_systems(Update, schedule_despawn_battlemaps_when_out_of_range.after(trigger_battlemaps_requests_when_visible))
             .add_systems(Update, battlemap_grid_aliasing_fader)
@@ -152,6 +153,16 @@ impl Material for BattlemapMaterial {
     fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
     }
+}
+
+#[derive(Component)]
+pub struct GhostLayer;
+
+#[derive(Component)]
+pub struct GhostRequest {
+    pub hex_uid: String,
+    pub entity_uid: String,
+    pub layer: usize,
 }
 
 fn trigger_battlemaps_requests_when_visible(
@@ -244,11 +255,15 @@ fn trigger_battlemaps_requests_when_visible(
                     let uid = hex_uid.uid.clone();
                     is_expensive_hex = true;
                     commands.trigger(RequestDungeonFromBackend(BattlemapRequest {
-                        uid,
+                        uid: uid.clone(),
                         hex,
                         layer,
-                        is_underlayer: false,
-                    }))
+                        params: BattlemapParams {
+                            is_underlayer: false,
+                            is_ghost: false,
+                            ghost_uid: None,
+                        },
+                    }));
                 } else if *hex_type == HexFeature::City || *hex_type == HexFeature::Town {
                     if let Ok(mut entity) = commands.get_entity(hex) {
                         entity.try_insert(SubMapMarker);
@@ -261,7 +276,11 @@ fn trigger_battlemaps_requests_when_visible(
                         uid: uid.clone(),
                         hex,
                         layer,
-                        is_underlayer: false,
+                        params: BattlemapParams {
+                            is_underlayer: false,
+                            is_ghost: false,
+                            ghost_uid: None,
+                        },
                     }));
                     if *hex_type == HexFeature::City && !vtt_data.is_player() {
                         if map_data.hexes.get(&hex_coords.hex).unwrap().num_of_layers > 1 {
@@ -269,7 +288,11 @@ fn trigger_battlemaps_requests_when_visible(
                                 uid: uid.clone(),
                                 hex,
                                 layer,
-                                is_underlayer: true,
+                                params: BattlemapParams {
+                                    is_underlayer: true,
+                                    is_ghost: false,
+                                    ghost_uid: None,
+                                },
                             }))
                         }
                     }
@@ -285,7 +308,11 @@ fn trigger_battlemaps_requests_when_visible(
                         uid,
                         hex,
                         layer,
-                        is_underlayer: false,
+                        params: BattlemapParams {
+                            is_underlayer: false,
+                            is_ghost: false,
+                            ghost_uid: None,
+                        },
                     }))
                 } else if visibility_controller.are_battlemaps_visible() || is_dungeon_overland
                 {
@@ -644,6 +671,30 @@ pub fn elevate_underlayers(
                 commands
                     .entity(underlayer_entity)
                     .try_insert(Transform::from_xyz(0.0, -1.0, 0.0));
+            }
+        }
+    }
+}
+
+pub fn trigger_battlemaps_ghost_requests_when_visible(
+    hexes: Query<(Entity, &HexUid)>,
+    ghosts: Query<(Entity, &GhostRequest)>,
+    mut commands: Commands,
+) {
+    for (ghost_entity, ghost_request) in ghosts.iter() {
+        for (e, uid_ref) in hexes.iter() {
+            if uid_ref.uid == ghost_request.hex_uid {
+                commands.trigger(RequestDungeonFromBackend(BattlemapRequest {
+                    uid: uid_ref.uid.clone(),
+                    hex: e,
+                    layer: ghost_request.layer,
+                    params: BattlemapParams {
+                        is_underlayer: false,
+                        is_ghost: true,
+                        ghost_uid: Some(ghost_request.entity_uid.clone()),
+                    },
+                }));
+                commands.entity(ghost_entity).try_despawn();
             }
         }
     }

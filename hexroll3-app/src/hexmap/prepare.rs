@@ -256,6 +256,28 @@ pub fn prepare_hex_map_data(
         (normalize(&count.0), normalize(&count.1))
     };
 
+    let polygon_scale = |points: &[Vec2]| -> f32 {
+        let (mut min_x, mut min_y, mut max_x, mut max_y) =
+            (f32::MAX, f32::MAX, f32::MIN, f32::MIN);
+        for p in points {
+            if p.x < min_x {
+                min_x = p.x;
+            }
+            if p.y < min_y {
+                min_y = p.y;
+            }
+            if p.x > max_x {
+                max_x = p.x;
+            }
+            if p.y > max_y {
+                max_y = p.y;
+            }
+        }
+        (max_x - min_x).max(max_y - min_y) / 600.0
+    };
+
+    let mut region_uid_to_pos_and_scale: HashMap<String, (Vec2, f32)> = HashMap::new();
+
     let region_labels: Vec<LazySpawn<(String, Vec2, f32)>> = regions
         .iter()
         .map(|(k, v)| {
@@ -269,6 +291,15 @@ pub fn prepare_hex_map_data(
             let test = polylabel(vec![j], 1.0);
 
             let label_position = Vec2::new(test[0] as f32, test[1] as f32);
+
+            region_uid_to_pos_and_scale.insert(
+                k.clone(),
+                (
+                    polygon_centroid(&polygon_points),
+                    polygon_scale(&polygon_points),
+                ),
+            );
+
             LazySpawn::from((
                 map.regions.get(k).unwrap().clone(),
                 Vec2::new(label_position.x as f32, label_position.y as f32),
@@ -289,6 +320,15 @@ pub fn prepare_hex_map_data(
             let test = polylabel(vec![j], 1.0);
 
             let label_position = Vec2::new(test[0] as f32, test[1] as f32);
+
+            region_uid_to_pos_and_scale.insert(
+                k.clone(),
+                (
+                    polygon_centroid(&polygon_points),
+                    polygon_scale(&polygon_points),
+                ),
+            );
+
             LazySpawn::from((
                 map.realms.get(k).unwrap().name.clone(),
                 Vec2::new(label_position.x as f32, label_position.y as f32),
@@ -362,6 +402,7 @@ pub fn prepare_hex_map_data(
         realm_labels,
         poi_labels,
         realm_borderlines,
+        region_uid_to_pos_and_scale,
         cursor: None,
         selected: None,
         generating: false,

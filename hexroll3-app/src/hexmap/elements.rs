@@ -36,11 +36,6 @@ use bevy::prelude::*;
 use hexx::Hex;
 use hexx::HexLayout;
 
-// pub const SANDBOX: &str = "3pcYrXdV";
-// pub const SANDBOX: &str = "EqnabYIX";
-// pub const SANDBOX: &str = "42hmjW6S";
-// pub const SANDBOX: &str = "COVCtDBf";
-
 #[derive(States, Debug, Default, Hash, PartialEq, Eq, Clone)]
 pub enum HexMapState {
     #[default]
@@ -106,6 +101,11 @@ impl PreparedHexTile {
             _ => false,
         }
     }
+    #[cfg(not(feature = "experimental"))]
+    pub fn can_have_a_dungeon(&self) -> bool {
+        false
+    }
+    #[cfg(feature = "experimental")]
     pub fn can_have_a_dungeon(&self) -> bool {
         match self.feature {
             HexFeature::City => true,
@@ -186,6 +186,7 @@ pub struct HexMapData {
     pub realm_labels: Vec<LazySpawn<(String, Vec2, f32)>>,
     pub poi_labels: Vec<LazySpawn<(String, Vec2)>>,
     pub realm_borderlines: Vec<(Mesh, StandardMaterial)>,
+    pub region_uid_to_pos_and_scale: HashMap<String, (Vec2, f32)>,
     pub cursor: Option<Vec3>,
     pub selected: Option<Hex>,
     pub generating: bool,

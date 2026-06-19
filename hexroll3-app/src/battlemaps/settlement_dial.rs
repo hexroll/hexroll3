@@ -122,7 +122,6 @@ fn on_spawn_settlement_dial(
         return;
     }
 
-    debug!("AND NOW");
     let calc_scale = |v: f32| -> f32 {
         if v > 0.10 {
             v * 0.10 / (0.10 + (v - 0.10).ln_1p()) * 0.75

@@ -56,7 +56,8 @@ use crate::{
     },
 };
 
-use super::BattlemapFeatureUtils;
+use super::battlemaps::GhostLayer;
+use super::{BattlemapFeatureUtils, BattlemapParams};
 use super::{
     DUNGEON_FOG_COLOR, DoorData,
     battlemaps::{
@@ -73,6 +74,7 @@ impl Plugin for DungeonsPlugin {
         app
             // -->
             .add_systems(Startup, setup)
+            .add_observer(on_spawn_dungeon_map_ghost_layer)
             .add_observer(on_spawn_dungeon_map)
             // <--
         ;
@@ -86,7 +88,7 @@ impl Plugin for DungeonsPlugin {
 pub struct SpawnDungeonMap {
     pub hex: Entity,
     pub data: DungeonMapConstructs,
-    pub is_underlayer: bool,
+    pub params: BattlemapParams,
 }
 
 const WALLS_Y_SCALE_FOR_LIGHTING: f32 = 5.0;
@@ -107,6 +109,7 @@ struct DungeonMapAssets {
     secret_door_mesh: Handle<Mesh>,
     secret_door_walls_mesh: Handle<Mesh>,
     wall_material: Handle<StandardMaterial>,
+    ghost_material: Handle<StandardMaterial>,
     dirt_material: Handle<StandardMaterial>,
     highlight_material: Handle<StandardMaterial>,
     toned_black: Handle<StandardMaterial>,
@@ -136,6 +139,14 @@ fn setup(
     let wall_material = standard_materials.add(StandardMaterial {
         base_color: DUNGEON_FOG_COLOR,
         unlit: true,
+        cull_mode: None,
+        ..default()
+    });
+
+    let ghost_material = standard_materials.add(StandardMaterial {
+        base_color: Color::srgba(0.0, 0.0, 0.0, 0.75),
+        unlit: true,
+        alpha_mode: AlphaMode::AlphaToCoverage,
         cull_mode: None,
         ..default()
     });
@@ -180,12 +191,67 @@ fn setup(
         secret_door_mesh,
         secret_door_walls_mesh,
         wall_material,
+        ghost_material,
         dirt_material,
         highlight_material,
         toned_black,
         background_material,
         battlemap_material,
     });
+}
+
+fn on_spawn_dungeon_map_ghost_layer(
+    trigger: On<SpawnDungeonMap>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut q: ResMut<SpawnQueue>,
+    dungeon_assets: Res<DungeonMapAssets>,
+    vtt_data: Res<VttData>,
+) {
+    if !trigger.params.is_ghost {
+        return;
+    }
+    let mut parent_node = commands.spawn_empty();
+    let parent_node_id = parent_node.id();
+    let underlayer_height_offset = if trigger.params.is_ghost { -15.5 } else { 0.0 };
+    parent_node
+        .insert(Name::new("DungeonMapGhost"))
+        .insert(Visibility::Hidden)
+        .insert(GhostLayer)
+        .insert(Transform::from_xyz(
+            0.0,
+            HEIGHT_OF_BATTLEMAP_ON_FEATURE - 5.0 - underlayer_height_offset,
+            0.0,
+        ))
+        .with_children(|commands| {
+            for prepared_area in &trigger.event().data.areas {
+                if vtt_data.is_solo()
+                    && prepared_area.area.uuid != *trigger.params.ghost_uid.as_ref().unwrap()
+                {
+                    continue;
+                }
+                let area = &prepared_area.area;
+                let x = (area.x as f32) + (area.w as f32) / 2.0;
+                let y = (area.y as f32) + (area.h as f32) / 2.0;
+                commands.spawn((
+                    Mesh3d(meshes.add(prepared_area.mesh.clone())),
+                    MeshMaterial3d(dungeon_assets.ghost_material.clone()),
+                    Transform::from_xyz(x, 0.0, y),
+                    Pickable {
+                        should_block_lower: false,
+                        is_hoverable: false,
+                    },
+                ));
+            }
+        });
+    q.queue_children(parent_node_id, move |pid, commands| {
+        commands.entity(pid).try_insert(Visibility::default());
+    });
+    if let Ok(mut entity) = commands.get_entity(trigger.event().hex) {
+        entity.add_child(parent_node_id);
+    } else {
+        commands.entity(parent_node_id).despawn();
+    }
 }
 
 fn on_spawn_dungeon_map(
@@ -199,6 +265,9 @@ fn on_spawn_dungeon_map(
     vtt_data: Res<VttData>,
     coords: Query<&HexCoordsForFeature>,
 ) {
+    if trigger.params.is_ghost {
+        return;
+    }
     let is_revealed = if let Ok(coords) = coords.get(trigger.event().hex) {
         vtt_data.revealed_hex_layer(&coords.hex) > 0
     } else {
@@ -220,7 +289,11 @@ fn on_spawn_dungeon_map(
     let parent_node_id = parent_node.id();
     let is_player = vtt_data.mode.is_player();
     let is_remote_player = vtt_data.is_remote_player();
-    let underlayer_height_offset = if trigger.is_underlayer { 11.5 } else { 0.0 };
+    let underlayer_height_offset = if trigger.params.is_underlayer {
+        11.5
+    } else {
+        0.0
+    };
     let player_entity_visibility = if is_player {
         Visibility::Inherited
     } else {
