@@ -30,19 +30,38 @@ jobs:
           command: |
             cargo build --profile=release-minified --package hexroll3-app
 
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/
+
+  package-linux:
+    docker:
+      - image: cimg/rust:1.92.0
+    parameters:
+      assets_url_var_name:
+        type: string
+        default: "ASSETS_URL"
+      edition_name:
+        type: string
+        default: ""
+    steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Create tar.gz archive
           command: |
             mkdir dist
-            curl -L "$ASSETS_URL" -o assets.zip
+            IND_ASSETS_URL="<< parameters.assets_url_var_name >>"
+            curl -L "${!IND_ASSETS_URL}" -o assets.zip
             unzip assets.zip -d dist/
             cp target/release-minified/hexroll3-app dist/
             cd dist
-            tar -czvf ../hexroll3-linux.tar.gz **
+            tar -czvf ../hexroll3-linux<< parameters.edition_name >>.tar.gz **
 
       - store_artifacts:
-          path: hexroll3-linux.tar.gz
-          destination: hexroll3-linux.tar.gz
+          path: hexroll3-linux<< parameters.edition_name >>.tar.gz
+          destination: hexroll3-linux<< parameters.edition_name >>.tar.gz
 
   build-macos:
     macos:
@@ -66,7 +85,34 @@ jobs:
           no_output_timeout: 90m
           command: |
             . "$HOME/.cargo/env" && cargo build --profile=release-minified --package hexroll3-app
+      - run:
+          name: Stage extra files
+          command: |
+            set -eux
+            SOURCE_DIR="$PWD"
+            cp -r "$SOURCE_DIR/build-deps" "$SOURCE_DIR/target/build-deps"
 
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/
+
+  package-macos:
+    macos:
+      xcode: 16.4.0
+    parameters:
+      assets_url_var_name:
+        type: string
+        default: "ASSETS_URL"
+      edition_name:
+        type: string
+        default: ""
+    resource_class: m4pro.medium
+    environment:
+      CARGO_TERM_COLOR: always
+    steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Package app bundle
           command: |
@@ -79,11 +125,12 @@ jobs:
             mkdir -p hexroll3-macos.app/Contents/MacOS
             mkdir -p hexroll3-macos.app/Contents/Resources
 
-            cp "$SOURCE_DIR/build-deps/macos/Info.plist" \
+            cp "$SOURCE_DIR/target/build-deps/macos/Info.plist" \
                hexroll3-macos.app/Contents/
-            cp "$SOURCE_DIR/build-deps/macos/appicon.icns" \
+            cp "$SOURCE_DIR/target/build-deps/macos/appicon.icns" \
                hexroll3-macos.app/Contents/Resources/
-            curl -L "$ASSETS_URL" -o assets.zip
+            IND_ASSETS_URL="<< parameters.assets_url_var_name >>"
+            curl -L "${!IND_ASSETS_URL}" -o assets.zip
             unzip assets.zip -d hexroll3-macos.app/Contents/Resources/
             cp "$SOURCE_DIR/target/release-minified/hexroll3-app" \
                hexroll3-macos.app/Contents/MacOS/hexroll3-macos
@@ -157,7 +204,7 @@ jobs:
                 -srcfolder hexroll3-macos.app \
                 -ov \
                 -format UDZO \
-                hexroll3-macos.dmg
+                hexroll3-macos<< parameters.edition_name >>.dmg
             do
               if [ "$i" -eq 10 ]; then
                 echo "hdiutil failed 10 times, exiting."
@@ -169,8 +216,8 @@ jobs:
             done
 
       - store_artifacts:
-          path: build/hexroll3-macos.dmg
-          destination: hexroll3-macos.dmg
+          path: build/hexroll3-macos<< parameters.edition_name >>.dmg
+          destination: hexroll3-macos<< parameters.edition_name >>.dmg
 
   build-windows:
     executor:
@@ -212,7 +259,53 @@ workflows:
             branches:
               ignore: /.*/
 
+      - package-linux:
+          name: package-linux-standard
+          requires:
+            - build-linux
+          assets_url_var_name: "ASSETS_URL"
+          filters:
+            tags:
+              only: [/^linux.*/, /^alpha.*/]
+            branches:
+              ignore: /.*/
+
+      - package-linux:
+          name: package-linux-backer-edition 
+          requires:
+            - build-linux
+          assets_url_var_name: "EXT_ASSETS_URL"
+          edition_name: "-backer-edition"
+          filters:
+            tags:
+              only: [/^linux.*/, /^alpha.*/]
+            branches:
+              ignore: /.*/
+
       - build-macos:
+         filters:
+           tags:
+             only: [/^macos.*/, /^alpha.*/]
+           branches:
+             ignore: /.*/
+
+      - package-macos:
+         name: package-macos-standard
+         requires:
+           - build-macos
+         assets_url_var_name: "ASSETS_URL"
+         filters:
+           tags:
+             only: [/^macos.*/, /^alpha.*/]
+           branches:
+             ignore: /.*/
+
+      - package-macos:
+         name: package-macos-backer-edition
+         requires:
+           - build-macos
+         assets_url_var_name: "EXT_ASSETS_URL"
+         edition_name: "-backer-edition"
          filters:
            tags:
              only: [/^macos.*/, /^alpha.*/]
