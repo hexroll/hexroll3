@@ -746,12 +746,16 @@ pub fn on_ingest_battlemap_data(
                 params: key.2.params(),
             })
         }
-        BattleMapConstructs::City(city_map_constructs) => commands.trigger(SpawnCityMap {
-            hex: key.1,
-            hex_uid: key.0.clone(),
-            data: city_map_constructs,
-        }),
+        BattleMapConstructs::City(city_map_constructs) => {
+            cache.jsons.insert(key.0.clone(), data.1);
+            commands.trigger(SpawnCityMap {
+                hex: key.1,
+                hex_uid: key.0.clone(),
+                data: city_map_constructs,
+            })
+        }
         BattleMapConstructs::Village(village_map_constructs) => {
+            cache.jsons.insert(key.0.clone(), data.1);
             commands.trigger(SpawnVillageMap {
                 hex: key.1,
                 hex_uid: key.0.clone(),
