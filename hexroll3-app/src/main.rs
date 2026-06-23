@@ -49,6 +49,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 #[cfg(target_arch = "wasm32")]
 use bevy_inspector_egui::bevy_egui::input::EguiWantsInput;
 
+use bevy::asset::io::web::WebAssetPlugin;
 use bevy_inspector_egui::bevy_egui::{EguiGlobalSettings, EguiPlugin};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_simple_scroll_view::ScrollViewPlugin;
@@ -153,6 +154,9 @@ fn main() {
                     {
                         AssetPlugin::default()
                     }
+                })
+                .set(WebAssetPlugin {
+                    silence_startup_warning: true,
                 }),
         )
         .insert_state(hexroll3_app::shared::AppState::Intro)

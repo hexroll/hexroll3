@@ -109,6 +109,9 @@ struct BasePlate;
 #[derive(Component)]
 struct Captions;
 
+#[derive(Component)]
+struct Sponsors;
+
 fn bloom_knob(
     mut bloom: Query<&mut Bloom>,
     controller: Query<&Transform, With<ControllerBone>>,
@@ -136,6 +139,7 @@ fn bloom_knob(
 
 fn captions_fader_knob(
     mut caption: Query<&mut TextColor, With<Captions>>,
+    mut sponsors: Query<&mut ImageNode, With<Sponsors>>,
     caption_fader: Query<&Transform, With<CaptionFaderBone>>,
 ) {
     let Some(controller) = caption_fader.iter().next() else {
@@ -143,6 +147,9 @@ fn captions_fader_knob(
     };
     for mut panel in caption.iter_mut() {
         panel.0.set_alpha(1.0 - controller.scale.x);
+    }
+    for mut image in sponsors.iter_mut() {
+        image.color.set_alpha(1.0 - controller.scale.x);
     }
 }
 
@@ -254,6 +261,20 @@ fn on_intro_scene_spawned(
             },
             Text::new("Ennies Silver Award winner for best digital aid, 2024. Copyright (c) 2021-2026 All Rights Reserved. Handmade with love by humans."),
             TextLayout::new_with_justify(Justify::Center),
+        ))
+        .with_child((
+            Sponsors,
+            Node {
+                width: Val::Px(200.0),
+                height: Val::Px(50.0),
+                align_self: AlignSelf::Center,
+                justify_self: JustifySelf::Center,
+                ..default()
+            },
+            ImageNode {
+                image: asset_server.load("https://pendicepaper.com/sponsors.png"),
+                ..default()
+            },
         ));
 
     commands.spawn((
