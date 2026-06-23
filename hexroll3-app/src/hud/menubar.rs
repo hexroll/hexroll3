@@ -24,6 +24,7 @@
 */
 
 use bevy::prelude::*;
+use bevy_seedling::sample::AudioSample;
 
 use crate::{
     dialogs::OpenSandboxOptionsModal,
@@ -78,16 +79,27 @@ impl Plugin for MenuBarPlugin {
 #[derive(Component)]
 struct MenuIconConnect;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    audio_samples: Res<Assets<AudioSample>>,
+) {
     // Player menubar
     {
         let mut e = commands.spawn(create_menubar_bundle(
             "PlayerMenu",
             AutoDrawerVisiblity::VisibleToPlayerOnly,
         ));
-        e.with_children(|c| {
-            spawn_audio_toggle(c, create_menu_icon_frame_bundle(), asset_server.as_ref());
-        });
+        if !audio_samples.is_empty() {
+            e.with_children(|c| {
+                spawn_audio_toggle(
+                    c,
+                    create_menu_icon_frame_bundle(),
+                    asset_server.as_ref(),
+                    false,
+                );
+            });
+        }
     }
     // Referee menubar
     {
