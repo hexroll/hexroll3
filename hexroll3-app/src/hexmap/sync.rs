@@ -40,7 +40,9 @@ use avian3d::prelude::ColliderDisabled;
 use bevy::{platform::collections::HashSet, prelude::*};
 
 use super::{
-    HexMapJson, LoadHexmapTheme, ToggleDayNight, daynight::DayNight, elements::HexMapData,
+    HexMapJson, LoadHexmapTheme, ToggleDayNight,
+    daynight::DayNight,
+    elements::{HexMapData, HexUid},
 };
 
 #[derive(Serialize, Deserialize, Event, Clone)]
@@ -93,6 +95,7 @@ pub fn on_map_message(
     visible_hexes: Query<(Entity, &HexEntity), With<HexEntity>>,
     user_settings: Res<UserSettings>,
     children: Query<&Children>,
+    visible_battlemaps: Query<&HexUid>,
 ) {
     match trigger.event() {
         MapMessage::Cache(cache_type) => match cache_type {
@@ -122,7 +125,7 @@ pub fn on_map_message(
             }
             MapMessageCacheType::ChunkedBattleMap(key, chunk_data) => {
                 if cache.hashes.get(key) == Some(&chunk_data.hash) {
-                    // We already have this exact content cached — ignore the entire stream.
+                    // We already have this key cached
                 } else {
                     debug!("Player receiving cached battlemap map chunk");
                     let buffer_key = format!("{}_buffer", key);
@@ -147,8 +150,13 @@ pub fn on_map_message(
                                 }
                             }
                         });
-                        commands.trigger(FreezeScreenSnapshot);
-                        vtt_data.invalidate_map = true;
+                        for visible_battlemap in visible_battlemaps.iter() {
+                            if visible_battlemap.uid == *key {
+                                commands.trigger(FreezeScreenSnapshot);
+                                vtt_data.invalidate_map = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
