@@ -65,6 +65,7 @@ pub fn prepare_renderer(
     env.add_function("plural_with_count", func_plural_with_count);
     env.add_function("round", func_round);
     env.add_function("iround", func_iround);
+    env.add_function("iround_down", func_iround_down);
     env.add_function("sandbox", func_sandbox(instance));
     env.add_function("sortby", func_sortby);
     env.add_function("dice", func_unstable_dice);
