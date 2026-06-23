@@ -1372,7 +1372,12 @@ pub fn request_hex_map_for_standalone_player_node(
 pub fn request_dungeon_map_for_standalone_player_node(
     trigger: On<NodeBackendEvent<RequestDungeonFromBackend>>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     let event = trigger.event().0.clone();
@@ -1381,7 +1386,11 @@ pub fn request_dungeon_map_for_standalone_player_node(
         let data = data.to_string();
         if my_tasks
             .spawn_standalone(
-                (trigger.0.uid.clone(), trigger.0.hex),
+                (
+                    trigger.0.uid.clone(),
+                    trigger.0.hex,
+                    BattlemapRequestType::DungeonMap(trigger.0.params.clone()),
+                ),
                 move || -> Option<(BattleMapConstructs, String)> {
                     if data.contains("areas") {
                         Some((
@@ -1415,14 +1424,23 @@ pub fn request_dungeon_map_for_standalone_player_node(
 pub fn request_city_map_for_standalone_player_node(
     trigger: On<NodeBackendEvent<RequestCityOrTownFromBackend>>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     if let Some(data) = cache.jsons.get(&trigger.event().0.uid) {
         let data = data.to_string();
         if my_tasks
             .spawn_standalone(
-                (trigger.0.uid.clone(), trigger.0.hex),
+                (
+                    trigger.0.uid.clone(),
+                    trigger.0.hex,
+                    BattlemapRequestType::CityMap(trigger.0.params.clone()),
+                ),
                 move || -> Option<(BattleMapConstructs, String)> {
                     Some((
                         BattleMapConstructs::City(CityMapConstructs::from(data.clone())),
@@ -1442,7 +1460,12 @@ pub fn request_city_map_for_standalone_player_node(
 pub fn request_village_map_for_standalone_player_node(
     trigger: On<NodeBackendEvent<RequestVillageFromBackend>>,
     mut commands: Commands,
-    mut my_tasks: ResMut<AsyncBackendTasks<(String, Entity), (BattleMapConstructs, String)>>,
+    mut my_tasks: ResMut<
+        AsyncBackendTasks<
+            (String, Entity, BattlemapRequestType),
+            (BattleMapConstructs, String),
+        >,
+    >,
     cache: Res<crate::hexmap::elements::HexMapCache>,
 ) {
     let event = trigger.event().0.clone();
@@ -1451,7 +1474,11 @@ pub fn request_village_map_for_standalone_player_node(
         let data = data.to_string();
         if my_tasks
             .spawn_standalone(
-                (trigger.0.uid.clone(), trigger.0.hex),
+                (
+                    trigger.0.uid.clone(),
+                    trigger.0.hex,
+                    BattlemapRequestType::VillageMap(trigger.0.params.clone()),
+                ),
                 move || -> Option<(BattleMapConstructs, String)> {
                     Some((
                         BattleMapConstructs::Village(VillageMapConstructs::from(
