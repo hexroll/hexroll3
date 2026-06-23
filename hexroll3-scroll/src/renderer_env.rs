@@ -392,6 +392,11 @@ fn func_iround(value: f32, _dec: f32) -> Result<i32, minijinja::Error> {
     Ok(y as i32)
 }
 
+fn func_iround_down(value: f32, _dec: f32) -> Result<i32, minijinja::Error> {
+    let y = ((value * 100.0) / 100.0).floor();
+    Ok(y as i32)
+}
+
 fn func_round(value: f32, _dec: f32) -> Result<f32, minijinja::Error> {
     let y = (value * 100.0).round() / 100.0;
     Ok(y)
