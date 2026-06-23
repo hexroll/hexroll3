@@ -39,7 +39,7 @@ serde = "1.0.216"
 serde_json = "1.0.134"
 rand = "0.8.5"
 web-sys = { version = "0.3.77", features = ["Location"] }
-bevy = {git = "https://github.com/hexroll/bevy", branch="hexroll3", features=["serialize", "jpeg", "ktx2", "wayland"]}
+bevy = {git = "https://github.com/hexroll/bevy", branch="hexroll3", features=["serialize", "jpeg", "ktx2", "wayland", "https"]}
 fs_extra = { version = "1.3.0" }
 
 [profile.release-minified]
