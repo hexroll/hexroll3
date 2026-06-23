@@ -633,7 +633,7 @@ pub fn get_tile_material(
     if let Some(hex_data) = map.get(&hex) {
         let feature = &hex_data.feature;
         if feature == &HexFeature::Other || feature == &HexFeature::None {
-            materials.get(&terrain).unwrap().clone()
+            materials.get(&terrain).unwrap().full.clone()
         } else {
             tiles
                 .terrain_feature_materials
@@ -644,7 +644,7 @@ pub fn get_tile_material(
                 .clone()
         }
     } else {
-        materials.get(&terrain).unwrap().clone()
+        materials.get(&terrain).unwrap().full.clone()
     }
 }
 

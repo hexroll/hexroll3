@@ -113,11 +113,16 @@ pub fn hex_map_zoom_fader(
             }
 
             for (_, m) in tiles.terrain_rim_materials.iter() {
-                tile_art_materials.get_mut(m).unwrap().mixer.y = 1.0 - main_alpha_fader;
+                tile_art_materials.get_mut(&m.full).unwrap().mixer.y = 1.0 - main_alpha_fader;
+                tile_art_materials.get_mut(&m.partial).unwrap().mixer.y =
+                    (1.0 - main_alpha_fader) / 2.0;
             }
             for (_, m) in tiles.terrain_materials.iter() {
-                tile_art_materials.get_mut(m).unwrap().mixer.y = 1.0 - main_alpha_fader;
+                tile_art_materials.get_mut(&m.full).unwrap().mixer.y = 1.0 - main_alpha_fader;
+                tile_art_materials.get_mut(&m.partial).unwrap().mixer.y =
+                    (1.0 - main_alpha_fader) / 2.0;
             }
+
             // NOTE: We could just traverse the material resources to save cycles
             // but this is way we can trace bugs related to dangling material handles.
             for (_, m) in tiles.terrain_feature_materials.iter() {

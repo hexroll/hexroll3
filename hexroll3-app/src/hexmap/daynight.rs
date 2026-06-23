@@ -202,10 +202,12 @@ fn hex_map_day_night(
             .into();
     }
     for (_, m) in tiles.terrain_rim_materials.iter() {
-        tile_materials.get_mut(m).unwrap().mixer.x = map_time.day_night_analog;
+        tile_materials.get_mut(&m.full).unwrap().mixer.x = map_time.day_night_analog;
+        tile_materials.get_mut(&m.partial).unwrap().mixer.x = map_time.day_night_analog;
     }
     for (_, m) in tiles.terrain_materials.iter() {
-        tile_materials.get_mut(m).unwrap().mixer.x = map_time.day_night_analog;
+        tile_materials.get_mut(&m.full).unwrap().mixer.x = map_time.day_night_analog;
+        tile_materials.get_mut(&m.partial).unwrap().mixer.x = map_time.day_night_analog;
     }
     for (_, m) in tiles.terrain_feature_materials.iter() {
         for (_, m) in m.iter() {

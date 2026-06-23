@@ -92,8 +92,8 @@ impl Plugin for TilesPlugin {
 pub struct HexMapTileMaterials {
     pub unified_terrain_colors: HashMap<TerrainType, TerrainColors>,
     pub terrain_background_materials: HashMap<TerrainType, TerrainBackgroudOptions>,
-    pub terrain_materials: HashMap<TerrainType, Handle<TileMaterial>>,
-    pub terrain_rim_materials: HashMap<TerrainType, Handle<TileMaterial>>,
+    pub terrain_materials: HashMap<TerrainType, DualTerrainMaterial>,
+    pub terrain_rim_materials: HashMap<TerrainType, DualTerrainMaterial>,
     pub terrain_feature_materials:
         HashMap<TerrainType, HashMap<HexFeature, Handle<TileMaterial>>>,
     pub unrevealed_ocean_material: Handle<BackgroundMaterial>,
@@ -138,6 +138,12 @@ fn load_theme_on_startup(
 #[derive(Event)]
 pub struct LoadHexmapTheme {
     pub theme: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DualTerrainMaterial {
+    pub full: Handle<TileMaterial>,
+    pub partial: Handle<TileMaterial>,
 }
 
 fn load_hexmap_theme_resources(
@@ -275,38 +281,44 @@ fn load_hexmap_theme_resources(
             trigger.theme, texture_filename
         ));
         tile_materials.add(TileMaterial {
-            // base_color_texture: Some(texture.clone()),
-            // emissive_texture: Some(texture.clone()),
-            // emissive: color.into(),
-            // alpha_mode: AlphaMode::Blend,
             array_texture: texture.clone(),
             mixer: Vec4::splat(1.0),
         })
     };
 
+    let mut make_dual_terrain = |texture_filename| -> DualTerrainMaterial {
+        DualTerrainMaterial {
+            full: make_terrain(texture_filename),
+            partial: make_terrain(texture_filename),
+        }
+    };
+
     let terrain_materials: HashMap<_, _> = [
-        (TerrainType::ForestHex, make_terrain("forest")),
-        (TerrainType::MountainsHex, make_terrain("mountains")),
-        (TerrainType::SwampsHex, make_terrain("swamps")),
-        (TerrainType::DesertHex, make_terrain("desert")),
-        (TerrainType::PlainsHex, make_terrain("plains")),
-        (TerrainType::JungleHex, make_terrain("jungle")),
-        (TerrainType::TundraHex, make_terrain("tundra")),
-        (TerrainType::OceanHex, make_terrain("empty")),
+        (TerrainType::ForestHex, make_dual_terrain("forest")),
+        (TerrainType::MountainsHex, make_dual_terrain("mountains")),
+        (TerrainType::SwampsHex, make_dual_terrain("swamps")),
+        (TerrainType::DesertHex, make_dual_terrain("desert")),
+        (TerrainType::PlainsHex, make_dual_terrain("plains")),
+        (TerrainType::JungleHex, make_dual_terrain("jungle")),
+        (TerrainType::TundraHex, make_dual_terrain("tundra")),
+        (TerrainType::OceanHex, make_dual_terrain("empty")),
     ]
     .iter()
     .cloned()
     .collect();
 
     let terrain_rim_materials: HashMap<_, _> = [
-        (TerrainType::ForestHex, make_terrain("rim-forest")),
-        (TerrainType::MountainsHex, make_terrain("rim-mountains")),
-        (TerrainType::SwampsHex, make_terrain("rim-swamps")),
-        (TerrainType::DesertHex, make_terrain("rim-desert")),
-        (TerrainType::PlainsHex, make_terrain("rim-plains")),
-        (TerrainType::JungleHex, make_terrain("rim-jungle")),
-        (TerrainType::TundraHex, make_terrain("rim-tundra")),
-        (TerrainType::OceanHex, make_terrain("empty")),
+        (TerrainType::ForestHex, make_dual_terrain("rim-forest")),
+        (
+            TerrainType::MountainsHex,
+            make_dual_terrain("rim-mountains"),
+        ),
+        (TerrainType::SwampsHex, make_dual_terrain("rim-swamps")),
+        (TerrainType::DesertHex, make_dual_terrain("rim-desert")),
+        (TerrainType::PlainsHex, make_dual_terrain("rim-plains")),
+        (TerrainType::JungleHex, make_dual_terrain("rim-jungle")),
+        (TerrainType::TundraHex, make_dual_terrain("rim-tundra")),
+        (TerrainType::OceanHex, make_dual_terrain("empty")),
     ]
     .iter()
     .cloned()

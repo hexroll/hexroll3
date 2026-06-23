@@ -443,7 +443,14 @@ fn get_tile_material(
         };
         if let Some(feature) = &hex_data.feature {
             if feature == &HexFeature::Other || partial {
-                (materials.get(&hex_data.hex_type).unwrap().clone(), is_rim)
+                (
+                    if partial {
+                        materials.get(&hex_data.hex_type).unwrap().partial.clone()
+                    } else {
+                        materials.get(&hex_data.hex_type).unwrap().full.clone()
+                    },
+                    is_rim,
+                )
             } else {
                 (
                     tiles
@@ -457,7 +464,14 @@ fn get_tile_material(
                 )
             }
         } else {
-            (materials.get(&hex_data.hex_type).unwrap().clone(), is_rim)
+            (
+                if partial {
+                    materials.get(&hex_data.hex_type).unwrap().partial.clone()
+                } else {
+                    materials.get(&hex_data.hex_type).unwrap().full.clone()
+                },
+                is_rim,
+            )
         }
     } else {
         unreachable!()
