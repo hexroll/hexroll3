@@ -43,7 +43,7 @@ use crate::{
     shared::{
         vtt::*,
         widgets::{
-            cursor::PointerExclusivityIsPreferred,
+            cursor::{PointerExclusivityIsPreferred, TooltipOnHover},
             knob::{GeneratorKnob, inverse_exponential_graph_value},
             link::ContentHoverLink,
         },
@@ -708,6 +708,7 @@ fn create_drawing_hud(
                         "icons/icon-save.ktx2",
                     ))
                     .hover_effect_ex(true)
+                    .tooltip_on_hover("Save & Generate", 1.0)
                     .observe(|_: On<Pointer<Click>>, mut commands: Commands| {
                         commands.trigger(GenerateHexMap);
                     });
@@ -728,6 +729,7 @@ fn create_drawing_hud(
                         "icons/icon-trash.ktx2",
                     ))
                     .hover_effect_ex(true)
+                    .tooltip_on_hover("Discard map", 1.0)
                     .observe(|_: On<Pointer<Click>>,
                         mut commands: Commands,
                         to_discard: Query<(Entity, &HexEntity), With<TempHex>>,
@@ -764,6 +766,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Draw hexes", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -802,6 +805,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Paint hexes", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -840,6 +844,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Remove hexes", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -878,6 +883,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Clear feature", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -916,6 +922,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Add features", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -954,6 +961,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTool>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Terrain Generator", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>,
                      mut editor: ResMut<MapEditor>,
@@ -998,7 +1006,7 @@ fn create_drawing_hud(
             ))
             .with_children(|c| {
                 c.spawn(make_hud_button_bundle(
-                    "ForestHexToll",
+                    "ForestHexTool",
                     HudButtonTerrain(TerrainType::ForestHex),
                     &editor,
                 ))
@@ -1008,6 +1016,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Forest", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::ForestHex;
@@ -1024,6 +1033,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Mountains", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::MountainsHex;
@@ -1040,6 +1050,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Plains", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::PlainsHex;
@@ -1056,6 +1067,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Desert", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::DesertHex;
@@ -1072,6 +1084,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Swamps", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::SwampsHex;
@@ -1088,6 +1101,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Jungle", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::JungleHex;
@@ -1104,6 +1118,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonTerrain>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Tundra", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.terrain = TerrainType::TundraHex;
@@ -1136,6 +1151,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Dungeon", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::Dungeon;
@@ -1152,6 +1168,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("City", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::City;
@@ -1168,6 +1185,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Town", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::Town;
@@ -1184,6 +1202,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Village", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::Village;
@@ -1200,6 +1219,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Inn", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::Inn;
@@ -1216,6 +1236,7 @@ fn create_drawing_hud(
                 ))
                 .toggle_tool::<HudButtonFeature>()
                 .hover_effect_ex(true)
+                .tooltip_on_hover("Dwelling", 1.0)
                 .observe(
                     |_: On<Pointer<Click>>, mut editor: ResMut<MapEditor>| {
                         editor.selected_feature = HexFeature::Residency;

@@ -248,7 +248,7 @@ fn setup_dicebar_overlay(
                     .collect(),
                 64.0,
             )
-            .tooltip_on_hover("Toggle hex reveal pattern", 1.0)
+            .tooltip_on_hover("Toggle dice set", 1.0)
             .menu_button_hover_effect()
             .observe(
                 |trigger: On<Pointer<Click>>,
