@@ -80,6 +80,7 @@ fn spawn_section(c: &mut RelatedSpawnerCommands<'_, ChildOf>, section: HelpSecti
                 "Dice rollers",
                 section,
             );
+            c.spawn_key_help(vec!["BACKTICK"], "Search", section);
             c.spawn_key_help(vec!["SPACE"], "Reveal mode", section);
         }
         HelpSection::Search => {
@@ -94,7 +95,7 @@ fn spawn_section(c: &mut RelatedSpawnerCommands<'_, ChildOf>, section: HelpSecti
             c.spawn_key_help(vec!["C"], "Add ruler corner", section);
             c.spawn_key_help(vec!["R"], "Reselect previously selected tokens", section);
             c.spawn_key_help(vec!["B"], "Teleport selected tokens to mouse", section);
-            c.spawn_key_help(vec!["C"], "Add ruler corner", section);
+            c.spawn_key_help(vec!["ALT", "1", "2", "3", "4", "5"], "VFX", section);
             c.spawn_key_help(vec!["SHIFT", "DRAG"], "Orient tokens while moving", section);
         }
         HelpSection::SplitScreen => {
