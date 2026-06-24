@@ -24,6 +24,7 @@
 */
 
 use bevy::{ecs::relationship::RelatedSpawnerCommands, prelude::*};
+use bevy_seedling::sample::AudioSample;
 
 use crate::{
     audio::AudioToggle,
@@ -37,8 +38,8 @@ use crate::{
         settings::{AppSettings, LabelsMode},
         widgets::{
             buttons::{
-                MenuButtonSwitcher, Switch, ToggleButtonSwitcherEx, ToggleEventWrapper,
-                rotate_key,
+                MenuButtonDisabled, MenuButtonSwitcher, Switch, ToggleButtonSwitcherEx,
+                ToggleEventWrapper, rotate_key,
             },
             cursor::TooltipOnHover,
         },
@@ -63,8 +64,17 @@ pub fn on_show_toggles(
     Query<&TogglesMenuMarker>,
     Res<AppSettings>,
     Query<&HelpOverlay>,
+    Res<TileSetThemesMetadata>,
+    Res<Assets<AudioSample>>,
 ) {
-    move |mut trigger, mut commands, asset_server, existing_menu, settings, existing_help| {
+    move |mut trigger,
+          mut commands,
+          asset_server,
+          existing_menu,
+          settings,
+          existing_help,
+          themes,
+          audio_samples| {
         trigger.propagate(false);
         if !existing_menu.is_empty() {
             return;
@@ -170,6 +180,7 @@ pub fn on_show_toggles(
                     c,
                     create_toggle_icon_frame_bundle(),
                     asset_server.as_ref(),
+                    audio_samples.is_empty(),
                 );
 
                 c.spawn(create_toggle_icon_frame_bundle())
@@ -181,11 +192,18 @@ pub fn on_show_toggles(
                     ))
                     .tooltip_on_hover("Toggle map theme", 1.0)
                     .menu_button_hover_effect()
+                    .insert_if(MenuButtonDisabled, || {
+                        themes.theme_names.as_ref().unwrap_or(&vec![]).len() < 2
+                    })
                     .observe(
-                        |_: On<Pointer<Click>>,
+                        |trigger: On<Pointer<Click>>,
                          mut commands: Commands,
                          handle: Res<TileSetThemesMetadata>,
-                         current_theme: Res<HexmapTheme>| {
+                         current_theme: Res<HexmapTheme>,
+                         disabled: Query<&MenuButtonDisabled>| {
+                            if disabled.contains(trigger.entity) {
+                                return;
+                            }
                             toggle_map_theme(&mut commands, &handle, &current_theme);
                         },
                     );
@@ -254,6 +272,7 @@ pub fn spawn_audio_toggle<T>(
     c: &mut RelatedSpawnerCommands<'_, ChildOf>,
     bundle: T,
     asset_server: &AssetServer,
+    disabled: bool,
 ) where
     T: Bundle,
 {
@@ -268,15 +287,23 @@ pub fn spawn_audio_toggle<T>(
         )
         .tooltip_on_hover("Mute/Unmute hexmap soundscapes", 1.0)
         .menu_button_hover_effect()
-        .observe(|trigger: On<Pointer<Click>>, mut commands: Commands| {
-            commands
-                .entity(trigger.entity)
-                .trigger(|entity| ToggleButtonSwitcherEx {
-                    entity,
-                    trigger_state_as_event: true,
-                    insert_state_as_resource: false,
-                });
-        });
+        .insert_if(MenuButtonDisabled, || disabled)
+        .observe(
+            |trigger: On<Pointer<Click>>,
+             mut commands: Commands,
+             disabled: Query<&MenuButtonDisabled>| {
+                if disabled.contains(trigger.entity) {
+                    return;
+                }
+                commands
+                    .entity(trigger.entity)
+                    .trigger(|entity| ToggleButtonSwitcherEx {
+                        entity,
+                        trigger_state_as_event: true,
+                        insert_state_as_resource: false,
+                    });
+            },
+        );
 }
 
 pub fn spawn_help_toggle<T>(

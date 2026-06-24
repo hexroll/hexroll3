@@ -62,7 +62,7 @@ fn on_menu_button_disabled(mut world: DeferredWorld, context: HookContext) {
             world
                 .commands()
                 .entity(image_entity)
-                .insert(bevy_tweening::Animator::new(bevy_tweening::Tween::new(
+                .try_insert(bevy_tweening::Animator::new(bevy_tweening::Tween::new(
                     EaseFunction::QuarticOut,
                     Duration::from_millis(300),
                     UiImageNodeAlphaLens { from: 1.0, to: 0.1 },
@@ -94,7 +94,7 @@ fn on_menu_button_enabled(mut world: DeferredWorld, context: HookContext) {
             world
                 .commands()
                 .entity(image_entity)
-                .insert(bevy_tweening::Animator::new(bevy_tweening::Tween::new(
+                .try_insert(bevy_tweening::Animator::new(bevy_tweening::Tween::new(
                     EaseFunction::QuarticIn,
                     Duration::from_millis(300),
                     UiImageNodeAlphaLens { from: 0.1, to: 1.0 },
