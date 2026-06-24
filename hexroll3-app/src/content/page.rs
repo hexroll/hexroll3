@@ -227,6 +227,7 @@ fn resize_offscreen_node(
     mut offscreen: Single<&mut Node, With<ContentOffScreenNode>>,
     mut page_cam: Single<&mut Camera, With<PageCamera>>,
     mut viewport: Single<&mut ImageNode, With<ContentViewport>>,
+    ui_scale: Res<UiScale>,
 ) {
     for resize_event in resize_events.read() {
         if let Ok(window) = windows.get(resize_event.window) {
@@ -237,7 +238,8 @@ fn resize_offscreen_node(
             let (_, _, _, content_page_size) = get_split_content_metrics(window_size);
             let handle = images.add(create_render_target(&content_page_size));
             content_assets.render_target = handle.clone();
-            offscreen.width = Val::Px(content_page_size.x as f32 * 0.8);
+            let inverse_ui_scale = 1.0 / ui_scale.max(0.25);
+            offscreen.width = Val::Px(content_page_size.x as f32 * 0.8 * inverse_ui_scale);
             page_cam.target = handle.clone().into();
             viewport.image = handle.clone();
             // TODO: refresh content on resize?
@@ -254,6 +256,7 @@ fn setup_offscreen_node(
     mut offscreen: Single<&mut Node, With<ContentOffScreenNode>>,
     mut page_cam: Single<&mut Camera, With<PageCamera>>,
     mut viewport: Single<&mut ImageNode, With<ContentViewport>>,
+    ui_scale: Res<UiScale>,
 ) {
     let window_size = window.physical_size();
     if window_size.x < 128 || window_size.y < 128 {
@@ -262,7 +265,8 @@ fn setup_offscreen_node(
     let (_, _, _, content_page_size) = get_split_content_metrics(window_size);
     let handle = images.add(create_render_target(&content_page_size));
     content_assets.render_target = handle.clone();
-    offscreen.width = Val::Px(content_page_size.x as f32 * 0.8);
+    let inverse_ui_scale = 1.0 / ui_scale.max(0.25);
+    offscreen.width = Val::Px(content_page_size.x as f32 * 0.8 * inverse_ui_scale);
     page_cam.target = handle.clone().into();
     viewport.image = handle.clone();
 }
@@ -277,10 +281,13 @@ fn compute_grip_metrics(
     scrollbar_height_in_px: f32,
     scrollable_area_height_in_px: f32,
     max_scroll: f32,
+    ui_scale: f32,
 ) -> GripMetrics {
-    let ratio = scrollbar_height_in_px / scrollable_area_height_in_px;
+    let inverse_ui_scale = 1.0 / ui_scale.max(0.25);
+    let ratio = (scrollbar_height_in_px / scrollable_area_height_in_px) * inverse_ui_scale;
     let grip_height_in_px = scrollbar_height_in_px * ratio;
-    let grip_movement_potential_in_px = scrollbar_height_in_px - grip_height_in_px;
+    let grip_movement_potential_in_px =
+        scrollbar_height_in_px * inverse_ui_scale - grip_height_in_px;
     let grip_pos_to_scrollable_ratio = max_scroll / grip_movement_potential_in_px;
     GripMetrics {
         grip_height_in_px,
@@ -314,12 +321,14 @@ fn set_grip_size(
     >,
     computed_node: Single<&mut ComputedNode, (Without<ScrollbarGrip>, With<Scrollbar>)>,
     mut commands: Commands,
+    ui_scale: Res<UiScale>,
 ) {
     let (e, page_scrollable, maybe_scroll_target, computed_node_inner, maybe_priming) = &*page;
     let metrics = compute_grip_metrics(
         computed_node.size.y,
         computed_node_inner.size.y,
         page_scrollable.max_scroll,
+        ui_scale.0,
     );
 
     node.height = Val::Px(metrics.grip_height_in_px);
@@ -415,8 +424,8 @@ fn setup(
                 position_type: PositionType::Absolute,
                 left: Val::Px(0.0),
                 top: Val::Px(0.0),
-                width: Val::Px(300.0),
-                height: Val::Px(300.0),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
                 ..default()
             },
             RenderLayers::layer(RENDER_LAYER_CONTENT_OFFSCREEN),
@@ -527,6 +536,7 @@ fn setup(
                 .observe(
                     move |trigger: On<Pointer<Drag>>,
                           mut commands: Commands,
+                          ui_scale: Res<UiScale>,
                           mut nodes: Query<(&mut Node, &ChildOf)>,
                           computed_nodes: Query<&ComputedNode>,
                           mainpage: Single<Entity, With<ContentScroll>>,
@@ -551,6 +561,7 @@ fn setup(
                             computed_node.size.y,
                             computed_node_inner.size.y,
                             page_scrollable.max_scroll,
+                            ui_scale.0,
                         );
 
                         let node_pos_px = (curr + y_offset)
@@ -577,6 +588,7 @@ fn swap_content_text_node(
     mut content_entity: Single<(Entity, &mut ComputedNode), With<ContentText>>,
     viewport_host: Single<Entity, With<ContentScroll>>,
     content_assets: Res<ContentAssets>,
+    ui_scale: Res<UiScale>,
 ) {
     // Clear any existing viewport content
     commands
@@ -592,7 +604,9 @@ fn swap_content_text_node(
 
     // NOTE: we have to do this silly thing to make bevy_simple_scroll_view plugin
     // happy - as it will only set max_y after ComputedNode will change.
-    content_entity.1.inverse_scale_factor = 1.0;
+
+    let inverse_ui_scale = 1.0 / ui_scale.max(0.25);
+    content_entity.1.inverse_scale_factor = inverse_ui_scale;
 
     // Create a new offscreen bundle
     commands
@@ -642,6 +656,7 @@ fn make_viewport_bundle(image: Handle<Image>) -> impl Bundle {
             position_type: PositionType::Absolute,
             align_self: AlignSelf::Stretch,
             justify_self: JustifySelf::Stretch,
+            width: Val::Percent(100.0),
             ..default()
         },
     )
@@ -792,7 +807,9 @@ fn scroll_to_anchor_continous(
     anchors: Query<(&NpcAnchor, &UiGlobalTransform)>,
     global_transforms: Query<&UiGlobalTransform>,
     computed_nodes: Query<&ComputedNode>,
+    ui_scale: Res<UiScale>,
 ) {
+    let inverse_ui_scale = 1.0 / ui_scale.max(0.25);
     let (page_entity, page_scrollable, page_child_of) = &*page;
 
     let (Ok(parent_global_transform), Ok(parent_computed_node)) = (
@@ -811,7 +828,7 @@ fn scroll_to_anchor_continous(
             commands
                 .entity(*page_entity)
                 .insert(ScrollTarget::from_value(
-                    page_scrollable.pos_y - tx.translation.y + gap,
+                    (page_scrollable.pos_y - tx.translation.y + gap) * inverse_ui_scale,
                     page_scrollable.max_scroll,
                     false,
                 ));

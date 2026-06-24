@@ -92,6 +92,7 @@ pub struct UserSettings {
     pub sandboxes: Vec<SandboxRef>,
     pub tts_command: Option<String>,
     pub audio: bool,
+    pub ui_scale_factor: Option<f32>,
 }
 
 impl UserSettings {
@@ -196,6 +197,7 @@ impl Default for UserSettings {
             sandboxes: Vec::new(),
             tts_command: None,
             audio: true,
+            ui_scale_factor: Some(1.0),
         }
     }
 }

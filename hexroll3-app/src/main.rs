@@ -129,7 +129,8 @@ fn main() {
                     primary_window: Some(Window {
                         canvas: Some("#bevy".into()),
                         fit_canvas_to_parent: true,
-                        resolution: WindowResolution::default(),
+                        resolution: WindowResolution::default()
+                            .with_scale_factor_override(1.0),
                         ..default()
                     }),
                     ..default()
@@ -197,7 +198,8 @@ fn main() {
         bevy_inspector_egui::quick::ResourceInspectorPlugin::<DiceConfig>::default()
             .run_if(input_toggle_active(false, KeyCode::F10)),
     ))
-    .add_systems(OnEnter(hexroll3_app::shared::AppState::Live), spawn_version);
+    .add_systems(OnEnter(hexroll3_app::shared::AppState::Live), spawn_version)
+    .add_systems(Startup, set_ui_scale_from_settings);
 
     #[cfg(target_arch = "wasm32")]
     app.insert_resource(EguiWantsInput::default());
@@ -277,4 +279,10 @@ fn update_input_mode(
     } else {
         *input_mode = InputMode::KeyboardAvailable;
     }
+}
+
+fn set_ui_scale_from_settings(mut commands: Commands, settings: Res<UserSettings>) {
+    commands.insert_resource(UiScale(
+        settings.ui_scale_factor.unwrap_or(1.0).max(0.25).min(2.0),
+    ));
 }

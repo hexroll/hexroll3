@@ -457,6 +457,8 @@ fn setup_dicebox(
             position_type: PositionType::Absolute,
             align_self: AlignSelf::Stretch,
             justify_self: JustifySelf::Stretch,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
             ..default()
         },
     ));

@@ -27,10 +27,7 @@ use std::time::Duration;
 
 use crate::{
     hexmap::elements::{HexMarkerEntity, MainCamera},
-    shared::{
-        AppState,
-        tweens::{CameraViewportLens, UiNodeLens, UiNodeSizePos},
-    },
+    shared::{AppState, tweens::CameraViewportLens},
 };
 
 use bevy::{camera::Viewport, prelude::*, window::PrimaryWindow};
@@ -186,7 +183,7 @@ fn set_camera_viewports(
             let (main_pos, main_size) = get_split_map_viewport(window_size);
             let (_, _, content_viewport_pos, content_viewport_size) =
                 get_split_content_viewport(window_size);
-            let (_, _, content_page_pos, content_page_size) =
+            let (_, _, content_page_pos, _content_page_size) =
                 get_split_content_metrics(window_size);
             main_camera.viewport = Some(Viewport {
                 physical_position: main_pos,
@@ -200,8 +197,6 @@ fn set_camera_viewports(
             });
             content_page.left = Val::Px(content_page_pos.x);
             content_page.top = Val::Px(content_page_pos.y);
-            content_page.width = Val::Px(content_page_size.x);
-            content_page.height = Val::Px(content_page_size.y);
         } else {
             content_camera.is_active = false;
             let pos = UVec2::ZERO;
@@ -227,11 +222,9 @@ fn on_full_map(
 ) {
     commands.entity(*marker).insert(Visibility::Hidden);
     let window_size = window.physical_size();
-    let (start_pos_node, start_size_node, end_pos_node, end_size_node) =
-        get_split_content_metrics(window_size);
     let (start_pos_viewport, start_size_viewport, end_pos_viewport, end_size_viewport) =
         get_split_content_viewport(window_size);
-    let (tween_map_viewport, tween_page_viewport, tween_page_node) = {
+    let (tween_map_viewport, tween_page_viewport) = {
         let pos = UVec2::ZERO;
         let size = window_size;
         (
@@ -261,24 +254,6 @@ fn on_full_map(
                     pos_end: start_pos_viewport,
                 },
             ),
-            bevy_tweening::Tween::new(
-                EaseFunction::QuarticOut,
-                Duration::from_millis(200),
-                UiNodeLens {
-                    start: UiNodeSizePos {
-                        left: end_pos_node.x,
-                        top: end_pos_node.y,
-                        width: end_size_node.x,
-                        height: end_size_node.y,
-                    },
-                    end: UiNodeSizePos {
-                        left: start_pos_node.x,
-                        top: start_pos_node.y,
-                        width: start_size_node.x,
-                        height: start_size_node.y,
-                    },
-                },
-            ),
         )
     };
 
@@ -288,9 +263,6 @@ fn on_full_map(
     commands
         .entity(resizables.p1().0)
         .insert(bevy_tweening::Animator::new(tween_page_viewport));
-    commands
-        .entity(*resizables.p2())
-        .insert(bevy_tweening::Animator::new(tween_page_node));
 }
 
 fn on_split_screen(
@@ -305,11 +277,9 @@ fn on_split_screen(
 ) {
     commands.entity(*marker).insert(Visibility::Inherited);
     let window_size = window.physical_size();
-    let (start_pos_node, start_size_node, end_pos_node, end_size_node) =
-        get_split_content_metrics(window_size);
     let (start_pos_viewport, start_size_viewport, end_pos_viewport, end_size_viewport) =
         get_split_content_viewport(window_size);
-    let (tween_map_viewport, tween_page_viewport, tween_page_node) = {
+    let (tween_map_viewport, tween_page_viewport) = {
         let (pos, size) = get_split_map_viewport(window_size);
         (
             bevy_tweening::Tween::new(
@@ -332,24 +302,6 @@ fn on_split_screen(
                     pos_end: end_pos_viewport,
                 },
             ),
-            bevy_tweening::Tween::new(
-                EaseFunction::QuarticOut,
-                Duration::from_millis(200),
-                UiNodeLens {
-                    start: UiNodeSizePos {
-                        left: start_pos_node.x,
-                        top: start_pos_node.y,
-                        width: start_size_node.x,
-                        height: start_size_node.y,
-                    },
-                    end: UiNodeSizePos {
-                        left: end_pos_node.x,
-                        top: end_pos_node.y,
-                        width: end_size_node.x,
-                        height: end_size_node.y,
-                    },
-                },
-            ),
         )
     };
 
@@ -359,7 +311,4 @@ fn on_split_screen(
     commands
         .entity(resizables.p1().0)
         .insert(bevy_tweening::Animator::new(tween_page_viewport));
-    commands
-        .entity(*resizables.p2())
-        .insert(bevy_tweening::Animator::new(tween_page_node));
 }
