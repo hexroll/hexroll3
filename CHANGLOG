@@ -1,0 +1,79 @@
+# HEXROLL 3 CHANGELOG
+
+--------------------------------------------------------------------------------------------------
+## [0.7.3 build-2606250030] - 2026-06-25
+
+### Fixed
+- Fixed OS window scaling affecting UI and rendering buffer sizes
+- Fixed MacOS issues with optimized-for-size config
+
+
+--------------------------------------------------------------------------------------------------
+## [0.7.2 build-2606191648] - 2026-06-24
+
+### Changed
+- Changed opacity for partially revealed tiles
+
+### Fixed
+- Fixed a crash when VTT players explore a battlemap
+- Fixed a bug when revealing battlemaps to players
+- Fixed a few 5E modifier calculation issues
+
+
+--------------------------------------------------------------------------------------------------
+## [0.7.1 build-2606191648] - 2026-06-20
+
+### Added
+- Solo sandbox generation and play mode
+- Hybrid terrain generator / editor
+- New underground / overland layering system
+- F1 toggle for a keyboard shortcuts overlay (still work-in-progress)
+
+### Changed
+- Searching is now enabled in split view
+- Added content cache to reduce rendering time
+
+### Fixed
+- Fixed a crash when re-rolling a dungeon corridor
+- Fixed sigils not showing correctly for keys
+- Realms and regions are now shown on the map when selected
+- Ocean hexes instantiating & revealing works correctly now
+- Fixed another case of duplicate dice frame buffers
+- A few more minor tweaks and fixes
+
+
+--------------------------------------------------------------------------------------------------
+## [-.-.- build-2605240910] - 2026-05-24
+
+### Added
+- Standalone-mode VTT is now supported
+- 5E is now available for standalone sandboxes
+- Map editor now has additional feature tools and will pre-populate hexes
+- Rollback any sandbox change using ctrl-z / cmd-z (one-way-only) 
+- Renaming NPCs is now supported
+
+### Changed
+- Added a scrollbar to the content page
+
+### Fixed
+- Possibly fixed a render-buffer glitch when rolling dice
+- Fixed a crash when re-rolling ocean hexes
+- Fixed spoilers in standalone-mode
+- Fixed "losing" the map due to camera moving out-of-bounds
+- Other minor fixes and UX improvements
+
+
+--------------------------------------------------------------------------------------------------
+## [-.-.- build-2604231315] - 2026-04-25
+
+### Added
+- Standalone mode - generate and use OSR sandboxes locally
+- Hex map editor - draw your hex map using basic map editing tools
+- Non-linear generation - generate things in any order
+
+### Changed
+- Rolling D100 using the '0' key will now roll a D10 as well
+
+### Fixed
+- Fixed a crash when minimizing hexroll in Windows
+- Fixed some tile-art glitches
